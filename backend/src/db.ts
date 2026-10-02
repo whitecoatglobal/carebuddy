@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { seed, materialize, validateState, type State } from "care-buddy-shared";
+import { seed, emptyState, materialize, validateState, type State } from "care-buddy-shared";
 
 const DB_DIR = process.env.DB_DIR || path.resolve(process.cwd(), "../data");
 const DB_PATH = path.join(DB_DIR, "care-buddy.db");
@@ -50,7 +50,7 @@ export function ensureClientState(clientId: string): State {
       // fall through to seed
     }
   }
-  const fresh = seed();
+  const fresh = emptyState();
   fresh.started = true;
   upsertState(clientId, JSON.stringify(fresh));
   return fresh;

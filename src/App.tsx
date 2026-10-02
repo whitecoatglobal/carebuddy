@@ -306,7 +306,14 @@ export default function App() {
     const timer = setTimeout(() => setToast(""), 5000);
     return () => clearTimeout(timer);
   }, [toast]);
-  const profile = state.profiles.find((p) => p.id === state.selectedProfileId)!;
+  const profile = state.profiles.find((p) => p.id === state.selectedProfileId) ||
+    state.profiles[0] || {
+      id: "",
+      displayName: "No family member",
+      relationship: "",
+      canView: true,
+      canManage: true,
+    };
   const person = (id: string) =>
     state.profiles.find((p) => p.id === id)?.displayName || "Unknown person";
   const go = (path: string) => {
