@@ -1,0 +1,375 @@
+{
+  "state": {
+    "version": 1,
+    "started": true,
+    "now": "2026-09-30T09:00:00+08:00",
+    "selectedProfileId": "p-me",
+    "profiles": [
+      {
+        "id": "p-me",
+        "displayName": "Me",
+        "relationship": "Self",
+        "canView": true,
+        "canManage": true
+      },
+      {
+        "id": "p-maya",
+        "displayName": "Maya",
+        "relationship": "Parent",
+        "canView": true,
+        "canManage": true
+      },
+      {
+        "id": "p-leo",
+        "displayName": "Leo",
+        "relationship": "Child",
+        "canView": true,
+        "canManage": false
+      }
+    ],
+    "reminders": [
+      {
+        "id": "r-med-me",
+        "profileId": "p-me",
+        "category": "Medication",
+        "title": "Morning medication",
+        "scheduledAt": "2026-09-30T08:00:00+08:00",
+        "notificationSnoozedUntil": null,
+        "recurrence": "Daily",
+        "seriesId": "r-med-me",
+        "occurrenceDate": "2026-09-30",
+        "instructions": "Use the instructions already provided to you",
+        "appointmentId": null,
+        "outcome": null,
+        "completedAt": null,
+        "recordedBy": null,
+        "recordedAt": null,
+        "occurrenceOverride": false,
+        "deletedAt": null,
+        "history": []
+      },
+      {
+        "id": "r-bed-me",
+        "profileId": "p-me",
+        "category": "Bedtime",
+        "title": "Bedtime reminder",
+        "scheduledAt": "2026-09-30T22:00:00+08:00",
+        "notificationSnoozedUntil": null,
+        "recurrence": "Daily",
+        "seriesId": "r-bed-me",
+        "occurrenceDate": "2026-09-30",
+        "instructions": "",
+        "appointmentId": null,
+        "outcome": null,
+        "completedAt": null,
+        "recordedBy": null,
+        "recordedAt": null,
+        "occurrenceOverride": false,
+        "deletedAt": null,
+        "history": []
+      },
+      {
+        "id": "r-screen-maya",
+        "profileId": "p-maya",
+        "category": "Appointment preparation",
+        "title": "Review screening preparation",
+        "scheduledAt": "2026-09-30T19:00:00+08:00",
+        "notificationSnoozedUntil": null,
+        "recurrence": "None",
+        "seriesId": null,
+        "occurrenceDate": "2026-09-30",
+        "instructions": "",
+        "appointmentId": "a-screen-maya",
+        "outcome": null,
+        "completedAt": null,
+        "recordedBy": null,
+        "recordedAt": null,
+        "occurrenceOverride": false,
+        "deletedAt": null,
+        "history": []
+      },
+      {
+        "id": "r-bath-leo",
+        "profileId": "p-leo",
+        "category": "Personal care",
+        "title": "Bath-time reminder",
+        "scheduledAt": "2026-09-30T19:30:00+08:00",
+        "notificationSnoozedUntil": null,
+        "recurrence": "Daily",
+        "seriesId": "r-bath-leo",
+        "occurrenceDate": "2026-09-30",
+        "instructions": "",
+        "appointmentId": null,
+        "outcome": null,
+        "completedAt": null,
+        "recordedBy": null,
+        "recordedAt": null,
+        "occurrenceOverride": false,
+        "deletedAt": null,
+        "history": []
+      },
+      {
+        "id": "r-med-me:2026-10-01",
+        "profileId": "p-me",
+        "category": "Medication",
+        "title": "Morning medication",
+        "scheduledAt": "2026-10-01T08:00:00+08:00",
+        "notificationSnoozedUntil": null,
+        "recurrence": "Daily",
+        "seriesId": "r-med-me",
+        "occurrenceDate": "2026-10-01",
+        "instructions": "Use the instructions already provided to you",
+        "appointmentId": null,
+        "outcome": null,
+        "completedAt": null,
+        "recordedBy": null,
+        "recordedAt": null,
+        "occurrenceOverride": false,
+        "deletedAt": null,
+        "history": []
+      },
+      {
+        "id": "r-bed-me:2026-10-01",
+        "profileId": "p-me",
+        "category": "Bedtime",
+        "title": "Bedtime reminder",
+        "scheduledAt": "2026-10-01T22:00:00+08:00",
+        "notificationSnoozedUntil": null,
+        "recurrence": "Daily",
+        "seriesId": "r-bed-me",
+        "occurrenceDate": "2026-10-01",
+        "instructions": "",
+        "appointmentId": null,
+        "outcome": null,
+        "completedAt": null,
+        "recordedBy": null,
+        "recordedAt": null,
+        "occurrenceOverride": false,
+        "deletedAt": null,
+        "history": []
+      },
+      {
+        "id": "r-bath-leo:2026-10-01",
+        "profileId": "p-leo",
+        "category": "Personal care",
+        "title": "Bath-time reminder",
+        "scheduledAt": "2026-10-01T19:30:00+08:00",
+        "notificationSnoozedUntil": null,
+        "recurrence": "Daily",
+        "seriesId": "r-bath-leo",
+        "occurrenceDate": "2026-10-01",
+        "instructions": "",
+        "appointmentId": null,
+        "outcome": null,
+        "completedAt": null,
+        "recordedBy": null,
+        "recordedAt": null,
+        "occurrenceOverride": false,
+        "deletedAt": null,
+        "history": []
+      }
+    ],
+    "appointments": [
+      {
+        "id": "a-check-me",
+        "profileId": "p-me",
+        "category": "health-check",
+        "title": "Routine health check",
+        "startsAt": "2026-09-30T14:00:00+08:00",
+        "locationLabel": "Clinic A",
+        "checklist": [
+          false,
+          false,
+          false
+        ],
+        "recordOrigin": "demo",
+        "providerConfirmed": false,
+        "provenanceHistory": []
+      },
+      {
+        "id": "a-screen-maya",
+        "profileId": "p-maya",
+        "category": "screening",
+        "title": "Health screening",
+        "startsAt": "2026-10-01T10:00:00+08:00",
+        "locationLabel": "Clinic A",
+        "checklist": [
+          false,
+          false,
+          false
+        ],
+        "recordOrigin": "demo",
+        "providerConfirmed": false,
+        "provenanceHistory": []
+      },
+      {
+        "id": "a-dental-leo",
+        "profileId": "p-leo",
+        "category": "dental",
+        "title": "Dental visit",
+        "startsAt": "2026-10-02T16:00:00+08:00",
+        "locationLabel": "Clinic B",
+        "checklist": [
+          false,
+          false,
+          false
+        ],
+        "recordOrigin": "demo",
+        "providerConfirmed": false,
+        "provenanceHistory": []
+      }
+    ],
+    "benefits": [
+      {
+        "id": "b-gp-me",
+        "profileId": "p-me",
+        "category": "gp",
+        "status": "Listed in sample plan",
+        "conditions": "Confirm current terms with your benefits administrator.",
+        "source": "Care plan · illustrative terms, v1",
+        "policyDate": "2026-09-30T00:00:00+08:00"
+      },
+      {
+        "id": "b-check-me",
+        "profileId": "p-me",
+        "category": "health-check",
+        "status": "Conditions apply",
+        "conditions": "Eligibility and provider requirements would need confirmation.",
+        "source": "Care plan · illustrative terms, v1",
+        "policyDate": "2026-09-30T00:00:00+08:00"
+      },
+      {
+        "id": "b-screen-maya",
+        "profileId": "p-maya",
+        "category": "screening",
+        "status": "Conditions apply",
+        "conditions": "Eligibility and provider requirements would need confirmation.",
+        "source": "Care plan · illustrative terms, v1",
+        "policyDate": "2026-09-30T00:00:00+08:00"
+      },
+      {
+        "id": "b-dental-leo",
+        "profileId": "p-leo",
+        "category": "dental",
+        "status": "Needs confirmation",
+        "conditions": "The available terms do not contain enough information to confirm dental cover.",
+        "source": "Care plan · illustrative terms, v1",
+        "policyDate": "2026-09-30T00:00:00+08:00"
+      },
+      {
+        "id": "b-other-p-me",
+        "profileId": "p-me",
+        "category": "other",
+        "status": "Not listed in sample data",
+        "conditions": "Not listed does not mean not covered.",
+        "source": "Care plan · illustrative terms, v1",
+        "policyDate": "2026-09-30T00:00:00+08:00"
+      },
+      {
+        "id": "b-other-p-maya",
+        "profileId": "p-maya",
+        "category": "other",
+        "status": "Not listed in sample data",
+        "conditions": "Not listed does not mean not covered.",
+        "source": "Care plan · illustrative terms, v1",
+        "policyDate": "2026-09-30T00:00:00+08:00"
+      },
+      {
+        "id": "b-other-p-leo",
+        "profileId": "p-leo",
+        "category": "other",
+        "status": "Not listed in sample data",
+        "conditions": "Not listed does not mean not covered.",
+        "source": "Care plan · illustrative terms, v1",
+        "policyDate": "2026-09-30T00:00:00+08:00"
+      },
+      {
+        "id": "b-dental-p-me",
+        "profileId": "p-me",
+        "category": "dental",
+        "status": "Needs confirmation",
+        "conditions": "The available terms do not contain enough information to confirm cover.",
+        "source": "No sample terms supplied",
+        "policyDate": null
+      },
+      {
+        "id": "b-gp-p-maya",
+        "profileId": "p-maya",
+        "category": "gp",
+        "status": "Needs confirmation",
+        "conditions": "The available terms do not contain enough information to confirm cover.",
+        "source": "No sample terms supplied",
+        "policyDate": null
+      },
+      {
+        "id": "b-dental-p-maya",
+        "profileId": "p-maya",
+        "category": "dental",
+        "status": "Needs confirmation",
+        "conditions": "The available terms do not contain enough information to confirm cover.",
+        "source": "No sample terms supplied",
+        "policyDate": null
+      },
+      {
+        "id": "b-gp-p-leo",
+        "profileId": "p-leo",
+        "category": "gp",
+        "status": "Needs confirmation",
+        "conditions": "The available terms do not contain enough information to confirm cover.",
+        "source": "No sample terms supplied",
+        "policyDate": null
+      },
+      {
+        "id": "b-screening-p-leo",
+        "profileId": "p-leo",
+        "category": "screening",
+        "status": "Needs confirmation",
+        "conditions": "The available terms do not contain enough information to confirm cover.",
+        "source": "No sample terms supplied",
+        "policyDate": null
+      }
+    ],
+    "chats": [],
+    "notifications": [
+      {
+        "id": "n-me",
+        "profileId": "p-me",
+        "title": "Reminder due",
+        "targetType": "reminder",
+        "targetId": "r-med-me",
+        "readAt": null,
+        "timestamp": "2026-09-30T09:00:00+08:00"
+      },
+      {
+        "id": "n-maya",
+        "profileId": "p-maya",
+        "title": "Appointment preparation",
+        "targetType": "appointment",
+        "targetId": "a-screen-maya",
+        "readAt": null,
+        "timestamp": "2026-09-30T09:00:00+08:00"
+      },
+      {
+        "id": "n-leo",
+        "profileId": "p-leo",
+        "title": "Sample benefit needs confirmation",
+        "targetType": "benefit",
+        "targetId": "b-dental-leo",
+        "readAt": null,
+        "timestamp": "2026-09-30T09:00:00+08:00"
+      }
+    ],
+    "appliedActions": [],
+    "activity": [],
+    "carMode": "disconnected",
+    "preferences": {
+      "genericReminders": true,
+      "spokenReminders": false
+    },
+    "scenario": ""
+  },
+  "profileId": "p-me",
+  "expectedClock": "2026-09-30T09:00:00+08:00",
+  "actionId": "example-care-sample-benefits",
+  "category": "gp"
+}

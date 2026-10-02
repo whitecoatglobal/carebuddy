@@ -1,0 +1,2306 @@
+--- work/care-buddy-polish-before/App.tsx	2026-09-30 21:43:25
++++ outputs/care-buddy/src/App.tsx	2026-09-30 22:03:45
+@@ -17,6 +17,9 @@
+   notificationTime,
+   statusLabel,
+   buildChatAction,
++  preparationTime,
++  assertFreshAction,
++  importSkillProposal,
+ } from "./domain";
+ import type {
+   State,
+@@ -27,6 +30,10 @@
+   Receipt,
+ } from "./types";
+ const uid = () => crypto.randomUUID();
++const benefitStatus = (status: string) =>
++  status
++    .replace("Listed in sample plan", "Listed in plan")
++    .replace("Not listed in sample data", "Not listed in available terms");
+ const benefitName = (category: string) =>
+   ({
+     gp: "GP visits",
+@@ -192,9 +199,9 @@
+       <summary>Action details · {receipt.outcome}</summary>
+       <dl>
+         <dt>Source</dt>
+-        <dd>Simulated WorkBuddy action</dd>
++        <dd>Care Buddy local action</dd>
+         <dt>Information used</dt>
+-        <dd>{receipt.sourceIds.join(", ") || "User-entered demo input"}</dd>
++        <dd>{receipt.sourceIds.join(", ") || "User-entered input"}</dd>
+         <dt>Person</dt>
+         <dd>
+           {state.profiles.find((p) => p.id === receipt.profileId)
+@@ -208,7 +215,7 @@
+         <dd>{receipt.confirmation ? "Confirmed" : "Not confirmed"}</dd>
+         <dt>Local save outcome</dt>
+         <dd>{receipt.outcome}</dd>
+-        <dt>Demo timestamp</dt>
++        <dt>Recorded at</dt>
+         <dd>{receipt.timestamp}</dd>
+       </dl>
+     </details>
+@@ -245,7 +252,7 @@
+   const [draft, setDraft] = useState("");
+   const [context, setContext] = useState<string | null>(null);
+   const [scopePrompt, setScopePrompt] = useState<string | null>(null);
+-  const [weather, setWeather] = useState(true);
++
+   const [snooze, setSnooze] = useState<Reminder | null>(null);
+   const [snoozeTime, setSnoozeTime] = useState("09:15");
+   const [scopeEdit, setScopeEdit] = useState<Reminder | null>(null);
+@@ -395,6 +402,13 @@
+     if (!pending || stateRef.current.appliedActions.includes(pending.action.id))
+       return;
+     const p = pending;
++    try {
++      assertFreshAction(stateRef.current, p.action);
++    } catch (e) {
++      setError((e as Error).message);
++      setRetry(null);
++      return;
++    }
+     const saved: Receipt = {
+       actionId: p.action.id,
+       sourceIds: p.action.sourceIds,
+@@ -479,7 +493,29 @@
+     appointmentId?: string,
+   ) => {
+     const a = state.appointments.find((x) => x.id === appointmentId);
+-    const time = r?.scheduledAt || "2026-09-30T19:00:00+08:00";
++    const existing =
++      !r &&
++      a &&
++      state.reminders.find(
++        (x) =>
++          x.appointmentId === a.id &&
++          !x.deletedAt &&
++          !x.outcome &&
++          x.category === "Appointment preparation",
++      );
++    if (existing) {
++      viewReminder(existing.id);
++      setToast(
++        "An existing preparation reminder is already linked to this appointment.",
++      );
++      return;
++    }
++    const after = new Date(Date.parse(state.now) + 60 * 60000);
++    const localAfter = new Date(after.getTime() + 8 * 3600000).toISOString();
++    const time =
++      r?.scheduledAt ||
++      (a && preparationTime(state, a.startsAt)) ||
++      isoAt(localAfter.slice(0, 10), localAfter.slice(11, 16));
+     openForm(
+       "reminder",
+       {
+@@ -502,12 +538,15 @@
+   const reminders = state.reminders.filter(
+     (r) => r.profileId === profile.id && !r.deletedAt,
+   );
+-  const todayReminders = reminders.filter(
+-    (r) => r.occurrenceDate === state.now.slice(0, 10),
+-  );
+-  const appointments = state.appointments.filter(
+-    (a) => a.profileId === profile.id,
+-  );
++  const todayReminders = reminders
++    .filter((r) => r.occurrenceDate === state.now.slice(0, 10))
++    .sort(
++      (a, b) =>
++        Date.parse(notificationTime(a)) - Date.parse(notificationTime(b)),
++    );
++  const appointments = state.appointments
++    .filter((a) => a.profileId === profile.id)
++    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
+   const sorted = [...todayReminders.filter((r) => !r.outcome)].sort(
+     (a, b) =>
+       notificationTime(a).localeCompare(notificationTime(b)) ||
+@@ -570,26 +609,37 @@
+     </button>
+   );
+   const summary = (p = profile) => {
+-    const rs = state.reminders.filter(
+-      (r) => r.profileId === p.id && !r.deletedAt && !r.outcome,
+-    );
++    const rs = state.reminders
++      .filter((r) => r.profileId === p.id && !r.deletedAt && !r.outcome)
++      .sort((a, b) => notificationTime(a).localeCompare(notificationTime(b)));
++    const a = state.appointments
++      .filter(
++        (a) =>
++          a.profileId === p.id &&
++          Date.parse(a.startsAt) > Date.parse(state.now),
++      )
++      .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
+     return rs[0]
+       ? rs[0].title + " · " + formatTime(rs[0].scheduledAt)
+-      : "No reminders or appointments yet";
++      : a
++        ? a.title + " · " + formatDate(a.startsAt)
++        : "No reminders or appointments yet";
+   };
+   const about = () =>
+     setModal({
+-      title: "About this demo",
++      title: "About Care Buddy",
+       content: (
+         <>
+           <p>Fictional data only. Not a medical or insurance service.</p>
+           <p>
+-            Assistant, weather, benefits, appointments, notifications, GP
+-            request and car connection are simulated. All changes stay in this
+-            browser.
++            This is a prototype with fictional records and a reference clock.
++            Buddy uses local rules and current records; it is not connected to
++            WorkBuddy or a live AI model. Benefits, appointment requests, alerts
++            and car connection are illustrative. All changes stay on this
++            device.
+           </p>
+           <p>
+-            This demo helps organise routine care. It does not assess symptoms,
++            Care Buddy helps organise routine care. It does not assess symptoms,
+             diagnose, prescribe, verify cover, make bookings or handle
+             emergencies.
+           </p>
+@@ -609,244 +659,268 @@
+   function renderToday() {
+     return (
+       <>
+-        <div className="eyebrow">WEDNESDAY, 30 SEPTEMBER</div>
++        <div className="eyebrow">
++          {new Intl.DateTimeFormat("en-SG", {
++            weekday: "long",
++            day: "numeric",
++            month: "long",
++            timeZone: "Asia/Singapore",
++          }).format(new Date(state.now))}
++        </div>
+         <h1>
+           {profile.id === "p-me" ? "Your day" : profile.displayName + "'s day"}
+         </h1>
+         <p className="lead">
+-          {profile.id === "p-me" &&
+-          todayReminders.some((r) => r.category === "Medication" && !r.outcome)
+-            ? "A medication reminder is not recorded. You have an appointment today."
+-            : "A little organisation, for the day ahead."}
++          {todayReminders.filter((r) => !r.outcome).length} routines to record
++          {appointments.some(
++            (a) =>
++              a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
++              Date.parse(a.startsAt) >= Date.parse(state.now),
++          )
++            ? ` · ${appointments.filter((a) => a.startsAt.slice(0, 10) === state.now.slice(0, 10) && Date.parse(a.startsAt) >= Date.parse(state.now)).length} appointment${appointments.filter((a) => a.startsAt.slice(0, 10) === state.now.slice(0, 10) && Date.parse(a.startsAt) >= Date.parse(state.now)).length === 1 ? "" : "s"} today`
++            : " · No appointments today"}
+         </p>
+         {!profile.canManage && (
+           <div className="notice">
+             You can view reminders, but cannot update this profile.
+           </div>
+         )}
+-        <section className="next-card">
+-          <div className="section-kicker">
+-            <Icon name="clock" /> NEXT UP
+-          </div>
+-          {next ? (
+-            <>
+-              <div className="next-heading">
+-                <h2>{next.title}</h2>
+-                <span className="status amber">{statusLabel(next)}</span>
++        <div className="day-layout">
++          <div className="day-focus">
++            <section className="next-card">
++              <div className="section-kicker">
++                <Icon name="clock" /> NEXT UP
++                {next && (
++                  <span className="status amber">{statusLabel(next)}</span>
++                )}
+               </div>
+-              <p>
+-                For: {profile.displayName} · Due at{" "}
+-                {formatTime(next.scheduledAt)}
+-              </p>
+-              {next.notificationSnoozedUntil && (
+-                <p>
+-                  Notification at {formatTime(next.notificationSnoozedUntil)}
+-                </p>
+-              )}
+-              <p className="helper">
+-                {next.category === "Medication"
+-                  ? "Follow the instructions you entered. This demo does not provide medication advice."
+-                  : "Your personal routine, at your chosen time."}
+-              </p>
+-              <div className="actions">
+-                <button
+-                  className="primary"
+-                  disabled={!profile.canManage}
+-                  onClick={() =>
+-                    complete(
+-                      next,
+-                      next.category === "Medication" ? "taken" : "complete",
+-                    )
+-                  }
+-                >
+-                  <Icon name="check" />
+-                  {next.category === "Medication"
+-                    ? "Mark as taken"
+-                    : "Mark complete"}
+-                </button>
+-                <button
+-                  disabled={!profile.canManage}
+-                  onClick={() => {
+-                    setSnooze(next);
+-                    setSnoozeTime("09:15");
+-                  }}
++              {next ? (
++                <>
++                  <div className="next-heading">
++                    <h2>{next.title}</h2>
++                  </div>
++                  <p>
++                    For: {profile.displayName} · Due at{" "}
++                    {formatTime(next.scheduledAt)}
++                  </p>
++                  {next.notificationSnoozedUntil && (
++                    <p>
++                      Notification at{" "}
++                      {formatTime(next.notificationSnoozedUntil)}
++                    </p>
++                  )}
++                  <p className="helper">
++                    {next.category === "Medication"
++                      ? "Follow your existing medication instructions."
++                      : "Your personal routine, at your chosen time."}
++                  </p>
++                  <div className="actions">
++                    <button
++                      className="primary"
++                      disabled={!profile.canManage}
++                      onClick={() =>
++                        complete(
++                          next,
++                          next.category === "Medication" ? "taken" : "complete",
++                        )
++                      }
++                    >
++                      <Icon name="check" />
++                      {next.category === "Medication"
++                        ? "Mark as taken"
++                        : "Mark complete"}
++                    </button>
++                    <button
++                      disabled={!profile.canManage}
++                      onClick={() => {
++                        setSnooze(next);
++                        setSnoozeTime(
++                          new Intl.DateTimeFormat("en-GB", {
++                            hour: "2-digit",
++                            minute: "2-digit",
++                            hour12: false,
++                            timeZone: "Asia/Singapore",
++                          }).format(
++                            new Date(Date.parse(state.now) + 15 * 60000),
++                          ),
++                        );
++                      }}
++                    >
++                      Remind me later
++                    </button>
++                    <button
++                      className="text-button"
++                      onClick={() => ask(next.id)}
++                    >
++                      Ask Buddy
++                    </button>
++                  </div>
++                </>
++              ) : nextAppointment ? (
++                <>
++                  <h2>{nextAppointment.title}</h2>
++                  <p>
++                    {formatDate(nextAppointment.startsAt)} ·{" "}
++                    {formatTime(nextAppointment.startsAt)}
++                  </p>
++                  <button
++                    onClick={() => go("/appointments/" + nextAppointment.id)}
++                  >
++                    View appointment
++                  </button>
++                </>
++              ) : (
++                <>
++                  <h2>Nothing else scheduled</h2>
++                  <p>Enjoy a little breathing room.</p>
++                  <button
++                    onClick={() => reminderForm()}
++                    disabled={!profile.canManage}
++                  >
++                    Add reminder
++                  </button>
++                </>
++              )}
++            </section>
++            {nextAppointment && (
++              <div className="appointment-strip">
++                <Icon name="today" />
++                <div>
++                  <small>NEXT APPOINTMENT</small>
++                  <strong>{nextAppointment.title}</strong>
++                  <span>
++                    {formatDate(nextAppointment.startsAt)} ·{" "}
++                    {formatTime(nextAppointment.startsAt)}
++                  </span>
++                </div>
++                <button
++                  className="text-button"
++                  onClick={() => go("/appointments/" + nextAppointment.id)}
+                 >
+-                  Remind me later
++                  View appointment <Icon name="arrow" />
+                 </button>
+-                <button className="text-button" onClick={() => ask(next.id)}>
+-                  Ask Buddy
+-                </button>
+               </div>
+-            </>
+-          ) : nextAppointment ? (
+-            <>
+-              <h2>{nextAppointment.title}</h2>
+-              <p>
+-                {formatDate(nextAppointment.startsAt)} ·{" "}
+-                {formatTime(nextAppointment.startsAt)}
+-              </p>
+-              <button onClick={() => go("/appointments/" + nextAppointment.id)}>
+-                View appointment
+-              </button>
+-            </>
+-          ) : (
+-            <>
+-              <h2>Nothing else scheduled</h2>
+-              <p>Enjoy a little breathing room.</p>
++            )}
++          </div>
++          <div className="day-timeline">
++            <div className="section-heading">
++              <h2>Daily timeline</h2>
+               <button
+-                onClick={() => reminderForm()}
++                className="text-button"
+                 disabled={!profile.canManage}
++                onClick={() => reminderForm()}
+               >
++                <Icon name="plus" />
+                 Add reminder
+               </button>
+-            </>
+-          )}
+-        </section>
+-        {nextAppointment && (
+-          <div className="appointment-strip">
+-            <Icon name="today" />
+-            <div>
+-              <small>NEXT APPOINTMENT · DEMO</small>
+-              <strong>{nextAppointment.title}</strong>
+-              <span>
+-                {formatDate(nextAppointment.startsAt)} ·{" "}
+-                {formatTime(nextAppointment.startsAt)}
+-              </span>
+             </div>
+-            <button
+-              className="text-button"
+-              onClick={() => go("/appointments/" + nextAppointment.id)}
+-            >
+-              View appointment <Icon name="arrow" />
+-            </button>
++            {["Earlier", "Upcoming", "Completed", "Recorded as skipped"].map(
++              (group) => {
++                const items = todayReminders.filter((r) =>
++                  group === "Completed"
++                    ? r.outcome === "taken" || r.outcome === "complete"
++                    : group === "Recorded as skipped"
++                      ? r.outcome === "skipped"
++                      : !r.outcome &&
++                        (group === "Earlier"
++                          ? notificationTime(r) < state.now
++                          : notificationTime(r) >= state.now),
++                );
++                if (group === "Completed")
++                  return (
++                    <details className="timeline-group" key={group}>
++                      <summary>Completed ({items.length})</summary>
++                      {items.map(reminderRow)}
++                      {items.length === 0 && (
++                        <p className="helper">
++                          Reported completions will appear here.
++                        </p>
++                      )}
++                    </details>
++                  );
++                return items.length > 0 ? (
++                  <section className="timeline-group" key={group}>
++                    <h3>{group}</h3>
++                    {items.map(reminderRow)}
++                  </section>
++                ) : null;
++              },
++            )}
++            {appointments.filter(
++              (a) =>
++                a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
++                Date.parse(a.startsAt) >= Date.parse(state.now),
++            ).length > 0 && (
++              <section className="timeline-group">
++                <h3>Upcoming appointments</h3>
++                {appointments
++                  .filter(
++                    (a) =>
++                      a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
++                      Date.parse(a.startsAt) >= Date.parse(state.now),
++                  )
++                  .map((a) => (
++                    <button
++                      className="timeline-row"
++                      key={a.id}
++                      onClick={() => go("/appointments/" + a.id)}
++                    >
++                      <span className="type-icon">
++                        <Icon name="today" />
++                      </span>
++                      <span className="row-copy">
++                        <strong>{a.title}</strong>
++                        <span>
++                          {formatTime(a.startsAt)} · {profile.displayName}
++                        </span>
++                      </span>
++                      <span className="status">Appointment</span>
++                      <Icon name="arrow" />
++                    </button>
++                  ))}
++              </section>
++            )}
++            {todayReminders.length === 0 && (
++              <div className="empty">
++                <h3>No reminders today</h3>
++                <p>Add a routine to help organise your day.</p>
++                <button
++                  onClick={() => reminderForm()}
++                  disabled={!profile.canManage}
++                >
++                  Add reminder
++                </button>
++              </div>
++            )}
+           </div>
+-        )}
+-        <div className="section-heading">
+-          <h2>Daily timeline</h2>
++        </div>
++        <aside className="care-insight">
++          <Icon name="buddy" />
++          <div>
++            <strong>
++              {
++                todayReminders.filter(
++                  (r) => r.outcome === "taken" || r.outcome === "complete",
++                ).length
++              }{" "}
++              of {todayReminders.length} routines recorded
++            </strong>
++            <p>
++              {nextAppointment
++                ? `Next appointment: ${nextAppointment.title}, ${formatDate(nextAppointment.startsAt)}.`
++                : "Your appointment list is clear."}
++            </p>
++          </div>
+           <button
+             className="text-button"
+-            disabled={!profile.canManage}
+-            onClick={() => reminderForm()}
+-          >
+-            <Icon name="plus" />
+-            Add reminder
++            onClick={() => {
++              setContext(null);
++              go("/buddy");
++            }}
++          >
++            Plan my day <Icon name="arrow" />
+           </button>
+-        </div>
+-        {["Earlier", "Upcoming", "Completed", "Recorded as skipped"].map(
+-          (group) => {
+-            const items = todayReminders.filter((r) =>
+-              group === "Completed"
+-                ? r.outcome === "taken" || r.outcome === "complete"
+-                : group === "Recorded as skipped"
+-                  ? r.outcome === "skipped"
+-                  : !r.outcome &&
+-                    (group === "Earlier"
+-                      ? notificationTime(r) < state.now
+-                      : notificationTime(r) >= state.now),
+-            );
+-            if (group === "Completed")
+-              return (
+-                <details className="timeline-group" key={group}>
+-                  <summary>Completed ({items.length})</summary>
+-                  {items.map(reminderRow)}
+-                  {items.length === 0 && (
+-                    <p className="helper">
+-                      Reported completions will appear here.
+-                    </p>
+-                  )}
+-                </details>
+-              );
+-            return items.length > 0 ? (
+-              <section className="timeline-group" key={group}>
+-                <h3>{group}</h3>
+-                {items.map(reminderRow)}
+-              </section>
+-            ) : null;
+-          },
+-        )}
+-        {appointments.filter(
+-          (a) =>
+-            a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
+-            Date.parse(a.startsAt) >= Date.parse(state.now),
+-        ).length > 0 && (
+-          <section className="timeline-group">
+-            <h3>Upcoming appointments</h3>
+-            {appointments
+-              .filter(
+-                (a) =>
+-                  a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
+-                  Date.parse(a.startsAt) >= Date.parse(state.now),
+-              )
+-              .map((a) => (
+-                <button
+-                  className="timeline-row"
+-                  key={a.id}
+-                  onClick={() => go("/appointments/" + a.id)}
+-                >
+-                  <span className="type-icon">
+-                    <Icon name="today" />
+-                  </span>
+-                  <span className="row-copy">
+-                    <strong>{a.title}</strong>
+-                    <span>
+-                      {formatTime(a.startsAt)} · {profile.displayName}
+-                    </span>
+-                  </span>
+-                  <span className="status">Demo appointment</span>
+-                  <Icon name="arrow" />
+-                </button>
+-              ))}
+-          </section>
+-        )}
+-        {todayReminders.length === 0 && (
+-          <div className="empty">
+-            <h3>No reminders today</h3>
+-            <p>Add a routine to help organise your day.</p>
+-            <button
+-              onClick={() => reminderForm()}
+-              disabled={!profile.canManage}
+-            >
+-              Add reminder
+-            </button>
+-          </div>
+-        )}
+-        {weather && (
+-          <aside className="weather">
+-            <div>
+-              <small>SAMPLE WEATHER</small>
+-              <p>
+-                Rain this afternoon. Check travel plans before your appointment.
+-              </p>
+-            </div>
+-            <button
+-              className="text-button"
+-              onClick={() =>
+-                setModal({
+-                  title: "Sample weather",
+-                  content: (
+-                    <>
+-                      <p>Sample forecast: rain this afternoon.</p>
+-                      <p>
+-                        Fictional Singapore forecast · Updated 30 Sep 2026, 9:00
+-                        AM. No location or weather service is used.
+-                      </p>
+-                      <button
+-                        onClick={() => {
+-                          setWeather(false);
+-                          setModal(null);
+-                        }}
+-                      >
+-                        Dismiss for this session
+-                      </button>
+-                    </>
+-                  ),
+-                })
+-              }
+-            >
+-              Details
+-            </button>
+-          </aside>
+-        )}
++        </aside>
+         <div className="quiet-actions">
+           <button className="text-button" onClick={() => go("/care/gp")}>
+             Find GP care <Icon name="arrow" />
+@@ -884,8 +958,8 @@
+                   title: "Why can't I edit?",
+                   content: (
+                     <p>
+-                      This demo profile is view-only. Changing a relationship
+-                      label does not grant access.
++                      This profile is view-only. Changing a relationship label
++                      does not grant access.
+                     </p>
+                   ),
+                 })
+@@ -925,7 +999,7 @@
+             <button onClick={() => ask()}>
+               Ask Buddy about {member.displayName}
+             </button>
+-            <button onClick={() => go("/benefits")}>Sample benefits</button>
++            <button onClick={() => go("/benefits")}>Benefits</button>
+             {member.id !== "p-me" && (
+               <button
+                 className="danger-text"
+@@ -938,7 +1012,7 @@
+                   )
+                 }
+               >
+-                Remove fictional dependent
++                Remove family member
+               </button>
+             )}
+           </div>
+@@ -986,8 +1060,8 @@
+           Add dependent
+         </button>
+         <p className="helper">
+-          Use fictional names. Browser-local permissions are demo fixtures, not
+-          production security.
++          Use fictional names. Permissions in this prototype are local fixtures,
++          not production security.
+         </p>
+       </>
+     );
+@@ -1002,23 +1076,22 @@
+         <button className="text-button" onClick={() => go("/today")}>
+           ← Back to Today
+         </button>
+-        <span className="eyebrow">DEMO APPOINTMENT</span>
++        <span className="eyebrow">APPOINTMENT</span>
+         <h1>{a.title}</h1>
+         <p className="lead">For: {profile.displayName}</p>
+         <div className="detail-panel">
+           <h2>{formatDate(a.startsAt)}</h2>
+-          <p>{formatTime(a.startsAt)} · Fictional 30-minute slot</p>
++          <p>{formatTime(a.startsAt)} · Time in your care record</p>
+           <p>{a.locationLabel}</p>
+-          <p className="helper">Location provided in a real booking</p>
++          <p className="helper">Confirm the location with the provider.</p>
+           <div className="notice">
+-            Sample appointment. No booking has been made. Provider confirmation:
+-            Not confirmed.
++            Local appointment record. Provider confirmation: Not confirmed.
+           </div>
+           <p className="helper">
+             Record origin:{" "}
+             {a.recordOrigin === "user-saved"
+               ? "User-saved local record"
+-              : "Original demo fixture"}
++              : "Initial care record"}
+           </p>
+         </div>
+         <h2>Preparation checklist</h2>
+@@ -1069,14 +1142,14 @@
+                   title: "Needs confirmation",
+                   content: (
+                     <p>
+-                      This service is not mapped in the sample policy. Confirm
+-                      current terms with your benefits administrator.
++                      This service is not mapped in the available policy terms.
++                      Confirm current terms with your benefits administrator.
+                     </p>
+                   ),
+                 });
+             }}
+           >
+-            Check sample benefits
++            Check benefits
+           </button>
+           <button
+             disabled={!profile.canManage}
+@@ -1127,14 +1200,14 @@
+           >
+             {new URLSearchParams(route.split("?")[1]).get("from")
+               ? "← Back to appointment"
+-              : "← Back to sample benefits"}
++              : "← Back to benefits"}
+           </button>
+-          <span className="eyebrow">FICTIONAL DEMO POLICY</span>
++          <span className="eyebrow">PLAN DETAILS</span>
+           <h1>{benefitName(b.category)}</h1>
+           <p className="lead">For: {profile.displayName}</p>
+           <div className="detail-panel">
+-            <span className="status">{b.status}</span>
+-            <h2>Documented sample terms</h2>
++            <span className="status">{benefitStatus(b.status)}</span>
++            <h2>Documented terms</h2>
+             <p>{b.conditions}</p>
+             {b.notes && <p>{b.notes}</p>}
+             <dl>
+@@ -1144,7 +1217,7 @@
+               <dd>
+                 {b.policyDate ? formatDate(b.policyDate) : "Date not supplied"}
+               </dd>
+-              <dt>Covered person in sample</dt>
++              <dt>Person on this record</dt>
+               <dd>{profile.displayName}</dd>
+               <dt>Provider eligibility</dt>
+               <dd>Eligibility not verified</dd>
+@@ -1168,16 +1241,15 @@
+     }
+     return (
+       <>
+-        <h1>Sample benefits</h1>
++        <h1>Benefits</h1>
+         <p className="lead">
+-          Illustrative plan data. Confirm cover with your insurer or benefits
+-          administrator.
++          Confirm current cover with your insurer or benefits administrator.
+         </p>
+         <div className="plan-heading">
+           <Icon name="benefits" />
+           <div>
+-            <strong>WorkBuddy demo plan</strong>
+-            <span>{profile.displayName} · Sample policy date: 30 Sep 2026</span>
++            <strong>Care plan</strong>
++            <span>{profile.displayName} · Policy date: 30 Sep 2026</span>
+           </div>
+         </div>
+         {state.benefits
+@@ -1211,13 +1283,13 @@
+               })
+             }
+           >
+-            Check sample benefits
++            Check benefits
+           </button>
+           <button
+             disabled={!profile.canManage}
+             onClick={() => openForm("benefitNote", { category: "", notes: "" })}
+           >
+-            Add fictional benefit note
++            Add benefit note
+           </button>
+         </div>
+       </>
+@@ -1266,7 +1338,10 @@
+           });
+           setDraft("");
+           if (reply.needsScope) setScopePrompt(text);
+-          if (reply.action) setPending({ action: reply.action, message: text });
++          if (reply.action) {
++            setReceipt(null);
++            setPending({ action: reply.action, message: text });
++          }
+         },
+       },
+     );
+@@ -1279,15 +1354,14 @@
+     ].find((x) => x.id === context && x.profileId === profile.id);
+     return (
+       <>
+-        <div className="eyebrow">SCRIPTED DEMO ASSISTANT</div>
++        <div className="eyebrow">YOUR CARE ASSISTANT</div>
+         <h1>Buddy</h1>
+         <p className="lead">For: {profile.displayName}</p>
+         <div className="buddy-intro">
+           <Icon name="buddy" />
+           <p>
+-            I can help you organise reminders and explain this demo's sample
+-            information. I do not diagnose, prescribe or confirm insurance
+-            cover.
++            Your day, appointments and benefits — in one conversation. I’ll ask
++            you to confirm before changing a record.
+           </p>
+         </div>
+         {source && (
+@@ -1319,17 +1393,17 @@
+                   ) && (
+                     <>
+                       <button onClick={() => go("/benefits/" + m.contextId)}>
+-                        View sample benefit details
++                        View benefit details
+                       </button>
+                       <details className="receipt">
+                         <summary>Action details · Information only</summary>
+                         <p>
+-                          Simulated WorkBuddy explanation · For:{" "}
+-                          {profile.displayName} · Actor: Me
++                          Care Buddy explanation · For: {profile.displayName} ·
++                          Actor: Me
+                         </p>
+                         <p>Information used: {m.contextId}</p>
+                         <p>No changes saved. Eligibility not verified.</p>
+-                        <p>Demo timestamp: {m.timestamp}</p>
++                        <p>Recorded at: {m.timestamp}</p>
+                       </details>
+                     </>
+                   )}
+@@ -1371,7 +1445,8 @@
+           {[
+             "Prepare for my appointment",
+             "Create a bedtime reminder",
+-            "Explain my sample benefits",
++            "Explain my benefits",
++            "What’s next today?",
+           ].map((t) => (
+             <button key={t} onClick={() => send(t)}>
+               {t}
+@@ -1400,9 +1475,7 @@
+             Send
+           </button>
+         </form>
+-        <p className="helper">
+-          Local scripted replies. Your fictional messages stay on this device.
+-        </p>
++        <p className="helper">Your messages and changes stay on this device.</p>
+       </>
+     );
+   }
+@@ -1412,7 +1485,7 @@
+         <h1>Settings</h1>
+         <div className="notice">
+           {pwa.offline
+-            ? "Offline · using this device’s saved demo"
++            ? "Offline · using saved records"
+             : pwa.ready
+               ? "Offline app ready"
+               : "Offline app preparing"}
+@@ -1421,16 +1494,16 @@
+           )}
+         </div>
+         <div className="detail-panel">
+-          <h2>Demo clock</h2>
++          <h2>Reference clock</h2>
+           <p>
+-            Demo clock: {formatDate(state.now)}, {formatTime(state.now)}
++            Reference clock: {formatDate(state.now)}, {formatTime(state.now)}
+           </p>
+           <div className="actions">
+             <button
+               onClick={() =>
+                 commit(
+                   { type: "advanceClock" },
+-                  { success: "Demo clock advanced 15 minutes" },
++                  { success: "Reference clock advanced 15 minutes" },
+                 )
+               }
+             >
+@@ -1440,7 +1513,7 @@
+               onClick={() =>
+                 commit(
+                   { type: "restoreClock" },
+-                  { success: "Demo clock restored" },
++                  { success: "Reference clock restored" },
+                 )
+               }
+             >
+@@ -1450,7 +1523,7 @@
+         </div>
+         <div className="settings-list">
+           <button onClick={about}>
+-            About this demo <Icon name="arrow" />
++            About Care Buddy <Icon name="arrow" />
+           </button>
+           <button onClick={() => go("/welcome")}>
+             Reopen welcome <Icon name="arrow" />
+@@ -1459,6 +1532,67 @@
+             Simulated car connection <Icon name="arrow" />
+           </button>
+         </div>
++        <details className="detail-panel skill-handoff">
++          <summary>WorkBuddy handoff</summary>
++          <p className="helper">
++            Export fictional context, run an installed skill in WorkBuddy, then
++            import its JSON proposal. Review and confirm here to save. A live
++            WorkBuddy connection is not configured.
++          </p>
++          <button
++            onClick={() => {
++              const current = stateRef.current;
++              const data = {
++                state: current,
++                profileId: current.selectedProfileId,
++                expectedClock: current.now,
++                actionId: uid(),
++              };
++              const url = URL.createObjectURL(
++                new Blob([JSON.stringify(data, null, 2)], {
++                  type: "application/json",
++                }),
++              );
++              const link = document.createElement("a");
++              link.href = url;
++              link.download = "care-buddy-context.json";
++              link.click();
++              setTimeout(() => URL.revokeObjectURL(url), 1000);
++            }}
++          >
++            Export skill context
++          </button>
++          <label className="field">
++            Import reminder proposal
++            <input
++              type="file"
++              accept="application/json,.json"
++              onChange={async (e) => {
++                const file = e.target.files?.[0];
++                e.target.value = "";
++                if (!file) return;
++                try {
++                  if (file.size > 2000000)
++                    throw new Error("Choose a proposal under 2 MB.");
++                  const proposal = importSkillProposal(
++                    stateRef.current,
++                    JSON.parse(await file.text()),
++                  );
++                  setError("");
++                  setRetry(null);
++                  setReceipt(null);
++                  setPending({
++                    action: proposal,
++                    message: "WorkBuddy package proposal import",
++                  });
++                } catch (error) {
++                  setError((error as Error).message);
++                  setRetry(null);
++                }
++              }}
++            />
++          </label>
++        </details>
+         <h2>Presenter controls</h2>
+         <p className="helper">
+           Local test fixtures only. No backend execution or consent workflow.
+@@ -1508,7 +1642,7 @@
+           onClick={() =>
+             action(
+               { type: "reset" },
+-              "Reset demo? All fictional changes will be removed.",
++              "Reset local records? All changes on this device will be removed.",
+               [],
+               () => {
+                 setContext(null);
+@@ -1517,7 +1651,7 @@
+             )
+           }
+         >
+-          Reset demo
++          Reset local records
+         </button>
+         <p className="helper">
+           No real permissions, patient data, insurer checks, bookings or vehicle
+@@ -1532,7 +1666,7 @@
+         <div className="car-content">
+           <Icon name="car" />
+           <div className="eyebrow">SIMULATED CONNECTION</div>
+-          <h1>Connect a demo car</h1>
++          <h1>Connect a car</h1>
+           <p className="lead">
+             Preview how generic reminders could appear while parked or driving.
+           </p>
+@@ -1570,11 +1704,11 @@
+             onClick={() =>
+               commit(
+                 { type: "setCarMode", mode: "parked" },
+-                { success: "Demo car connected" },
++                { success: "Car mode connected" },
+               )
+             }
+           >
+-            Connect demo car
++            Connect car mode
+           </button>
+         </div>
+       );
+@@ -1644,10 +1778,10 @@
+   function renderGp() {
+     return (
+       <>
+-        <span className="eyebrow">ROUTINE CARE ACCESS · DEMO</span>
++        <span className="eyebrow">ROUTINE CARE ACCESS</span>
+         <h1>Find GP care</h1>
+         <p className="lead">
+-          This demo shows a routine care-access option. It does not assess
++          Explore a routine care-access option. Care Buddy does not assess
+           symptoms or book care.
+         </p>
+         <div className="actions">
+@@ -1663,13 +1797,13 @@
+                     content: (
+                       <p>
+                         GP benefit information for this person is not available
+-                        in the sample policy.
++                        in the available policy terms.
+                       </p>
+                     ),
+                   });
+             }}
+           >
+-            View sample GP benefit
++            View GP benefit
+           </button>
+           <button
+             className="primary"
+@@ -1686,7 +1820,7 @@
+   const notFound = (text = "This item is no longer available") => (
+     <div className="empty">
+       <h1>{text}</h1>
+-      <p>Try another item in the demo.</p>
++      <p>Choose another item in Care Buddy.</p>
+       <button onClick={() => go("/today")}>Go to Today</button>
+     </div>
+   );
+@@ -1720,7 +1854,7 @@
+       if (!v.date) errors.date = "Choose a date";
+       if (!v.time) errors.time = "Choose a time";
+       if (v.date && v.time && isoAt(v.date, v.time) <= state.now)
+-        errors.time = "Choose a time after the demo clock";
++        errors.time = "Choose a time after the current reference time";
+     };
+     let command: Command | undefined;
+     let label = "";
+@@ -1756,7 +1890,7 @@
+       if (v.displayName.trim().length < 2 || v.displayName.trim().length > 40)
+         errors.displayName = "Enter a display name with 2 to 40 characters";
+       if (v.acknowledged !== "yes")
+-        errors.acknowledged = "Confirm this is fictional demo data";
++        errors.acknowledged = "Confirm this is fictional data";
+       command = {
+         type: "addDependent",
+         displayName: v.displayName.trim(),
+@@ -1778,7 +1912,7 @@
+       label =
+         "Update in Care Buddy for " +
+         profile.displayName +
+-        "? This updates the local demo record only. No provider has been contacted.";
++        "? This updates your record on this device only. No provider has been contacted.";
+     }
+     if (form.kind === "benefitNote") {
+       if (!v.category.trim()) errors.category = "Enter a category";
+@@ -1790,7 +1924,7 @@
+         notes: v.notes.trim(),
+       };
+       label =
+-        "Add fictional benefit note for " +
++        "Add benefit note for " +
+         profile.displayName +
+         "? Eligibility remains unverified.";
+     }
+@@ -1807,8 +1941,8 @@
+                 {v.date} · {v.time}
+               </p>
+               <div className="notice">
+-                Demo only. This request has not been sent. No booking, payment
+-                or provider contact has occurred.
++                This request has not been sent. No booking, payment or provider
++                contact has occurred.
+               </div>
+             </>
+           ),
+@@ -1834,9 +1968,9 @@
+                     For: {profile.displayName} · {v.category}
+                   </p>
+                   <p>
+-                    Unknown mapping in local sample data. Source: Fictional demo
+-                    policy, v1. Eligibility not verified. Confirm current terms
+-                    with your benefits administrator.
++                    No matching policy information. Source: Illustrative policy,
++                    v1. Eligibility not verified. Confirm current terms with
++                    your benefits administrator.
+                   </p>
+                 </>
+               ),
+@@ -1895,8 +2029,8 @@
+               : form.kind === "gp"
+                 ? "Preview appointment request"
+                 : form.kind === "benefitNote"
+-                  ? "Add fictional benefit note"
+-                  : "Check sample benefits"
++                  ? "Add benefit note"
++                  : "Check benefits"
+       }
+       onClose={closeForm}
+     >
+@@ -1988,7 +2122,7 @@
+                   change("acknowledged", e.target.checked ? "yes" : "")
+                 }
+               />
+-              This is fictional demo data
++              This is fictional data
+             </label>
+             {formErrors.acknowledged && (
+               <p className="field-error">{formErrors.acknowledged}</p>
+@@ -2060,7 +2194,7 @@
+             {form.kind === "gp"
+               ? "Preview request"
+               : form.kind === "benefitCheck"
+-                ? "Check sample benefits"
++                ? "Check benefits"
+                 : "Review changes"}
+           </button>
+           <button type="button" onClick={closeForm}>
+@@ -2099,7 +2233,7 @@
+     return (
+       <main className="urgent">
+         <span className="eyebrow">SIMULATED SCENARIO</span>
+-        <h1>Urgent-help demo</h1>
++        <h1>Urgent help</h1>
+         <div className="notice urgent-notice">
+           No emergency service has been contacted.
+         </div>
+@@ -2116,7 +2250,7 @@
+                 content: (
+                   <p>
+                     Contact the appropriate local emergency service directly.
+-                    This demo cannot call, dispatch or assess an emergency. No
++                    Care Buddy cannot call, dispatch or assess an emergency. No
+                     service has been contacted.
+                   </p>
+                 ),
+@@ -2133,7 +2267,7 @@
+               )
+             }
+           >
+-            Return to demo
++            Return to Today
+           </button>
+         </div>
+         {modal && (
+@@ -2154,27 +2288,31 @@
+         {error && (
+           <div role="alert" className="error">
+             {error}
+-            <button onClick={() => retry?.()}>Retry</button>
++            {retry ? (
++              <button onClick={() => retry()}>Retry</button>
++            ) : (
++              <button onClick={() => setError("")}>Dismiss error</button>
++            )}
+           </div>
+         )}
+         <div className="welcome-mark">
+           <Icon name="buddy" />
+         </div>
+-        <p className="eyebrow">{APP_SUBTITLE}</p>
++        <p className="eyebrow">CARE, MADE SIMPLER</p>
+         <h1>{APP_NAME}</h1>
+         <h2>Your care, and your family's, in one place</h2>
+         <p>Daily routines. Family care. A little less to keep in your head.</p>
+-        <div className="notice">Demo data · Fictional account · No signup</div>
++
+         <button
+           className="primary"
+           onClick={() =>
+             commit({ type: "start" }, { done: () => go("/today") })
+           }
+         >
+-          Explore the demo <Icon name="arrow" />
++          Get started <Icon name="arrow" />
+         </button>
+         <button className="text-button" onClick={about}>
+-          About this demo
++          About Care Buddy
+         </button>
+         <p className="helper">
+           Fictional data only. Not a medical or insurance service.
+@@ -2187,7 +2325,7 @@
+       </main>
+     );
+   return (
+-    <div className="app">
++    <div className={"app " + (path === "/buddy" ? "buddy-view" : "")}>
+       <a className="skip-link" href="#main">
+         Skip to content
+       </a>
+@@ -2208,7 +2346,7 @@
+           <strong>{APP_NAME}</strong>
+           <small>{APP_SUBTITLE}</small>
+         </div>
+-        <span className="demo-badge">Demo data</span>
++
+         <div className="header-actions">
+           <button
+             className="icon-button"
+@@ -2279,7 +2417,7 @@
+         }
+       >
+         <div className="profile-selector">
+-          <label htmlFor="profile">Viewing:</label>
++          <label htmlFor="profile">Care for</label>
+           <select
+             id="profile"
+             value={profile.id}
+@@ -2302,12 +2440,16 @@
+         {error && !pending && (
+           <div role="alert" className="error">
+             {error}
+-            <button onClick={() => retry?.()}>Retry</button>
++            {retry ? (
++              <button onClick={() => retry()}>Retry</button>
++            ) : (
++              <button onClick={() => setError("")}>Dismiss error</button>
++            )}
+           </div>
+         )}
+         {loading ? (
+           <div role="status" className="loading">
+-            <h2>Loading sample data…</h2>
++            <h2>Loading your care…</h2>
+             <div />
+             <div />
+             <div />
+@@ -2352,9 +2494,7 @@
+                   if (!target) {
+                     setModal({
+                       title: "This item is no longer available",
+-                      content: (
+-                        <p>The demo record was removed or is missing.</p>
+-                      ),
++                      content: <p>This record was removed or is missing.</p>,
+                     });
+                     return;
+                   }
+@@ -2408,9 +2548,6 @@
+             )}
+           </div>
+         )}
+-        <footer>
+-          Fictional data only. Not a medical or insurance service.
+-        </footer>
+       </main>
+       {toast && (
+         <div className="toast" role="status">
+@@ -2426,7 +2563,7 @@
+         !pending &&
+         (detail ? (
+           <Sheet title={detail.title} onClose={closeReminder}>
+-            <p className="eyebrow">ENTERED IN THIS DEMO</p>
++            <p className="eyebrow">YOUR RECORDED INSTRUCTIONS</p>
+             <p>
+               For: {profile.displayName} · {detail.category}
+             </p>
+@@ -2676,6 +2813,46 @@
+               {error}
+             </div>
+           )}
++          <p className="helper">
++            Review this change. Nothing is saved until you confirm.
++          </p>
++          {pending.action.command.type === "completeReminder" && (
++            <div className="detail-panel">
++              <strong>
++                {
++                  state.reminders.find(
++                    (r) =>
++                      r.id === (pending.action.command as { id: string }).id,
++                  )?.title
++                }
++              </strong>
++              <p>
++                Record as{" "}
++                {pending.action.command.outcome === "taken"
++                  ? "taken"
++                  : pending.action.command.outcome === "skipped"
++                    ? "skipped"
++                    : "complete"}{" "}
++                for {person(pending.action.profileId)}.
++              </p>
++            </div>
++          )}
++          {pending.action.command.type === "snoozeReminder" && (
++            <div className="detail-panel">
++              <strong>
++                {
++                  state.reminders.find(
++                    (r) =>
++                      r.id === (pending.action.command as { id: string }).id,
++                  )?.title
++                }
++              </strong>
++              <p>
++                Notification at {formatTime(pending.action.command.until)}. The
++                original schedule stays unchanged.
++              </p>
++            </div>
++          )}
+           {"input" in pending.action.command && (
+             <>
+               <h3>{pending.action.command.input.title}</h3>
+
+--- work/care-buddy-polish-before/styles.css	2026-09-30 21:43:25
++++ outputs/care-buddy/src/styles.css	2026-09-30 22:00:25
+@@ -984,4 +984,371 @@
+     justify-content: flex-start;
+     padding-left: 34px;
+   }
++}
++
++/* Product refinement: compact mobile canvas and purposeful desktop columns. */
++:root {
++  background: #f5f8f7;
++  --border: #dce6e2;
++}
++header {
++  height: 60px;
++  padding: 8px 16px;
++  background: rgba(255, 255, 255, 0.97);
++}
++.wordmark strong {
++  font-size: 19px;
+ }
++.wordmark small {
++  font-size: 11px;
++  color: #526460;
++}
++.app main {
++  max-width: none;
++  padding: 16px 16px 96px;
++}
++.profile-selector {
++  margin-bottom: 18px;
++  gap: 8px;
++}
++.profile-selector label {
++  font-size: 12px;
++  color: #526460;
++}
++.profile-selector select {
++  background: #fff;
++  border-color: var(--border);
++  border-radius: 24px;
++  padding: 7px 28px 7px 12px;
++}
++.profile-access {
++  font-size: 12px;
++}
++h1 {
++  margin-bottom: 6px;
++  font-size: 30px;
++  line-height: 1.16;
++  letter-spacing: -0.8px;
++}
++.eyebrow {
++  margin-bottom: 6px;
++  letter-spacing: 1.1px;
++  font-size: 11px;
++}
++.lead {
++  margin-bottom: 20px;
++  font-size: 14px;
++}
++.day-layout {
++  display: grid;
++  gap: 20px;
++  min-width: 0;
++}
++.day-focus,
++.day-timeline {
++  min-width: 0;
++}
++.next-card {
++  padding: 20px;
++  margin-bottom: 12px;
++  border: 1px solid #b9d6cd;
++  border-radius: 20px;
++  background: linear-gradient(125deg, #e4f3ed, #f0f8f4);
++  box-shadow: 0 5px 18px rgba(18, 74, 62, 0.035);
++}
++.section-kicker {
++  margin-bottom: 12px;
++}
++.next-heading h2 {
++  font-size: 25px;
++  line-height: 1.16;
++  letter-spacing: -0.5px;
++}
++.next-card .actions {
++  margin: 16px 0 0;
++  gap: 8px;
++}
++.next-card .actions .primary {
++  flex: 1 1 auto;
++}
++.appointment-strip {
++  padding: 14px 16px;
++  border-radius: 16px;
++  margin-bottom: 0;
++}
++.appointment-strip small {
++  font-size: 10px;
++}
++.timeline-group {
++  margin: 16px 0;
++}
++.timeline-row {
++  padding: 12px 0;
++  min-height: 72px;
++}
++.timeline-group h3 {
++  margin-bottom: 4px;
++}
++.care-insight {
++  display: flex;
++  align-items: center;
++  gap: 12px;
++  padding: 16px 0;
++  border-top: 1px solid var(--border);
++  margin-top: 20px;
++}
++.care-insight > svg {
++  color: #0f766e;
++  flex-shrink: 0;
++}
++.care-insight > div {
++  flex: 1;
++  min-width: 0;
++}
++.care-insight strong {
++  font-size: 14px;
++}
++.care-insight p {
++  font-size: 13px;
++  margin: 3px 0 0;
++  color: #526460;
++}
++.care-insight button {
++  font-size: 13px;
++  padding: 8px;
++}
++.quiet-actions {
++  margin-top: 8px;
++}
++.nav {
++  box-shadow: 0 -4px 20px rgba(23, 43, 42, 0.025);
++  padding-top: 4px;
++}
++.nav button {
++  min-height: 56px;
++}
++.nav button.active {
++  background: #e6f3ef;
++  border-radius: 14px;
++}
++.buddy-intro {
++  padding: 14px;
++  font-size: 14px;
++  gap: 10px;
++  border-radius: 14px;
++}
++.chat-thread {
++  margin: 18px 0;
++}
++.chat-bubble {
++  max-width: 94%;
++  border-radius: 16px 16px 16px 4px;
++}
++.chat-bubble.user {
++  border-radius: 16px 16px 4px 16px;
++}
++.composer {
++  position: sticky;
++  bottom: 78px;
++  z-index: 3;
++  background: #f5f8f7;
++  padding: 10px 0;
++}
++.composer textarea {
++  border-radius: 16px;
++  background: #fff;
++  min-height: 54px;
++}
++.buddy-view .prompts button {
++  border-radius: 22px;
++  min-height: 44px;
++}
++.buddy-view .lead {
++  margin-bottom: 14px;
++}
++.welcome {
++  background: radial-gradient(ellipse at top, #e1f1e9, transparent 70%);
++  min-height: 100dvh;
++}
++.welcome h1 {
++  font-size: 48px;
++  line-height: 1.04;
++  letter-spacing: -2px;
++}
++.welcome .primary {
++  border-radius: 24px;
++  min-height: 52px;
++}
++@media (max-width: 767px) {
++  .appointment-strip {
++    display: grid;
++    grid-template-columns: 22px minmax(0, 1fr) auto;
++    gap: 10px;
++  }
++  .appointment-strip > div {
++    min-width: 0;
++  }
++  .appointment-strip button {
++    width: auto;
++    font-size: 0;
++    padding: 8px;
++    min-width: 44px;
++  }
++  .appointment-strip button svg {
++    width: 20px;
++  }
++  .appointment-strip span {
++    font-size: 12px;
++  }
++  .appointment-strip strong {
++    font-size: 14px;
++  }
++  .care-insight {
++    flex-wrap: wrap;
++  }
++  .care-insight button {
++    margin-left: 34px;
++    min-height: 44px;
++  }
++  .next-heading {
++    gap: 8px;
++  }
++  .next-heading .status {
++    align-self: flex-start;
++  }
++}
++@media (min-width: 768px) {
++  header {
++    padding: 8px 28px;
++  }
++  .app main {
++    padding: 24px 28px 100px;
++  }
++  .day-layout {
++    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.1fr);
++    gap: 28px;
++    align-items: start;
++  }
++  .day-timeline {
++    background: #fff;
++    border: 1px solid var(--border);
++    padding: 20px;
++    border-radius: 20px;
++  }
++  .day-timeline .section-heading {
++    flex-wrap: wrap;
++  }
++  .day-timeline .section-heading h2 {
++    font-size: 18px;
++  }
++  .day-timeline .timeline-row .status {
++    font-size: 11px;
++  }
++  .buddy-view main {
++    max-width: 980px;
++  }
++}
++@media (min-width: 1024px) {
++  header {
++    height: 68px;
++  }
++  .nav {
++    top: 68px;
++    width: 184px;
++    padding: 24px 14px;
++    gap: 6px;
++    box-shadow: none;
++  }
++  .nav button {
++    padding: 12px 14px;
++    min-height: 48px;
++  }
++  .app main {
++    margin-left: 184px;
++    width: calc(100% - 184px);
++    padding: 28px clamp(24px, 3vw, 52px) 48px;
++  }
++  .day-layout {
++    grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.2fr);
++    gap: 32px;
++  }
++  .day-timeline {
++    padding: 24px;
++  }
++  .buddy-view main {
++    margin-left: calc(184px + (100% - 184px - min(980px, 100% - 184px)) / 2);
++  }
++  .composer {
++    bottom: 0;
++  }
++  .family-list {
++    display: grid;
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++    gap: 0 32px;
++  }
++}
++@media (max-width: 359px) {
++  header {
++    padding: 8px 12px;
++  }
++  .app main {
++    padding: 14px 12px 96px;
++  }
++  .profile-selector {
++    margin-bottom: 14px;
++  }
++  .profile-access {
++    width: auto;
++    margin: 0;
++  }
++  h1 {
++    font-size: 28px;
++  }
++  .next-card {
++    padding: 16px;
++  }
++  .next-heading .status {
++    font-size: 11px;
++  }
++  .next-heading h2 {
++    min-width: 100%;
++    margin-bottom: 2px;
++  }
++  .composer {
++    flex-wrap: nowrap;
++  }
++  .composer button {
++    width: auto;
++    padding: 10px 12px;
++  }
++}
++.profile-selector select {
++  width: auto;
++  min-width: 104px;
++  max-width: calc(100% - 70px);
++}
++.section-kicker .status {
++  margin-left: auto;
++  letter-spacing: 0;
++}
++.next-heading h2 {
++  flex-basis: 100%;
++}
++@media (max-width: 767px) {
++  .profile-selector {
++    margin-bottom: 16px;
++    gap: 8px;
++  }
++  .profile-access {
++    margin-left: auto;
++  }
++  .next-card {
++    padding: 18px;
++  }
++  .next-card > p {
++    margin-bottom: 8px;
++  }
++  .care-insight > div {
++    flex-basis: calc(100% - 40px);
++  }
++}
+
+--- work/care-buddy-polish-before/domain.ts	2026-09-30 21:43:25
++++ outputs/care-buddy/src/domain.ts	2026-09-30 22:00:25
+@@ -93,7 +93,7 @@
+     category,
+     status,
+     conditions,
+-    source: "Fictional demo policy, v1",
++    source: "Care plan · illustrative terms, v1",
+     policyDate: "2026-09-30T00:00:00+08:00",
+   });
+   const base: State = {
+@@ -166,7 +166,7 @@
+         category: "health-check",
+         title: "Routine health check",
+         startsAt: isoAt("2026-09-30", "14:00"),
+-        locationLabel: "Demo clinic A",
++        locationLabel: "Clinic A",
+         checklist: [false, false, false],
+         recordOrigin: "demo",
+         providerConfirmed: false,
+@@ -178,7 +178,7 @@
+         category: "screening",
+         title: "Health screening",
+         startsAt: isoAt("2026-10-01", "10:00"),
+-        locationLabel: "Demo clinic A",
++        locationLabel: "Clinic A",
+         checklist: [false, false, false],
+         recordOrigin: "demo",
+         providerConfirmed: false,
+@@ -190,7 +190,7 @@
+         category: "dental",
+         title: "Dental visit",
+         startsAt: isoAt("2026-10-02", "16:00"),
+-        locationLabel: "Demo clinic B",
++        locationLabel: "Clinic B",
+         checklist: [false, false, false],
+         recordOrigin: "demo",
+         providerConfirmed: false,
+@@ -224,7 +224,7 @@
+         "p-leo",
+         "dental",
+         "Needs confirmation",
+-        "This demo does not contain enough information to confirm dental cover.",
++        "The available terms do not contain enough information to confirm dental cover.",
+       ),
+       ...["p-me", "p-maya", "p-leo"].map((p) =>
+         benefit(
+@@ -289,7 +289,7 @@
+           profile.id,
+           category,
+           "Needs confirmation",
+-          "This demo does not contain enough information to confirm cover.",
++          "The available terms do not contain enough information to confirm cover.",
+         ),
+         source: "No sample terms supplied",
+         policyDate: null,
+@@ -552,7 +552,7 @@
+   } catch {
+     return {
+       state: seed(),
+-      notice: "Demo data was reset because it could not be loaded.",
++      notice: "Local records were reset because they could not be loaded.",
+     };
+   }
+ }
+@@ -568,7 +568,7 @@
+     throw new Error("Choose a date");
+   if (!validIso(input.scheduledAt)) throw new Error("Choose a time");
+   if (Date.parse(input.scheduledAt) <= Date.parse(now))
+-    throw new Error("Choose a time after the demo clock");
++    throw new Error("Choose a time after the current reference time");
+   if (input.instructions.length > 500)
+     throw new Error("Keep instructions within 500 characters");
+   if (!["None", "Daily"].includes(input.recurrence))
+@@ -619,10 +619,15 @@
+     if (
+       input.appointmentId &&
+       !s.appointments.some(
+-        (a) => a.id === input.appointmentId && a.profileId === input.profileId,
++        (a) =>
++          a.id === input.appointmentId &&
++          a.profileId === input.profileId &&
++          Date.parse(input.scheduledAt) < Date.parse(a.startsAt),
+       )
+     )
+-      throw new Error("This appointment is no longer available");
++      throw new Error(
++        "Preparation must be before an available appointment for this person",
++      );
+   };
+   switch (c.type) {
+     case "start":
+@@ -640,6 +645,19 @@
+     case "createReminder": {
+       inputCheck(c.input);
+       const i = c.input;
++      if (
++        i.appointmentId &&
++        s.reminders.some(
++          (r) =>
++            r.appointmentId === i.appointmentId &&
++            r.category === "Appointment preparation" &&
++            !r.deletedAt &&
++            !r.outcome,
++        )
++      )
++        throw new Error(
++          "An active preparation reminder already exists. Update that reminder instead.",
++        );
+       const id = uid();
+       s.reminders.push({
+         id,
+@@ -755,7 +773,7 @@
+     case "snoozeReminder": {
+       const r = reminder(c.id);
+       if (!validIso(c.until) || Date.parse(c.until) <= Date.parse(s.now))
+-        throw new Error("Choose a time after the demo clock");
++        throw new Error("Choose a time after the current reference time");
+       r.notificationSnoozedUntil = c.until;
+       r.history.push(
+         event(
+@@ -833,7 +851,7 @@
+       if (c.title.trim().length < 3 || c.title.trim().length > 80)
+         throw new Error("Enter a title with 3 to 80 characters");
+       if (!validIso(c.startsAt) || Date.parse(c.startsAt) <= Date.parse(s.now))
+-        throw new Error("Choose a time after the demo clock");
++        throw new Error("Choose a time after the current reference time");
+       if (c.locationLabel.length > 80)
+         throw new Error("Keep fictional location within 80 characters");
+       a.provenanceHistory.push(
+@@ -917,7 +935,7 @@
+                 ...b,
+                 status: "Needs confirmation",
+                 conditions:
+-                  "This demo does not contain enough information to confirm cover.",
++                  "The available terms do not contain enough information to confirm cover.",
+               }
+             : b,
+         );
+@@ -975,6 +993,18 @@
+   if (/\b(?:at|to)\s+\d{1,2}\b/.test(text)) return { ambiguous: true };
+   return {};
+ }
++export function preparationTime(s: State, startsAt: string): string | null {
++  const now = Date.parse(s.now),
++    start = Date.parse(startsAt);
++  if (!Number.isFinite(start) || start - now < 120000) return null;
++  const previousDay = day(new Date(start - 86400000).toISOString());
++  const evening = isoAt(previousDay, "19:00");
++  const candidate =
++    Date.parse(evening) > now ? Date.parse(evening) : start - 3600000;
++  const at = candidate > now ? candidate : now + Math.floor((start - now) / 2);
++  const local = new Date(at + 8 * 3600000).toISOString();
++  return isoAt(local.slice(0, 10), local.slice(11, 16));
++}
+ export function buildChatAction(
+   s: State,
+   text: string,
+@@ -987,31 +1017,63 @@
+     command: Command,
+     label: string,
+     sourceIds: string[],
+-  ): Action => ({ id: uid(), profileId: p.id, command, label, sourceIds });
+-  if (/dose|medication|medicine|symptom|pain|fever|diagnos|bleeding/.test(t))
++  ): Action => ({
++    id: uid(),
++    profileId: p.id,
++    command,
++    label,
++    sourceIds,
++    expectedClock: s.now,
++    expectedSources: structuredClone(
++      [...s.reminders, ...s.appointments].filter((x) =>
++        sourceIds.includes(x.id),
++      ),
++    ),
++  });
++  if (s.carMode === "driving")
+     return {
++      text: "Available when parked. Your care details stay private while driving.",
++    };
++  if (
++    /dose|missed.*(?:medication|medicine)|symptom|pain|fever|diagnos|bleeding|prescrib|should i take|how much.*(?:medication|medicine)/.test(
++      t,
++    )
++  )
++    return {
+       text: "I cannot advise on doses or missed medication, diagnose or assess symptoms. Follow your existing instructions or contact a qualified clinician. You can preview routine GP care or view emergency-help instructions.",
+     };
+   if (/benefit|cover|insurance/.test(t)) {
+     const appointment = s.appointments.find(
+       (a) => a.id === contextId && a.profileId === p.id,
+     );
+-    const b = contextId
+-      ? s.benefits.find(
+-          (b) =>
+-            b.profileId === p.id &&
+-            (b.id === contextId ||
+-              (appointment && b.category === appointment.category)),
+-        )
+-      : s.benefits.find((b) => b.profileId === p.id && b.category !== "other");
++    const category = /dental|dentist/.test(t)
++      ? "dental"
++      : /screen|health check/.test(t)
++        ? "screening"
++        : /\bgp\b|general practitioner/.test(t)
++          ? "gp"
++          : null;
++    const candidates = s.benefits.filter((b) => b.profileId === p.id);
++    const b =
++      candidates.find((b) => b.id === contextId) ||
++      candidates.find(
++        (b) => b.category === (category || appointment?.category),
++      );
++    if (!b && !category && !appointment && !contextId)
++      return {
++        text: `For ${p.displayName}:\n${candidates.map((b) => `${b.category === "gp" ? "GP visits" : b.category === "screening" ? "Health screening" : b.category === "dental" ? "Dental" : b.category}: ${b.status.replace("Listed in sample plan", "Listed in plan").replace("Not listed in sample data", "Not listed in available terms")}`).join("\n")}\nWhich service would you like to check? Current eligibility is not verified.`,
++      };
+     return {
+       sourceId: b?.id,
+       text: b
+-        ? `${b.status}. ${b.conditions} Source: ${b.source}. ${b.policyDate ? formatDate(b.policyDate) : "Date not supplied"}. For: ${p.displayName}. Eligibility not verified. Confirm the current terms with your benefits administrator.`
+-        : "Needs confirmation. No sample policy information for this person. Eligibility not verified.",
++        ? `${b.status.replace("Listed in sample plan", "Listed in plan").replace("Not listed in sample data", "Not listed in available terms")}. ${b.conditions} Source: ${b.source}. ${b.policyDate ? formatDate(b.policyDate) : "Date not supplied"}. For: ${p.displayName}. Eligibility not verified. Confirm the current terms with your benefits administrator.`
++        : "Needs confirmation. No matching policy source for this person. Eligibility not verified.",
+     };
+   }
+-  if (/bedtime|sleep/.test(t)) {
++  if (
++    /bedtime|sleep/.test(t) &&
++    !/mark|record|complete|done|skip|snooze|later/.test(t)
++  ) {
+     const parsed = parseTime(t);
+     if (parsed.ambiguous)
+       return {
+@@ -1047,7 +1109,7 @@
+         text: "You can view reminders, but cannot update this profile.",
+       };
+     if (Date.parse(scheduledAt) <= Date.parse(s.now))
+-      return { text: "Choose a time after the demo clock." };
++      return { text: "Choose a time after the current reference time." };
+     const command: Command = r
+       ? { type: "editReminder", id: r.id, input, scope: scope || "occurrence" }
+       : { type: "createReminder", input };
+@@ -1062,7 +1124,13 @@
+       ),
+     };
+   }
+-  if (/appointment|prepar/.test(t)) {
++  if (
++    /appointment|prepar/.test(t) &&
++    !(
++      /move|change|snooze|later|complete|record|done|skip/.test(t) &&
++      s.reminders.some((r) => r.id === contextId && r.profileId === p.id)
++    )
++  ) {
+     const a =
+       s.appointments.find((a) => a.id === contextId && a.profileId === p.id) ||
+       s.appointments
+@@ -1072,21 +1140,37 @@
+         )
+         .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
+     if (!a)
+-      return { text: "No demo appointment is available for this person." };
++      return { text: "No upcoming appointment is available for this person." };
+     if (!p.canManage)
+       return {
+         text: "Review instructions from the provider; bring documents requested by the provider; confirm transport plans. Contact the provider for medical preparation instructions. You can view reminders, but cannot update this profile.",
+       };
+-    const defaultTime =
+-      p.id === "p-maya"
+-        ? isoAt("2026-09-30", "19:00")
+-        : new Date(Date.parse(s.now) + 3600000).toISOString();
+-    if (Date.parse(defaultTime) <= Date.parse(s.now))
++    const existing = s.reminders.find(
++      (r) =>
++        r.profileId === p.id &&
++        r.appointmentId === a.id &&
++        r.category === "Appointment preparation" &&
++        !r.deletedAt &&
++        !r.outcome,
++    );
++    const checklist = [
++      "review provider instructions",
++      "bring requested documents",
++      "confirm transport plans",
++    ];
++    const remaining = checklist.filter((_, i) => !a.checklist[i]);
++    if (existing)
+       return {
+-        text: "The default preparation time is past. Choose a future time before the appointment using Create preparation reminder.",
++        sourceId: existing.id,
++        text: `For ${p.displayName}: ${a.title}, ${formatDate(a.startsAt)} at ${formatTime(a.startsAt)}. ${remaining.length ? `Still to prepare: ${remaining.join("; ")}.` : "Your preparation checklist is complete."} Preparation reminder: ${formatDate(existing.scheduledAt)} at ${formatTime(existing.scheduledAt)}. Ask me to change that reminder if needed.`,
+       };
++    const defaultTime = preparationTime(s, a.startsAt);
++    if (!defaultTime)
++      return {
++        text: "There is too little time to schedule preparation before this appointment. Review its current details directly.",
++      };
+     return {
+-      text: `For ${p.displayName}: review instructions from the provider; bring documents requested by the provider; confirm transport plans. Contact the provider for medical preparation instructions. Preview a preparation reminder at ${formatTime(defaultTime)}.`,
++      text: `For ${p.displayName}: ${remaining.length ? `Still to prepare: ${remaining.join("; ")}.` : "Your preparation checklist is complete."} Contact the provider for medical preparation instructions. Preview a preparation reminder on ${formatDate(defaultTime)} at ${formatTime(defaultTime)}, before ${a.title}.`,
+       action: action(
+         {
+           type: "createReminder",
+@@ -1096,18 +1180,187 @@
+             title: `${a.title} preparation`,
+             scheduledAt: defaultTime,
+             recurrence: "None",
+-            instructions:
+-              "Review instructions from the provider; bring documents requested by the provider; confirm transport plans.",
++            instructions: remaining.length
++              ? remaining.join("; ")
++              : "Review your completed preparation checklist.",
+             appointmentId: a.id,
+           },
+         },
+         "Confirm reminder",
+         [a.id],
++      ),
++    };
++  }
++  const active = s.reminders.filter(
++    (r) => r.profileId === p.id && !r.deletedAt,
++  );
++  const current = active.filter((r) => r.occurrenceDate === day(s.now));
++  const attached = contextId
++    ? active.find((r) => r.id === contextId)
++    : undefined;
++  const named = active.filter(
++    (r) => t.includes(r.title.toLowerCase()) && r.occurrenceDate === day(s.now),
++  );
++  const matched = attached || (named.length === 1 ? named[0] : undefined);
++  if (
++    matched &&
++    /mark|record|complete|taken|done|skip|snooze|later|move|change|reschedul/.test(
++      t,
++    )
++  ) {
++    if (!p.canManage)
++      return {
++        text: "You can view reminders, but cannot update this profile.",
++      };
++    if (matched.outcome)
++      return {
++        sourceId: matched.id,
++        text: `${matched.title} is already ${statusLabel(matched).toLowerCase()}. View the record to undo or change the report.`,
++      };
++    if (/mark|record|complete|taken|done|skip/.test(t)) {
++      if (matched.category === "Medication" && !/taken|skip/.test(t))
++        return {
++          text: "Record as taken or skipped? This records what you report; it does not advise whether to take medication.",
++        };
++      const outcome = /skip/.test(t)
++        ? "skipped"
++        : matched.category === "Medication"
++          ? "taken"
++          : "complete";
++      return {
++        sourceId: matched.id,
++        text: `Review: record ${matched.title} for ${p.displayName} as ${outcome}. No changes saved yet.`,
++        action: action(
++          { type: "completeReminder", id: matched.id, outcome },
++          "Confirm report",
++          [matched.id],
++        ),
++      };
++    }
++    const parsed = parseTime(t);
++    const minutes = t.match(/(?:in|for)\s+(\d+)\s*(?:minutes?|mins?)\b/);
++    if (/snooze|later/.test(t)) {
++      const until = minutes
++        ? new Date(Date.parse(s.now) + Number(minutes[1]) * 60000).toISOString()
++        : parsed.time
++          ? isoAt(day(s.now), parsed.time)
++          : null;
++      if (!until || Date.parse(until) <= Date.parse(s.now))
++        return {
++          text: "When should I remind you? Enter a future time or ‘in 15 minutes’.",
++        };
++      return {
++        text: `Review: remind ${p.displayName} about ${matched.title} at ${formatTime(until)}. The original schedule stays unchanged.`,
++        action: action(
++          { type: "snoozeReminder", id: matched.id, until },
++          "Confirm snooze",
++          [matched.id],
++        ),
++      };
++    }
++    if (!parsed.time)
++      return {
++        text: "What time should this reminder use? Include AM/PM or a 24-hour time.",
++      };
++    if (matched.recurrence === "Daily" && !scope)
++      return {
++        text: "This occurrence only, or your regular schedule?",
++        needsScope: true,
++      };
++    const date = /tomorrow/.test(t)
++      ? day(new Date(Date.parse(s.now) + 86400000).toISOString())
++      : matched.occurrenceDate;
++    const scheduledAt = isoAt(date, parsed.time);
++    if (Date.parse(scheduledAt) <= Date.parse(s.now))
++      return { text: "Choose a time after the current reference time." };
++    return {
++      text: `Review ${matched.title} for ${p.displayName}: ${formatTime(matched.scheduledAt)} → ${formatTime(scheduledAt)}. ${scope === "future" ? "This and future occurrences." : "This occurrence only."}`,
++      action: action(
++        {
++          type: "editReminder",
++          id: matched.id,
++          scope: scope || "occurrence",
++          input: {
++            profileId: p.id,
++            category: matched.category,
++            title: matched.title,
++            scheduledAt,
++            recurrence: matched.recurrence,
++            instructions: matched.instructions,
++            appointmentId: matched.appointmentId,
++          },
++        },
++        "Confirm change",
++        [matched.id],
+       ),
+     };
+   }
++  if (/remind me to|create.*reminder|add.*reminder/.test(t)) {
++    if (!p.canManage)
++      return {
++        text: "You can view reminders, but cannot update this profile.",
++      };
++    const parsed = parseTime(t);
++    const title = text
++      .match(
++        /remind me to\s+(.+?)(?:\s+(?:at|tomorrow|every day|daily)\b|$)/i,
++      )?.[1]
++      ?.trim();
++    if (!title || title.length < 3 || !parsed.time)
++      return {
++        text: "Tell me the routine and time, for example ‘Remind me to take a walk at 6 pm’.",
++      };
++    if (/medication|medicine|tablet/.test(title.toLowerCase()))
++      return {
++        text: "Use Add reminder with your existing instructions for medication. I do not create medication schedules.",
++      };
++    const date = /tomorrow/.test(t)
++      ? day(new Date(Date.parse(s.now) + 86400000).toISOString())
++      : day(s.now);
++    const scheduledAt = isoAt(date, parsed.time);
++    if (Date.parse(scheduledAt) <= Date.parse(s.now))
++      return {
++        text: "That time has passed. Specify tomorrow or choose a later time.",
++      };
++    return {
++      text: `Review: ${title} for ${p.displayName}, ${formatDate(scheduledAt)} at ${formatTime(scheduledAt)}. Repeat: ${/every day|daily/.test(t) ? "Daily" : "None"}.`,
++      action: action(
++        {
++          type: "createReminder",
++          input: {
++            profileId: p.id,
++            category: "Personal care",
++            title,
++            scheduledAt,
++            recurrence: /every day|daily/.test(t) ? "Daily" : "None",
++            instructions: "",
++          },
++        },
++        "Confirm reminder",
++        [],
++      ),
++    };
++  }
++  if (/today|day|next|schedule|reminders|plan/.test(t)) {
++    const pending = current
++      .filter((r) => !r.outcome)
++      .sort((a, b) => notificationTime(a).localeCompare(notificationTime(b)));
++    const appts = s.appointments.filter(
++      (a) =>
++        a.profileId === p.id &&
++        day(a.startsAt) === day(s.now) &&
++        Date.parse(a.startsAt) > Date.parse(s.now),
++    );
++    return {
++      text: `For ${p.displayName}: ${current.filter((r) => r.outcome === "taken" || r.outcome === "complete").length} routines recorded, ${pending.length} still to record.\n${pending.length ? pending.map((r) => `${formatTime(r.scheduledAt)} · ${r.title}${Date.parse(r.scheduledAt) < Date.parse(s.now) ? " · not yet recorded" : ""}`).join("\n") : "No outstanding routines today."}\n${appts.length ? appts.map((a) => `${formatTime(a.startsAt)} · ${a.title}`).join("\n") : "No upcoming appointments today."}`,
++    };
++  }
++  if (/medication|medicine/.test(t))
++    return {
++      text: "I can show your recorded reminders, but do not provide medication advice. Attach a reminder to record what happened or use Add reminder with your existing instructions.",
++    };
+   return {
+-    text: "This demo can help with reminders, appointment preparation and sample benefits. Choose an option below.",
++    text: "I can help with reminders, appointment preparation and benefits. Tell me what you’d like to organise, or choose an option below.",
+   };
+ }
+ export function assistantMessage(
+@@ -1125,3 +1378,80 @@
+     actionReceipt: receipt,
+   };
+ }
++
++export function assertFreshAction(s: State, a: Action): void {
++  if (a.expectedClock && a.expectedClock !== s.now)
++    throw new Error("The reference time changed. Request a fresh proposal.");
++  for (const expected of a.expectedSources || []) {
++    const current = [...s.reminders, ...s.appointments].find(
++      (x) => x.id === expected.id && x.profileId === a.profileId,
++    );
++    if (JSON.stringify(current) !== JSON.stringify(expected))
++      throw new Error("The source record changed. Request a fresh proposal.");
++  }
++}
++export function importSkillProposal(s: State, value: unknown): Action {
++  const v = value as {
++    status?: string;
++    executed?: boolean;
++    expectedClock?: string;
++    action?: Action;
++  };
++  if (
++    !v ||
++    v.status !== "proposal" ||
++    v.executed !== false ||
++    v.expectedClock !== s.now ||
++    !v.action
++  )
++    throw new Error(
++      "Import an unexecuted proposal for the current reference time.",
++    );
++  const a = v.action;
++  if (
++    typeof a.id !== "string" ||
++    !a.id.trim() ||
++    a.id.length > 120 ||
++    a.profileId !== s.selectedProfileId ||
++    typeof a.label !== "string" ||
++    a.label.length > 200 ||
++    !Array.isArray(a.sourceIds) ||
++    !a.sourceIds.every((x) => typeof x === "string")
++  )
++    throw new Error("The proposal recipient or action fields are invalid.");
++  if (s.appliedActions.includes(a.id))
++    throw new Error("This proposal was already applied.");
++  if (
++    !a.command ||
++    !["createReminder", "editReminder"].includes(a.command.type)
++  )
++    throw new Error("This import supports reminder proposals only.");
++  if (
++    a.command.type === "editReminder" &&
++    !["occurrence", "future"].includes(a.command.scope)
++  )
++    throw new Error("Specify occurrence or future scope.");
++  const sources = [...s.reminders, ...s.appointments].filter(
++    (x) => a.sourceIds.includes(x.id) && x.profileId === a.profileId,
++  );
++  if (
++    sources.length !== a.sourceIds.length ||
++    !Array.isArray(a.expectedSources) ||
++    a.expectedSources.length !== sources.length
++  )
++    throw new Error(
++      "The proposal needs current source records for this person.",
++    );
++  if (a.command.type === "editReminder" && !a.sourceIds.includes(a.command.id))
++    throw new Error("The reminder source is missing.");
++  if (
++    a.command.type === "createReminder" &&
++    (!a.command.input?.appointmentId ||
++      !a.sourceIds.includes(a.command.input.appointmentId))
++  )
++    throw new Error("The appointment source is missing.");
++  const result = { ...a, expectedClock: v.expectedClock };
++  assertFreshAction(s, result);
++  execute(s, result.command, result.id, result.profileId); // Validation preview only; never saved.
++  return result;
++}
+
+--- work/care-buddy-polish-before/config.ts	2026-09-30 21:43:25
++++ outputs/care-buddy/src/config.ts	2026-09-30 21:45:12
+@@ -1,2 +1,2 @@
+ export const APP_NAME = "Care Buddy";
+-export const APP_SUBTITLE = "Powered by WorkBuddy";
++export const APP_SUBTITLE = "Care, made simpler";

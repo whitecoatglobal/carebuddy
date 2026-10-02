@@ -1,0 +1,32 @@
+===LOCK CONTRACT===
+run_id: care-buddy-polish-20260930
+node_id: thor-owner
+role: owner
+scope: local product refinement, state-driven outcomes, manual skill roundtrip, source triangulation
+pool_revision: 1; 996ca596e66d432d82d0edac6de70d1e46bc51625ff618463858fab94fe62605
+  evidence: closeout pool read back; assembled after dispatch, no historical hash-chain claim
+
+overall: PASS — requested local changes and bounded verification complete
+codegraph: PASS
+  evidence: evidence/codegraph-status.json fresh complete zero pending; evidence/polish-codegraph-traversal.txt importSkillProposal source/callers/callees
+code_context: PASS
+  evidence: context obtained before edits; existing domain/App/styles extension points used; app types src/types.ts; skill copies are references
+rg: PASS
+  evidence: actual source routing and user-visible copy reads; runtime independently verifies worker findings; no exhaustive call coverage claim
+fd: BLOCKED
+  evidence: unavailable; rg --files used
+delta: N/A
+  evidence: no pre-existing Git baseline; preserved source copy in work/care-buddy-polish-before and direct diff readback
+gitleaks: BLOCKED
+  evidence: unavailable; bounded local source check, no full security-audit claim
+jira_grouping: N/A
+  evidence: no Jira target requested
+subagent_locks: PASS
+  evidence: source-review facts independently reopened by root; runtime QA findings reproduced, corrected, browser/unit regressions passing
+kb_writeback: N/A
+  evidence: explicitly separate friends' project; organisational ownership not established; project handoff retained locally
+verification: PASS
+  evidence: production build;31/31 browser;27/27 unit;28 skill guard checks;3 target-format metadata/ZIP checks;0 known dependency vulnerabilities;actual updated preview readback
+remaining_gaps: WorkBuddy target-client import/runtime;clinical challenge1 fit;later submission/rubric;physical phones/native zoom;Gitleaks;pool chronology disclosed above
+coverage: local source/build/screenshots/packages/roundtrip and source matrix executed;no public hosting/live AI/clinical assessment
+===END LOCK CONTRACT===

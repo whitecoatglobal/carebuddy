@@ -1,0 +1,12 @@
+
+Callers of "execute" (3):
+
+function    App
+  src/App.tsx:217
+
+file        domain.test.ts
+  tests/domain.test.ts:1
+
+file        App.tsx
+  src/App.tsx:1
+

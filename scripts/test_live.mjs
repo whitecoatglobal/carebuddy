@@ -1,0 +1,18 @@
+import { chromium } from '@playwright/test';
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await page.goto('http://124.156.206.120/', { waitUntil: 'networkidle' });
+await page.waitForTimeout(1500);
+await page.screenshot({ path: '/tmp/cb_live_welcome.png' });
+await page.getByRole('button', { name: 'Get started' }).click({ timeout: 5000 });
+await page.waitForTimeout(1500);
+await page.goto('http://124.156.206.120/buddy', { waitUntil: 'networkidle' });
+await page.waitForTimeout(1000);
+await page.locator('#message').fill('What is next today?');
+await page.locator('button:has-text("Send")').click();
+await page.waitForTimeout(3000);
+await page.screenshot({ path: '/tmp/cb_live_buddy.png', fullPage: false });
+const body = await page.content();
+console.log(body.includes('routines recorded') ? 'LIVE backend response found' : 'no response');
+console.log(body.includes('preparing a demo response') ? 'still thinking' : 'done thinking');
+await browser.close();

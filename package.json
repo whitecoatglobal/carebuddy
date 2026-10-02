@@ -1,0 +1,35 @@
+{
+  "name": "care-buddy-demo",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build && node scripts/build-sw.mjs",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "build:backend": "npm run build -w backend",
+    "start:backend": "npm run start -w backend"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "care-buddy-shared": "file:./shared"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.55.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "prettier": "^3.9.9",
+    "typescript": "^5.9.0",
+    "vite": "^6.3.0",
+    "vitest": "^5.0.3"
+  }
+}

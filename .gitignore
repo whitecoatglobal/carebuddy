@@ -1,0 +1,11 @@
+node_modules/
+.sites-runtime/
+.codegraph/
+playwright-report/
+test-results/
+.env
+.env.*
+dist/
+backend/dist/
+shared/dist/
+data/

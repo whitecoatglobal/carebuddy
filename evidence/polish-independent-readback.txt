@@ -1,0 +1,264 @@
+DIALOG Confirm reminder
+×
+
+For: Me · Actor: Me
+
+Review this change. Nothing is saved until you confirm.
+
+stretch
+
+30 Sept · 6:00 pm
+
+Repeat: None
+
+Confirm
+Edit
+Cancel
+DIALOG Confirm report
+×
+
+For: Me · Actor: Me
+
+Review this change. Nothing is saved until you confirm.
+
+stretch
+
+Record as complete for Me.
+
+Confirm
+Cancel
+DIALOG Confirm reminder
+×
+
+For: Me · Actor: Me
+
+Review this change. Nothing is saved until you confirm.
+
+Routine health check preparation
+
+30 Sept · 1:00 pm
+
+Repeat: None
+
+Confirm
+Edit
+Cancel
+DIALOG Confirm change
+×
+
+For: Me · Actor: Me
+
+Review this change. Nothing is saved until you confirm.
+
+Bedtime reminder
+
+30 Sept · 10:30 pm
+
+Repeat: Daily
+
+Before: 10:00 pm
+
+After: 10:30 pm
+
+Other days: Unchanged
+
+Confirm
+Edit
+Cancel
+[
+  [
+    "genericCreate",
+    [
+      {
+        "id": "c3d1f108-8b70-4d05-b4a0-ac3e9da5b850",
+        "profileId": "p-me",
+        "category": "Personal care",
+        "title": "stretch",
+        "scheduledAt": "2026-09-30T18:00:00+08:00",
+        "notificationSnoozedUntil": null,
+        "recurrence": "None",
+        "seriesId": null,
+        "occurrenceDate": "2026-09-30",
+        "instructions": "",
+        "appointmentId": null,
+        "outcome": null,
+        "completedAt": null,
+        "recordedBy": null,
+        "recordedAt": null,
+        "occurrenceOverride": false,
+        "deletedAt": null,
+        "history": [
+          {
+            "id": "8802f563-6cbc-46d5-a647-259ca296a97b",
+            "subject": "p-me",
+            "actor": "p-me",
+            "text": "Reminder created",
+            "at": "2026-09-30T09:00:00+08:00"
+          }
+        ]
+      }
+    ]
+  ],
+  [
+    "genericReport",
+    {
+      "id": "c3d1f108-8b70-4d05-b4a0-ac3e9da5b850",
+      "profileId": "p-me",
+      "category": "Personal care",
+      "title": "stretch",
+      "scheduledAt": "2026-09-30T18:00:00+08:00",
+      "notificationSnoozedUntil": null,
+      "recurrence": "None",
+      "seriesId": null,
+      "occurrenceDate": "2026-09-30",
+      "instructions": "",
+      "appointmentId": null,
+      "outcome": "complete",
+      "completedAt": "2026-09-30T09:00:00+08:00",
+      "recordedBy": "p-me",
+      "recordedAt": "2026-09-30T09:00:00+08:00",
+      "occurrenceOverride": false,
+      "deletedAt": null,
+      "history": [
+        {
+          "id": "8802f563-6cbc-46d5-a647-259ca296a97b",
+          "subject": "p-me",
+          "actor": "p-me",
+          "text": "Reminder created",
+          "at": "2026-09-30T09:00:00+08:00"
+        },
+        {
+          "id": "08ee9dcc-bb64-4923-ae21-c34c3c66b88b",
+          "subject": "p-me",
+          "actor": "p-me",
+          "text": "Recorded as complete for Me by Me",
+          "at": "2026-09-30T09:00:00+08:00"
+        }
+      ]
+    }
+  ],
+  [
+    "prep",
+    [
+      {
+        "id": "r-screen-maya",
+        "profileId": "p-maya",
+        "category": "Appointment preparation",
+        "title": "Review screening preparation",
+        "scheduledAt": "2026-09-30T19:00:00+08:00",
+        "notificationSnoozedUntil": null,
+        "recurrence": "None",
+        "seriesId": null,
+        "occurrenceDate": "2026-09-30",
+        "instructions": "",
+        "appointmentId": "a-screen-maya",
+        "outcome": null,
+        "completedAt": null,
+        "recordedBy": null,
+        "recordedAt": null,
+        "occurrenceOverride": false,
+        "deletedAt": null,
+        "history": []
+      },
+      {
+        "id": "3624a2a0-67c4-4749-9200-3a496d4cef5f",
+        "profileId": "p-me",
+        "category": "Appointment preparation",
+        "title": "Routine health check preparation",
+        "scheduledAt": "2026-09-30T13:00:00+08:00",
+        "notificationSnoozedUntil": null,
+        "recurrence": "None",
+        "seriesId": null,
+        "occurrenceDate": "2026-09-30",
+        "instructions": "review provider instructions; bring requested documents; confirm transport plans",
+        "appointmentId": "a-check-me",
+        "outcome": null,
+        "completedAt": null,
+        "recordedBy": null,
+        "recordedAt": null,
+        "occurrenceOverride": false,
+        "deletedAt": null,
+        "history": [
+          {
+            "id": "831600da-37f3-45f9-bed4-c554c77a6de5",
+            "subject": "p-me",
+            "actor": "p-me",
+            "text": "Reminder created",
+            "at": "2026-09-30T09:00:00+08:00"
+          }
+        ]
+      }
+    ]
+  ],
+  [
+    "repeatPrepDialog",
+    0
+  ],
+  [
+    "mayaBenefits",
+    "You · 9:00 am\n\nExplain my dental benefits\n\nBuddy · 9:00 am\n\nNeeds confirmation. The available terms do not contain enough information to confirm cover. Source: No sample terms supplied. Date not supplied. For: Maya. Eligibility not verified. Confirm the current terms with your benefits administrator.\n\nView benefit details\nAction details · Information only"
+  ],
+  [
+    "validImportDialog",
+    "Confirm change\n×\n\nFor: Me · Actor: Me\n\nReview this change. Nothing is saved until you confirm.\n\nBedtime reminder\n\n30 Sept · 10:30 pm\n\nRepeat: Daily\n\nBefore: 10:00 pm\n\nAfter: 10:30 pm\n\nOther days: Unchanged\n\nConfirm\nEdit\nCancel"
+  ],
+  [
+    "importSaved",
+    "2026-09-30T22:30:00+08:00"
+  ],
+  [
+    "staleError",
+    "The source record changed. Request a fresh proposal.\nDismiss error"
+  ],
+  [
+    "forgedError",
+    "The source record changed. Request a fresh proposal.\nDismiss error"
+  ],
+  [
+    "dismissButton",
+    1
+  ],
+  [
+    "alertDismissed",
+    0
+  ],
+  [
+    "timelineText",
+    320,
+    "Daily timeline\nAdd reminder\nEarlier\nMorning medication\n8:00 am · Me\nNot recorded\nUpcoming\nRoutine health check preparation\n1:00 pm · Me\nUpcoming\nBedtime reminder\n10:30 pm · Me\nUpcoming\nCompleted (1)\nUpcoming appointments\nRoutine health check\n2:00 pm · Me\nAppointment"
+  ],
+  [
+    "layout",
+    320,
+    {
+      "width": 320,
+      "scroll": 320
+    }
+  ],
+  [
+    "timelineText",
+    768,
+    "Daily timeline\nAdd reminder\nEarlier\nMorning medication\n8:00 am · Me\nNot recorded\nUpcoming\nRoutine health check preparation\n1:00 pm · Me\nUpcoming\nBedtime reminder\n10:30 pm · Me\nUpcoming\nCompleted (1)\nUpcoming appointments\nRoutine health check\n2:00 pm · Me\nAppointment"
+  ],
+  [
+    "layout",
+    768,
+    {
+      "width": 768,
+      "scroll": 768
+    }
+  ],
+  [
+    "timelineText",
+    1440,
+    "Daily timeline\nAdd reminder\nEarlier\nMorning medication\n8:00 am · Me\nNot recorded\nUpcoming\nRoutine health check preparation\n1:00 pm · Me\nUpcoming\nBedtime reminder\n10:30 pm · Me\nUpcoming\nCompleted (1)\nUpcoming appointments\nRoutine health check\n2:00 pm · Me\nAppointment"
+  ],
+  [
+    "layout",
+    1440,
+    {
+      "width": 1440,
+      "scroll": 1440
+    }
+  ]
+]

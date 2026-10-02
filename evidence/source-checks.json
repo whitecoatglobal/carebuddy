@@ -1,0 +1,6 @@
+{
+  "scope": "application source + 3 package scripts; pattern-only scan, not a security audit",
+  "files_checked": 11,
+  "findings": [],
+  "gitleaks": "unavailable"
+}

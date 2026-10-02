@@ -1,0 +1,22 @@
+[
+  {
+    "file": "App.tsx",
+    "before_sha256": "f3d837b2a000bad7839f8eb05d263cfb2dd70c12ad8d7ee7bf7fd9d2251d1e9b",
+    "after_sha256": "9ee8d9b65c57b73575f234bfe3197f2e1796cb5189cd59c87964313301a9d68b"
+  },
+  {
+    "file": "styles.css",
+    "before_sha256": "75c1aa7476b927d41be8a25c8691bae4d2c2212c7ab4fc2a59989ed3b7f11023",
+    "after_sha256": "236035119c2c54f2854e515ef6231b88371a1156d52ec4a8e393842bb13da17a"
+  },
+  {
+    "file": "domain.ts",
+    "before_sha256": "ed13778f440caeeae2fa54629d9f862496459bec99cceafea97cdc190956a062",
+    "after_sha256": "b7572055a5f70697e96834de7219eb64783cdf26b5a742a7a784c2671c907e41"
+  },
+  {
+    "file": "config.ts",
+    "before_sha256": "1aa31d5a871be5b6f0d225581606dbcc53c28bac4719c65190c6e4752020c2e5",
+    "after_sha256": "4a6a967b5129e15d3cdc776ba79ea4a6b796e0294b804d6d11263c56b9a77267"
+  }
+]
