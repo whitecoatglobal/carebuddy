@@ -917,7 +917,10 @@ export function execute(
       s.benefits = s.benefits.filter((b) => b.profileId !== c.id);
       s.chats = s.chats.filter((m) => m.profileId !== c.id);
       s.notifications = s.notifications.filter((n) => n.profileId !== c.id);
-      if (s.selectedProfileId === c.id) s.selectedProfileId = "p-me";
+      if (s.selectedProfileId === c.id) {
+        const remaining = s.profiles.find((p) => p.id !== "p-me") || s.profiles[0];
+        s.selectedProfileId = remaining ? remaining.id : "";
+      }
       s.activity.push(
         event(c.id, "Fictional profile removed from this browser"),
       );

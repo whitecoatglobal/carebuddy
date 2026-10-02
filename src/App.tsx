@@ -1076,25 +1076,43 @@ export default function App() {
         <p className="lead">Keep track of care for the people you support.</p>
         <div className="family-list">
           {state.profiles.map((p) => (
-            <button
-              className="profile-row"
-              key={p.id}
-              onClick={() => {
-                select(p.id);
-                go("/family/" + p.id);
-              }}
-            >
-              <span className="avatar">{p.displayName.slice(0, 1)}</span>
-              <span className="row-copy">
-                <strong>{p.displayName}</strong>
-                <span>
-                  {p.relationship} ·{" "}
-                  {p.canManage ? "Can manage reminders" : "Can view reminders"}
+            <div className="profile-row" key={p.id}>
+              <button
+                className="profile-row-main"
+                onClick={() => {
+                  select(p.id);
+                  go("/family/" + p.id);
+                }}
+                aria-label={`Open ${p.displayName}`}
+              >
+                <span className="avatar">{p.displayName.slice(0, 1)}</span>
+                <span className="row-copy">
+                  <strong>{p.displayName}</strong>
+                  <span>
+                    {p.relationship} ·{" "}
+                    {p.canManage
+                      ? "Can manage reminders"
+                      : "Can view reminders"}
+                  </span>
+                  <small>{summary(p)}</small>
                 </span>
-                <small>{summary(p)}</small>
-              </span>
-              <Icon name="arrow" />
-            </button>
+                <Icon name="arrow" />
+              </button>
+              <button
+                className="danger-text profile-row-remove"
+                aria-label={`Remove ${p.displayName}`}
+                onClick={() =>
+                  action(
+                    { type: "removeDependent", id: p.id },
+                    `Remove ${p.displayName}? This only removes fictional data from this browser.`,
+                    [p.id],
+                    () => go("/family"),
+                  )
+                }
+              >
+                Remove
+              </button>
+            </div>
           ))}
         </div>
         <button
