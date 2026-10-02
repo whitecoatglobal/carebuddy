@@ -438,6 +438,92 @@ header {
 }
 .family-list {
   margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.profile-row {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.profile-row-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  min-height: 0;
+  color: inherit;
+  cursor: pointer;
+}
+.profile-row-main:hover {
+  background: transparent;
+  border-color: transparent;
+}
+.profile-row-main .avatar {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  font-size: 18px;
+}
+.profile-row-main .row-copy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.profile-row-main .row-copy strong {
+  font-size: 16px;
+  font-weight: 600;
+  color: #172b2a;
+}
+.profile-row-main .row-copy span {
+  font-size: 13px;
+  color: #526460;
+}
+.profile-row-main .row-copy small {
+  font-size: 13px;
+  color: #748280;
+  margin-top: 2px;
+}
+.profile-row-main > svg {
+  flex-shrink: 0;
+  color: #748280;
+}
+.profile-row-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: flex-end;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #f3c8c5;
+  background: #fff;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.profile-row-remove:hover {
+  background: #fdeceb;
+  border-color: #e89a96;
+}
+.profile-row-remove svg {
+  width: 14px;
+  height: 14px;
 }
 .avatar {
   background: #e6f3ef;
@@ -1284,7 +1370,7 @@ h1 {
   .family-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 32px;
+    gap: 16px 32px;
   }
 }
 @media (max-width: 359px) {

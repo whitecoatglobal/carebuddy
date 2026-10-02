@@ -108,6 +108,7 @@ function Icon({ name }: { name: string }) {
     arrow: <path d="m9 5 7 7-7 7" />,
     plus: <path d="M12 5v14M5 12h14" />,
     check: <path d="m5 12 4 4L19 6" />,
+    x: <path d="M6 6l12 12M18 6 6 18" />,
     car: (
       <>
         <path d="m5 8 2-5h10l2 5M3 10h18v9H3Z" />
@@ -1099,7 +1100,7 @@ export default function App() {
                 <Icon name="arrow" />
               </button>
               <button
-                className="danger-text profile-row-remove"
+                className="profile-row-remove"
                 aria-label={`Remove ${p.displayName}`}
                 onClick={() =>
                   action(
@@ -1110,7 +1111,8 @@ export default function App() {
                   )
                 }
               >
-                Remove
+                <Icon name="x" />
+                <span>Remove</span>
               </button>
             </div>
           ))}
