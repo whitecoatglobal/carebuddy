@@ -386,6 +386,27 @@ export function seed(): State {
   });
   return materialize(base);
 }
+
+export function emptyState(): State {
+  return {
+    version: 1,
+    started: false,
+    now: new Date().toISOString(),
+    selectedProfileId: "",
+    profiles: [],
+    reminders: [],
+    appointments: [],
+    benefits: [],
+    chats: [],
+    notifications: [],
+    appliedActions: [],
+    activity: [],
+    carMode: "disconnected",
+    preferences: { genericReminders: false, spokenReminders: false },
+    scenario: "",
+  };
+}
+
 export function materialize(s: State): State {
   // Occurrences are generated independently of their reported outcomes.
   const dates = [
@@ -480,12 +501,8 @@ export function validateState(v: unknown): v is State {
   )
     return false;
   const ids = new Set(profiles.map((p) => (p as { id: string }).id));
-  if (
-    ids.size !== profiles.length ||
-    !ids.has("p-me") ||
-    !ids.has(v.selectedProfileId)
-  )
-    return false;
+  if (ids.size !== profiles.length) return false;
+  if (profiles.length > 0 && !ids.has(v.selectedProfileId)) return false;
   const hist = (h: unknown) =>
     Array.isArray(h) &&
     h.every(
@@ -703,7 +720,7 @@ export function execute(
       s.started = true;
       break;
     case "reset": {
-      const fresh = seed();
+      const fresh = emptyState();
       fresh.started = true;
       return fresh;
     }
@@ -898,7 +915,10 @@ export function execute(
       s.benefits = s.benefits.filter((b) => b.profileId !== c.id);
       s.chats = s.chats.filter((m) => m.profileId !== c.id);
       s.notifications = s.notifications.filter((n) => n.profileId !== c.id);
-      if (s.selectedProfileId === c.id) s.selectedProfileId = "p-me";
+      if (s.selectedProfileId === c.id) {
+        const remaining = s.profiles.find((p) => p.id !== "p-me") || s.profiles[0];
+        s.selectedProfileId = remaining ? remaining.id : "";
+      }
       s.activity.push(
         event(c.id, "Fictional profile removed from this browser"),
       );

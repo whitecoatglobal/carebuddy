@@ -108,6 +108,7 @@ function Icon({ name }: { name: string }) {
     arrow: <path d="m9 5 7 7-7 7" />,
     plus: <path d="M12 5v14M5 12h14" />,
     check: <path d="m5 12 4 4L19 6" />,
+    x: <path d="M6 6l12 12M18 6 6 18" />,
     car: (
       <>
         <path d="m5 8 2-5h10l2 5M3 10h18v9H3Z" />
@@ -323,7 +324,14 @@ export default function App() {
     const timer = setTimeout(() => setToast(""), 5000);
     return () => clearTimeout(timer);
   }, [toast]);
-  const profile = state.profiles.find((p) => p.id === state.selectedProfileId)!;
+  const profile = state.profiles.find((p) => p.id === state.selectedProfileId) ||
+    state.profiles[0] || {
+      id: "",
+      displayName: "No family member",
+      relationship: "",
+      canView: true,
+      canManage: true,
+    };
   const person = (id: string) =>
     state.profiles.find((p) => p.id === id)?.displayName || "Unknown person";
   const go = (path: string) => {
@@ -1144,25 +1152,44 @@ export default function App() {
         <p className="lead">Keep track of care for the people you support.</p>
         <div className="family-list">
           {state.profiles.map((p) => (
-            <button
-              className="profile-row"
-              key={p.id}
-              onClick={() => {
-                select(p.id);
-                go("/family/" + p.id);
-              }}
-            >
-              <span className="avatar">{p.displayName.slice(0, 1)}</span>
-              <span className="row-copy">
-                <strong>{p.displayName}</strong>
-                <span>
-                  {p.relationship} ·{" "}
-                  {p.canManage ? "Can manage reminders" : "Can view reminders"}
+            <div className="profile-row" key={p.id}>
+              <button
+                className="profile-row-main"
+                onClick={() => {
+                  select(p.id);
+                  go("/family/" + p.id);
+                }}
+                aria-label={`Open ${p.displayName}`}
+              >
+                <span className="avatar">{p.displayName.slice(0, 1)}</span>
+                <span className="row-copy">
+                  <strong>{p.displayName}</strong>
+                  <span>
+                    {p.relationship} ·{" "}
+                    {p.canManage
+                      ? "Can manage reminders"
+                      : "Can view reminders"}
+                  </span>
+                  <small>{summary(p)}</small>
                 </span>
-                <small>{summary(p)}</small>
-              </span>
-              <Icon name="arrow" />
-            </button>
+                <Icon name="arrow" />
+              </button>
+              <button
+                className="profile-row-remove"
+                aria-label={`Remove ${p.displayName}`}
+                onClick={() =>
+                  action(
+                    { type: "removeDependent", id: p.id },
+                    `Remove ${p.displayName}? This only removes fictional data from this browser.`,
+                    [p.id],
+                    () => go("/family"),
+                  )
+                }
+              >
+                <Icon name="x" />
+                <span>Remove</span>
+              </button>
+            </div>
           ))}
         </div>
         <button

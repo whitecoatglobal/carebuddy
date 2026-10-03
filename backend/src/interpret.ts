@@ -3,7 +3,7 @@ import {
   type Action,
   buildChatAction,
   validateState,
-  seed,
+  emptyState,
 } from "care-buddy-shared";
 
 export interface InterpretRequest {
@@ -45,7 +45,7 @@ function normalizeState(raw: unknown): State {
   if (raw && typeof raw === "object" && validateState(raw)) {
     return raw as State;
   }
-  const fresh = seed();
+  const fresh = emptyState();
   fresh.started = true;
   return fresh;
 }
