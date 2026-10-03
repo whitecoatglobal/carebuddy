@@ -102,8 +102,11 @@ export interface WeatherData {
   humidity: number; // %
   windKph: number;
   condition: string;
+  conditionIcon: string;
   uvIndex: number;
   airQuality: number; // AQI
+  psi: number; // Pollutant Standards Index (SG)
+  rainProbability: number; // % chance of rain
   updatedAt: string;
 }
 export interface HealthAdvice {

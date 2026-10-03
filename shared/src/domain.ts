@@ -47,9 +47,7 @@ export const statusLabel = (r: Reminder) =>
       ? "Complete"
       : r.outcome === "skipped"
         ? "Recorded as skipped"
-        : r.category === "Medication"
-          ? "Not recorded"
-          : "Upcoming";
+        : "Upcoming";
 export function seed(): State {
   const reminder = (
     id: string,

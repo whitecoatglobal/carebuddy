@@ -34,7 +34,7 @@ describe("PDF v1.1 independent domain requirements", () => {
     expect(s.now).toBe(BASE_NOW);
     expect(s.selectedProfileId).toBe("p-me");
     expect(get(s).outcome).toBe(null);
-    expect(statusLabel(get(s))).toBe("Not recorded");
+    expect(statusLabel(get(s))).toBe("Upcoming");
     expect(s.profiles.find((p) => p.id === "p-leo")?.canManage).toBe(false);
     expect(s.reminders.filter((r) => r.seriesId === "r-med-me")).toHaveLength(
       2,

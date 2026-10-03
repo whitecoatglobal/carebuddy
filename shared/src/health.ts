@@ -67,6 +67,8 @@ export function buildWeather(stateNow?: string): WeatherData {
   const windKph = Math.round(clamp(8 + rand() * 14, 0, 35));
   const uvIndex = Math.round(clamp(rand() * 9, 0, 11));
   const airQuality = Math.round(clamp(30 + rand() * 60, 10, 180));
+  const psi = Math.round(clamp(20 + rand() * 80, 5, 200));
+  const rainProbability = Math.round(clamp(rand() * 60 + (humidity > 75 ? 20 : 0), 0, 95));
   const condition =
     temperatureC >= 28
       ? "Sunny"
@@ -75,6 +77,14 @@ export function buildWeather(stateNow?: string): WeatherData {
         : temperatureC >= 10
           ? "Cloudy"
           : "Cold";
+  const conditionIcon =
+    condition === "Sunny"
+      ? "☀️"
+      : condition === "Partly cloudy"
+        ? "⛅"
+        : condition === "Cloudy"
+          ? "☁️"
+          : "🌧️";
   return {
     location: "Local area",
     temperatureC,
@@ -82,8 +92,11 @@ export function buildWeather(stateNow?: string): WeatherData {
     humidity,
     windKph,
     condition,
+    conditionIcon,
     uvIndex,
     airQuality,
+    psi,
+    rainProbability,
     updatedAt: new Date(t).toISOString(),
   };
 }

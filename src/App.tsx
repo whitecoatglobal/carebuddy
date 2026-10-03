@@ -6,7 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import { usePwa } from "./pwa";
-import { APP_NAME, APP_SUBTITLE } from "./config";
+import { APP_NAME } from "./config";
 import {
   loadState,
   saveState,
@@ -24,7 +24,7 @@ import {
   materialize,
 } from "./domain";
 import { interpretBuddyMessage, isBackendEnabled } from "./buddyClient";
-import { fetchHealthSnapshot, type HealthSnapshot } from "./healthClient";
+import { fetchHealthSnapshot, fetchWeather, type HealthSnapshot } from "./healthClient";
 import { getClientId, isSyncEnabled, pullState, pushState } from "./syncClient";
 import type {
   State,
@@ -123,6 +123,12 @@ function Icon({ name }: { name: string }) {
     pulse: (
       <>
         <path d="M3 12h4l2-5 3 10 2-5h7" />
+      </>
+    ),
+    search: (
+      <>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
       </>
     ),
   };
@@ -301,6 +307,17 @@ export default function App() {
   const [health, setHealth] = useState<HealthSnapshot | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthError, setHealthError] = useState("");
+  const [liveTime, setLiveTime] = useState(() => new Date());
+  const [todayWeather, setTodayWeather] = useState<WeatherData | null>(null);
+  useEffect(() => {
+    const t = setInterval(() => setLiveTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    fetchWeather(stateRef.current).then((w) => {
+      if (w) setTodayWeather(w);
+    });
+  }, [state.now]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 5000);
@@ -701,29 +718,59 @@ export default function App() {
       ),
     });
   function renderToday() {
+    const fmtClock = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Singapore",
+    });
+    const psiLabel =
+      todayWeather && todayWeather.psi <= 50
+        ? "Good"
+        : todayWeather && todayWeather.psi <= 100
+          ? "Moderate"
+          : todayWeather && todayWeather.psi <= 200
+            ? "Unhealthy"
+            : "—";
     return (
       <>
-        <div className="eyebrow">
-          {new Intl.DateTimeFormat("en-SG", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            timeZone: "Asia/Singapore",
-          }).format(new Date(state.now))}
+        <div className="today-header-row">
+          <div className="eyebrow today-eyebrow">
+            {new Intl.DateTimeFormat("en-SG", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              timeZone: "Asia/Singapore",
+            }).format(new Date(state.now))}
+          </div>
+          <div className="live-clock">{fmtClock.format(liveTime)}</div>
         </div>
-        <h1>
-          {profile.id === "p-me" ? "Your day" : profile.displayName + "'s day"}
-        </h1>
-        <p className="lead">
-          {todayReminders.filter((r) => !r.outcome).length} routines to record
-          {appointments.some(
-            (a) =>
-              a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
-              Date.parse(a.startsAt) >= Date.parse(state.now),
-          )
-            ? ` · ${appointments.filter((a) => a.startsAt.slice(0, 10) === state.now.slice(0, 10) && Date.parse(a.startsAt) >= Date.parse(state.now)).length} appointment${appointments.filter((a) => a.startsAt.slice(0, 10) === state.now.slice(0, 10) && Date.parse(a.startsAt) >= Date.parse(state.now)).length === 1 ? "" : "s"} today`
-            : " · No appointments today"}
-        </p>
+        <div className="weather-banner">
+          {todayWeather ? (
+            <>
+              <span className="weather-icon-lg">{todayWeather.conditionIcon}</span>
+              <div className="weather-banner-main">
+                <span className="weather-temp-lg">{todayWeather.temperatureC}°C</span>
+                <span className="weather-cond-lg">{todayWeather.condition}</span>
+              </div>
+              <div className="weather-banner-stats">
+                <div>
+                  <small>Humidity</small>
+                  <span>{todayWeather.humidity}%</span>
+                </div>
+                <div>
+                  <small>PSI</small>
+                  <span>
+                    {todayWeather.psi} · {psiLabel}
+                  </span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <span className="weather-cond-lg">Loading weather…</span>
+          )}
+        </div>
         {!profile.canManage && (
           <div className="notice">
             You can view reminders, but cannot update this profile.
@@ -938,33 +985,61 @@ export default function App() {
             )}
           </div>
         </div>
-        <aside className="care-insight">
-          <Icon name="buddy" />
-          <div>
-            <strong>
-              {
-                todayReminders.filter(
-                  (r) => r.outcome === "taken" || r.outcome === "complete",
-                ).length
-              }{" "}
-              of {todayReminders.length} routines recorded
-            </strong>
+        <div className="today-notifications">
+          <div className="notif-card notif-medication">
+            <div className="notif-icon">💊</div>
+            <div className="notif-body">
+              <strong>Rise and Shine! A brand new day, a brand new you!</strong>
+              <p>Time for your morning medication.</p>
+            </div>
+            <button
+              className="primary"
+              disabled={!profile.canManage}
+              onClick={() => {
+                const med = todayReminders.find(
+                  (r) => r.category === "Medication" && !r.outcome,
+                );
+                if (med) complete(med, "taken");
+              }}
+            >
+              <Icon name="check" /> Mark as taken
+            </button>
+          </div>
+          <div className="notif-card notif-sleep">
+            <div className="notif-icon">🌙</div>
+            <div className="notif-body">
+              <strong>Review your sleep</strong>
+              <p>Sleep duration: 6 hours 37 mins</p>
+              <p className="notif-detail">
+                Your REM sleep is only around 1 hour, and you are tossing and
+                turning throughout your sleep which correlates to your lower body
+                temperature during those times. CareBuddy suggests raising the AC
+                temperature by 1 degree tonight to get a better sleep.
+              </p>
+            </div>
+            <div className="notif-actions">
+              <button
+                className="btn-green"
+                onClick={() => go("/health")}
+              >
+                <Icon name="search" /> Review Sleep
+              </button>
+              <button className="btn-remind-later">
+                Remind me later
+              </button>
+            </div>
+          </div>
+        </div>
+        {todayWeather && todayWeather.rainProbability > 20 && (
+          <div className="rain-note">
+            <span className="rain-icon">🌧️</span>
             <p>
-              {nextAppointment
-                ? `Next appointment: ${nextAppointment.title}, ${formatDate(nextAppointment.startsAt)}.`
-                : "Your appointment list is clear."}
+              <strong>Going to work?</strong> CareBuddy recommends bringing an
+              umbrella as there is a {todayWeather.rainProbability}% chance of
+              raining at CBD later today. An umbrella a day keeps the rain away!
             </p>
           </div>
-          <button
-            className="text-button"
-            onClick={() => {
-              setContext(null);
-              go("/buddy");
-            }}
-          >
-            Plan my day <Icon name="arrow" />
-          </button>
-        </aside>
+        )}
         <div className="quiet-actions">
           <button className="text-button" onClick={() => go("/care/gp")}>
             Find GP care <Icon name="arrow" />
@@ -2583,7 +2658,6 @@ export default function App() {
       >
         <div className="wordmark">
           <strong>{APP_NAME}</strong>
-          <small>{APP_SUBTITLE}</small>
         </div>
 
         <div className="header-actions">
@@ -2655,27 +2729,29 @@ export default function App() {
           )
         }
       >
-        <div className="profile-selector">
-          <label htmlFor="profile">Care for</label>
-          <select
-            id="profile"
-            value={profile.id}
-            onChange={(e) => select(e.target.value)}
-          >
-            {state.profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.displayName}
-              </option>
-            ))}
-          </select>
-          <span className="profile-access">
-            {profile.id === "p-me"
-              ? "Your care"
-              : profile.relationship +
-                " · " +
-                (profile.canManage ? "Manage access" : "View only")}
-          </span>
-        </div>
+        {path !== "/" && path !== "/today" && (
+          <div className="profile-selector">
+            <label htmlFor="profile">Care for</label>
+            <select
+              id="profile"
+              value={profile.id}
+              onChange={(e) => select(e.target.value)}
+            >
+              {state.profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.displayName}
+                </option>
+              ))}
+            </select>
+            <span className="profile-access">
+              {profile.id === "p-me"
+                ? "Your care"
+                : profile.relationship +
+                  " · " +
+                  (profile.canManage ? "Manage access" : "View only")}
+            </span>
+          </div>
+        )}
         {error && !pending && (
           <div role="alert" className="error">
             {error}

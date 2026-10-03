@@ -124,8 +124,8 @@ header {
   display: flex;
   gap: 12px;
   align-items: center;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
+  background: #fff9e6;
+  border-bottom: 1px solid #f0e6c0;
   position: sticky;
   top: 0;
   z-index: 5;
@@ -994,7 +994,7 @@ footer {
 header {
   height: 60px;
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.97);
+  background: #fff9e6;
 }
 .wordmark strong {
   font-size: 19px;
@@ -1475,5 +1475,215 @@ h1 {
 }
 .advice-caution {
   border-left-color: #b42318;
+}
+
+/* ===== Today redesign ===== */
+.today-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.today-eyebrow {
+  margin-bottom: 0;
+}
+.live-clock {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f766e;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  background: #e6f3ef;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+.weather-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #e8f4f0, #f0f8f4);
+  border: 1px solid #cfe3dc;
+  border-radius: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.weather-icon-lg {
+  font-size: 52px;
+  line-height: 1;
+}
+.weather-banner-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.weather-temp-lg {
+  font-size: 40px;
+  font-weight: 700;
+  color: #0f766e;
+  line-height: 1.05;
+  letter-spacing: -1px;
+}
+.weather-cond-lg {
+  font-size: 17px;
+  font-weight: 600;
+  color: #526460;
+}
+.weather-banner-stats {
+  display: flex;
+  gap: 24px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.weather-banner-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.weather-banner-stats small {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #526460;
+}
+.weather-banner-stats span {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f766e;
+}
+
+/* Alternating section backgrounds */
+.day-focus .next-card {
+  background: #fff9e6;
+  border: 1px solid #f0e6c0;
+}
+.day-timeline {
+  background: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  padding: 20px;
+  border-radius: 20px;
+}
+.appointment-strip {
+  background: #fff9e6 !important;
+  border: 1px solid #f0e6c0 !important;
+}
+
+/* Notification cards */
+.today-notifications {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 20px 0;
+}
+.notif-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.notif-medication {
+  background: #fff9e6;
+  border-color: #f0e6c0;
+}
+.notif-sleep {
+  background: #e8f0fe;
+  border-color: #c5d9f5;
+}
+.notif-icon {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.notif-body {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.notif-body strong {
+  font-size: 16px;
+}
+.notif-body p {
+  margin: 0;
+  font-size: 14px;
+  color: #526460;
+}
+.notif-detail {
+  font-size: 13px !important;
+  line-height: 20px;
+  margin-top: 4px !important;
+}
+.notif-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 8px;
+}
+.btn-green {
+  background: #2e7d32 !important;
+  border-color: #2e7d32 !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+.btn-green:hover {
+  background: #256528 !important;
+}
+.btn-remind-later {
+  background: #fff9e6 !important;
+  border: 1px solid #f0e6c0 !important;
+  color: #8a6d00 !important;
+}
+.btn-remind-later:hover {
+  background: #fff5cc !important;
+}
+
+/* Rain recommendation note */
+.rain-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 16px;
+  margin: 16px 0;
+}
+.rain-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.rain-note p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: #0d47a1;
+}
+.rain-note strong {
+  color: #0d47a1;
+}
+
+@media (max-width: 767px) {
+  .weather-banner {
+    gap: 10px;
+    padding: 16px;
+  }
+  .weather-temp-lg {
+    font-size: 32px;
+  }
+  .weather-banner-stats {
+    margin-left: 0;
+    gap: 16px;
+  }
+  .notif-card {
+    padding: 14px;
+  }
 }
 
