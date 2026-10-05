@@ -409,8 +409,7 @@ header {
   padding: 24px 0;
 }
 .list-row,
-.benefit-row,
-.profile-row {
+.benefit-row {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -432,8 +431,7 @@ header {
   flex: 1;
 }
 .list-row > svg,
-.benefit-row > svg,
-.profile-row > svg {
+.benefit-row > svg {
   flex-shrink: 0;
 }
 .family-list {
