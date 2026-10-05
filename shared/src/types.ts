@@ -177,6 +177,11 @@ export type Command =
       relationship: string;
       acknowledged: boolean;
     }
+  | {
+      type: "updateDependent";
+      id: string;
+      patch: Partial<Pick<Profile, "displayName" | "relationship" | "canManage">>;
+    }
   | { type: "removeDependent"; id: string }
   | { type: "toggleChecklist"; id: string; index: number }
   | {
