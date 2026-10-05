@@ -102,6 +102,9 @@ export interface WeatherData {
   humidity: number; // %
   windKph: number;
   condition: string;
+  conditionIcon?: string;
+  psi?: number;
+  rainProbability?: number;
   uvIndex: number;
   airQuality: number; // AQI
   updatedAt: string;
@@ -173,6 +176,11 @@ export type Command =
       displayName: string;
       relationship: string;
       acknowledged: boolean;
+    }
+  | {
+      type: "updateDependent";
+      id: string;
+      patch: Partial<Pick<Profile, "displayName" | "relationship" | "canManage">>;
     }
   | { type: "removeDependent"; id: string }
   | { type: "toggleChecklist"; id: string; index: number }

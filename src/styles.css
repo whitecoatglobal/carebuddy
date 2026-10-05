@@ -192,6 +192,39 @@ header {
   color: #526460;
   margin-left: 4px;
 }
+.profile-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 16px;
+  border: 1px dashed #c6ded7;
+  border-radius: 12px;
+  background: #f7fbfa;
+  color: #115e59;
+  cursor: pointer;
+  font-size: 14px;
+}
+.profile-empty .eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #526460;
+}
+.profile-empty strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: #115e59;
+}
+.profile-empty .helper {
+  font-size: 12px;
+  color: #748280;
+  margin: 0;
+}
+.profile-empty:hover {
+  background: #e6f3ef;
+  border-color: #92c2ab;
+}
 .nav {
   position: fixed;
   bottom: 0;

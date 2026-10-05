@@ -408,6 +408,31 @@ export function emptyState(): State {
     scenario: "",
   };
 }
+/**
+ * Re-seeds the synthetic (syn-*) reminders + appointments from `seed()` once.
+ * Each seeded record is tagged with an action id pushed into `appliedActions`
+ * so that intentional deletions (which drop the record but keep the tag) are
+ * not undone on subsequent loads.
+ */
+export function ensureSyntheticRecords(s: State): void {
+  const fresh = seed();
+  const reminderIds = new Set(s.reminders.map((r) => r.id));
+  const apptIds = new Set(s.appointments.map((a) => a.id));
+  const seededTag = "synthetic-household-v2";
+  if (!s.appliedActions.includes(seededTag)) {
+    for (const r of fresh.reminders) {
+      if (r.id.startsWith("syn-") && !reminderIds.has(r.id)) {
+        s.reminders.push(r);
+      }
+    }
+    for (const a of fresh.appointments) {
+      if (a.id.startsWith("syn-") && !apptIds.has(a.id)) {
+        s.appointments.push(a);
+      }
+    }
+    s.appliedActions.push(seededTag);
+  }
+}
 
 export function materialize(s: State): State {
   // Occurrences are generated independently of their reported outcomes.
@@ -908,6 +933,42 @@ export function execute(
       );
       break;
     }
+    case "updateDependent": {
+      if (c.id === "p-me") throw new Error("Me cannot be changed");
+      const p = profile(c.id, false);
+      const patch = c.patch || {};
+      if (
+        patch.displayName !== undefined &&
+        (patch.displayName.trim().length < 2 ||
+          patch.displayName.trim().length > 40)
+      )
+        throw new Error("Enter a name with 2 to 40 characters");
+      if (
+        patch.relationship !== undefined &&
+        !["Parent", "Child", "Partner", "Other"].includes(patch.relationship)
+      )
+        throw new Error("Choose a relationship");
+      const changes: string[] = [];
+      if (patch.displayName !== undefined && patch.displayName.trim() !== p.displayName) {
+        changes.push(`renamed to ${patch.displayName.trim()}`);
+        p.displayName = patch.displayName.trim();
+      }
+      if (
+        patch.relationship !== undefined &&
+        patch.relationship !== p.relationship
+      ) {
+        changes.push(`relationship ${p.relationship} → ${patch.relationship}`);
+        p.relationship = patch.relationship;
+      }
+      if (patch.canManage !== undefined && patch.canManage !== p.canManage) {
+        changes.push(patch.canManage ? "granted manage access" : "changed to view only");
+        p.canManage = patch.canManage;
+      }
+      if (changes.length) {
+        s.activity.push(event(c.id, `Fictional profile ${changes.join("; ")}`));
+      }
+      break;
+    }
     case "removeDependent": {
       if (c.id === "p-me") throw new Error("Me cannot be removed");
       profile(c.id, false);
@@ -918,8 +979,12 @@ export function execute(
       s.chats = s.chats.filter((m) => m.profileId !== c.id);
       s.notifications = s.notifications.filter((n) => n.profileId !== c.id);
       if (s.selectedProfileId === c.id) {
-        const remaining = s.profiles.find((p) => p.id !== "p-me") || s.profiles[0];
-        s.selectedProfileId = remaining ? remaining.id : "";
+        // Fall back to "p-me" if still present; otherwise first remaining profile;
+        // otherwise empty (no profiles left).
+        const meStillThere = s.profiles.some((p) => p.id === "p-me");
+        if (meStillThere) s.selectedProfileId = "p-me";
+        else if (s.profiles.length > 0) s.selectedProfileId = s.profiles[0].id;
+        else s.selectedProfileId = "";
       }
       s.activity.push(
         event(c.id, "Fictional profile removed from this browser"),

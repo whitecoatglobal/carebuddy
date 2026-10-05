@@ -709,6 +709,40 @@ export default function App() {
       ),
     });
   function renderToday() {
+    if (!profile.id) {
+      return (
+        <>
+          <div className="eyebrow">
+            {new Intl.DateTimeFormat("en-SG", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              timeZone: "Asia/Singapore",
+            }).format(new Date(state.now))}
+          </div>
+          <h1>Welcome to Care Buddy</h1>
+          <p className="lead">
+            Add a family member to see their day, reminders and appointments.
+          </p>
+          <div className="empty">
+            <h2>Get started</h2>
+            <p>
+              Care Buddy helps you track care for the people you support —
+              routines, appointments, benefits, and health context. Use
+              fictional names only.
+            </p>
+            <div className="actions">
+              <button
+                className="primary"
+                onClick={() => go("/family")}
+              >
+                <Icon name="plus" /> Add a family member
+              </button>
+            </div>
+          </div>
+        </>
+      );
+    }
     return (
       <>
         <div className="eyebrow">
@@ -1003,15 +1037,37 @@ export default function App() {
           <div className="notice">
             Actions on this page are for {member.displayName}.
           </div>
-          {!member.canManage && (
+          {member.id !== "p-me" && (
+            <button
+              className={member.canManage ? "secondary" : "primary"}
+              onClick={() =>
+                action(
+                  {
+                    type: "updateDependent",
+                    id: member.id,
+                    patch: { canManage: !member.canManage },
+                  },
+                  member.canManage
+                    ? `Change ${member.displayName} to view only? You will no longer be able to record outcomes or edit reminders for them.`
+                    : `Grant manage access for ${member.displayName}? You will be able to add reminders, record outcomes, and edit benefits for them on this device.`,
+                  [member.id],
+                )
+              }
+            >
+              {member.canManage
+                ? "Change to view only"
+                : "Grant manage access"}
+            </button>
+          )}
+          {!member.canManage && member.id !== "p-me" && (
             <button
               onClick={() =>
                 setModal({
                   title: "Why can't I edit?",
                   content: (
                     <p>
-                      This profile is view-only. Changing a relationship label
-                      does not grant access.
+                      This profile is view-only. Grant manage access above to
+                      add reminders and record outcomes for this person.
                     </p>
                   ),
                 })
@@ -1255,6 +1311,22 @@ export default function App() {
     const b = state.benefits.find(
       (x) => x.id === path.split("/")[2] && x.profileId === profile.id,
     );
+    if (!profile.id) {
+      return (
+        <>
+          <h1>Benefits</h1>
+          <p className="lead">
+            Add a family member to check their cover with your insurer or
+            benefits administrator.
+          </p>
+          <div className="actions">
+            <button className="primary" onClick={() => go("/family")}>
+              Go to Family
+            </button>
+          </div>
+        </>
+      );
+    }
     if (path.split("/")[2]) {
       if (!b) return notFound();
       return (
@@ -1442,6 +1514,22 @@ export default function App() {
       ...state.appointments,
       ...state.benefits,
     ].find((x) => x.id === context && x.profileId === profile.id);
+    if (!profile.id) {
+      return (
+        <>
+          <div className="eyebrow">YOUR CARE ASSISTANT</div>
+          <h1>Buddy</h1>
+          <p className="lead">
+            Add a family member to ask Buddy about their care.
+          </p>
+          <div className="actions">
+            <button className="primary" onClick={() => go("/family")}>
+              Go to Family
+            </button>
+          </div>
+        </>
+      );
+    }
     return (
       <>
         <div className="eyebrow">YOUR CARE ASSISTANT</div>
@@ -1758,6 +1846,7 @@ export default function App() {
     );
   }
   function refreshHealth() {
+    if (!profile.id) return;
     setHealthLoading(true);
     setHealthError("");
     fetchHealthSnapshot(stateRef.current, profile.id)
@@ -1777,6 +1866,10 @@ export default function App() {
     if (path !== "/health") return;
     setHealth(null);
     setHealthError("");
+    if (!profile.id) {
+      setHealthLoading(false);
+      return;
+    }
     setHealthLoading(true);
     fetchHealthSnapshot(stateRef.current, profile.id)
       .then((snap) => {
@@ -1792,6 +1885,25 @@ export default function App() {
     const reading = health?.reading;
     const weather = health?.weather;
     const advice = health?.advice ?? [];
+    if (!profile.id) {
+      return (
+        <>
+          <span className="eyebrow">WEARABLE PAIRING</span>
+          <h1>Health</h1>
+          <p className="lead">
+            Add a family member to see their wearable vitals here.
+          </p>
+          <div className="notice">
+            Care Buddy shows live stats for the person you are caring for.
+          </div>
+          <div className="actions">
+            <button className="primary" onClick={() => go("/family")}>
+              Go to Family
+            </button>
+          </div>
+        </>
+      );
+    }
     return (
       <>
         <span className="eyebrow">WEARABLE PAIRING</span>
@@ -2308,21 +2420,43 @@ export default function App() {
         )}
         {form.kind === "reminder" && (
           <>
-            <label className="field">
-              Person
-              <select
-                value={form.values.profileId}
-                onChange={(e) => change("profileId", e.target.value)}
-                disabled={!!form.id}
-              >
-                {state.profiles.map((p) => (
-                  <option key={p.id} value={p.id} disabled={!p.canManage}>
-                    {p.displayName}
-                    {!p.canManage ? " (view only)" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {state.profiles.length === 0 ? (
+              <div className="notice">
+                <strong>No family member to add a reminder for.</strong>
+                <p>
+                  Add a family member first, then grant manage access so you
+                  can record outcomes and edit their care.
+                </p>
+                <div className="actions">
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={() => {
+                      closeForm();
+                      go("/family");
+                    }}
+                  >
+                    Go to Family
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="field">
+                Person
+                <select
+                  value={form.values.profileId}
+                  onChange={(e) => change("profileId", e.target.value)}
+                  disabled={!!form.id}
+                >
+                  {state.profiles.map((p) => (
+                    <option key={p.id} value={p.id} disabled={!p.canManage}>
+                      {p.displayName}
+                      {!p.canManage ? " (view only)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="field">
               Category
               <select
@@ -2683,25 +2817,39 @@ export default function App() {
         }
       >
         <div className="profile-selector">
-          <label htmlFor="profile">Care for</label>
-          <select
-            id="profile"
-            value={profile.id}
-            onChange={(e) => select(e.target.value)}
-          >
-            {state.profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.displayName}
-              </option>
-            ))}
-          </select>
-          <span className="profile-access">
-            {profile.id === "p-me"
-              ? "Your care"
-              : profile.relationship +
-                " · " +
-                (profile.canManage ? "Manage access" : "View only")}
-          </span>
+          {state.profiles.length === 0 ? (
+            <button
+              type="button"
+              className="profile-empty"
+              onClick={() => go("/family")}
+            >
+              <span className="eyebrow">Care for</span>
+              <strong>Add a family member to get started</strong>
+              <span className="helper">Tap to open Family</span>
+            </button>
+          ) : (
+            <>
+              <label htmlFor="profile">Care for</label>
+              <select
+                id="profile"
+                value={profile.id}
+                onChange={(e) => select(e.target.value)}
+              >
+                {state.profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.displayName}
+                  </option>
+                ))}
+              </select>
+              <span className="profile-access">
+                {profile.id === "p-me"
+                  ? "Your care"
+                  : profile.relationship +
+                    " · " +
+                    (profile.canManage ? "Manage access" : "View only")}
+              </span>
+            </>
+          )}
         </div>
         {error && !pending && (
           <div role="alert" className="error">
@@ -3075,7 +3223,14 @@ export default function App() {
       )}
       {pending && (
         <Sheet title={pending.action.label} onClose={cancelPending}>
-          <p>For: {person(pending.action.profileId)} · Actor: Me</p>
+          <p>
+            For:{" "}
+            {pending.action.command.type === "addDependent"
+              ? (pending.action.command as { displayName: string }).displayName +
+                " (new)"
+              : person(pending.action.profileId)}{" "}
+            · Actor: Me
+          </p>
           {error && (
             <div role="alert" className="error">
               {error}

@@ -1,6 +1,12 @@
 export * from "care-buddy-shared";
 import type { State } from "care-buddy-shared";
-import { STORAGE_KEY, emptyState, materialize, validateState } from "care-buddy-shared";
+import {
+  STORAGE_KEY,
+  emptyState,
+  ensureSyntheticRecords,
+  materialize,
+  validateState,
+} from "care-buddy-shared";
 
 export function loadState(): { state: State; notice: string } {
   try {
@@ -10,6 +16,7 @@ export function loadState(): { state: State; notice: string } {
     if (!validateState(parsed)) throw new Error("Invalid shape");
     (parsed as State).carMode =
       (parsed as State).carMode === "disconnected" ? "disconnected" : "parked";
+    ensureSyntheticRecords(parsed as State);
     return { state: materialize(parsed as State), notice: "" };
   } catch {
     return {
