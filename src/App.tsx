@@ -315,10 +315,12 @@ export default function App() {
     return () => clearInterval(t);
   }, []);
   useEffect(() => {
-    fetchWeather(stateRef.current).then((w) => {
+    const s = stateRef.current;
+    if (!s.started || s.profiles.length === 0) return;
+    fetchWeather(s).then((w) => {
       if (w) setTodayWeather(w);
     });
-  }, [state.now]);
+  }, [state.now, state.started, state.profiles.length]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 5000);

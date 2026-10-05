@@ -387,6 +387,85 @@ export function seed(): State {
   return materialize(base);
 }
 
+export function ensureSyntheticRecords(s: State): State {
+  if (s.appliedActions.includes("synthetic-household-v2")) return s;
+  const mk = (
+    id: string,
+    profileId: string,
+    category: Category,
+    title: string,
+    time: string,
+    instructions: string,
+  ): Reminder => {
+    const r: Reminder = {
+      id,
+      profileId,
+      category,
+      title,
+      scheduledAt: isoAt("2026-09-30", time),
+      notificationSnoozedUntil: null,
+      recurrence: "None",
+      seriesId: null,
+      occurrenceDate: "2026-09-30",
+      instructions,
+      appointmentId: null,
+      outcome: null,
+      completedAt: null,
+      recordedBy: null,
+      recordedAt: null,
+      occurrenceOverride: false,
+      deletedAt: null,
+      history: [],
+    };
+    if (id === "syn-leo-brush") {
+      r.outcome = "complete";
+      r.completedAt = isoAt("2026-09-30", "07:20");
+      r.recordedAt = r.completedAt;
+      r.recordedBy = "Me";
+    }
+    return r;
+  };
+  const extras: [string, string, Category, string, string, string][] = [
+    ["syn-walk", "p-me", "Personal care", "Lunchtime walk at the park", "12:30", "Bring water and comfortable shoes."],
+    ["syn-docs", "p-me", "Other", "Pack health-check documents", "11:00", "Bring your ID, previous reports and a list of questions."],
+    ["syn-call", "p-me", "Other", "Check in with Maya after lunch", "13:15", "Ask if she needs help getting ready for tomorrow."],
+    ["syn-maya-walk", "p-maya", "Personal care", "Morning garden walk", "10:30", "A relaxed walk with a neighbour."],
+    ["syn-maya-bag", "p-maya", "Other", "Pack screening-day bag", "20:00", "ID, appointment note, water bottle and a light jacket."],
+    ["syn-leo-brush", "p-leo", "Personal care", "Brush teeth before school", "07:15", "Morning routine with a parent."],
+    ["syn-leo-bag", "p-leo", "Other", "Pack swimming bag", "17:00", "Towel, goggles and a change of clothes."],
+  ];
+  for (const [id, profileId, category, title, time, instructions] of extras) {
+    if (!s.reminders.some((r) => r.id === id)) {
+      s.reminders.push(mk(id, profileId, category, title, time, instructions));
+    }
+  }
+  if (!s.appointments.some((a) => a.id === "syn-dental-me")) {
+    s.appointments.push({
+      id: "syn-dental-me",
+      profileId: "p-me",
+      category: "dental",
+      title: "Dental cleaning",
+      startsAt: isoAt("2026-10-07", "11:30"),
+      locationLabel: "Harbour Dental Studio · fictional",
+      checklist: [false, false, false],
+      recordOrigin: "demo",
+      providerConfirmed: false,
+      provenanceHistory: [],
+    });
+  }
+  if (!s.activity.some((a) => a.id === "syn-history")) {
+    s.activity.push({
+      id: "syn-history",
+      text: "Packed previous screening reports",
+      at: isoAt("2026-09-29", "20:15"),
+      actor: "Me",
+      subject: "p-maya",
+    });
+  }
+  s.appliedActions.push("synthetic-household-v2");
+  return s;
+}
+
 export function emptyState(): State {
   return {
     version: 1,
@@ -716,9 +795,16 @@ export function execute(
       );
   };
   switch (c.type) {
-    case "start":
+    case "start": {
+      if (s.profiles.length === 0) {
+        const base = seed();
+        base.now = s.now;
+        base.started = true;
+        return materialize(base);
+      }
       s.started = true;
       break;
+    }
     case "reset": {
       const fresh = emptyState();
       fresh.started = true;
@@ -916,8 +1002,7 @@ export function execute(
       s.chats = s.chats.filter((m) => m.profileId !== c.id);
       s.notifications = s.notifications.filter((n) => n.profileId !== c.id);
       if (s.selectedProfileId === c.id) {
-        const remaining = s.profiles.find((p) => p.id !== "p-me") || s.profiles[0];
-        s.selectedProfileId = remaining ? remaining.id : "";
+        s.selectedProfileId = "p-me";
       }
       s.activity.push(
         event(c.id, "Fictional profile removed from this browser"),
