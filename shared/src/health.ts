@@ -150,7 +150,7 @@ export function buildHealthAdvice(
       text: "Weather is mild. A short outdoor walk supports circulation and mood.",
     });
   }
-  if (weather.uvIndex >= 6) {
+  if (weather.uvIndex !== null && weather.uvIndex >= 6) {
     advice.push({
       id: id("uv", ++i),
       category: "Weather",
@@ -158,7 +158,7 @@ export function buildHealthAdvice(
       text: "UV index is high. Use sun protection and a hat for any outdoor time.",
     });
   }
-  if (weather.airQuality >= 100) {
+  if (weather.airQuality !== null && weather.airQuality >= 100) {
     advice.push({
       id: id("aq", ++i),
       category: "Weather",

@@ -4,6 +4,7 @@ import helmet from "helmet";
 import path from "node:path";
 import { interpretBuddyMessage } from "./interpret.js";
 import { buildHealthSnapshot } from "./health.js";
+import { getWeather } from "./weather.js";
 import { TokenHubError, isTokenHubConfigured } from "./tokenHub.js";
 import {
   loadStateRow,
@@ -55,14 +56,23 @@ app.post("/api/buddy/interpret", async (req, res) => {
   }
 });
 
-app.post("/api/health/snapshot", (req, res) => {
+app.get("/api/weather", async (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    res.json({ weather: await getWeather() });
+  } catch {
+    res.status(503).json({ weather: null, error: "Weather is temporarily unavailable. Please try again." });
+  }
+});
+
+app.post("/api/health/snapshot", async (req, res) => {
   const { profileId, state } = req.body || {};
   if (!profileId || typeof profileId !== "string") {
     res.status(400).json({ error: "Missing profileId" });
     return;
   }
   try {
-    const snapshot = buildHealthSnapshot(profileId, state);
+    const snapshot = await buildHealthSnapshot(profileId, state);
     res.json(snapshot);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : "Health snapshot failed" });

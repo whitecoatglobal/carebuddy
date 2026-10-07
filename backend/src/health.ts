@@ -4,10 +4,10 @@ import {
   type WeatherData,
   type HealthAdvice,
   buildHealthReading,
-  buildWeather,
   buildHealthAdvice,
   validateState,
 } from "care-buddy-shared";
+import { getWeather } from "./weather.js";
 
 export interface HealthSnapshot {
   reading: HealthReading | null;
@@ -15,13 +15,13 @@ export interface HealthSnapshot {
   advice: HealthAdvice[];
 }
 
-export function buildHealthSnapshot(
+export async function buildHealthSnapshot(
   profileId: string,
   rawState?: unknown,
-): HealthSnapshot {
+): Promise<HealthSnapshot> {
   const now = normalizeNow(rawState);
   const reading = buildHealthReading(profileId, now);
-  const weather = buildWeather(now);
+  const weather = await getWeather().catch(() => null);
   const advice = buildHealthAdvice(reading, weather);
   return { reading, weather, advice };
 }

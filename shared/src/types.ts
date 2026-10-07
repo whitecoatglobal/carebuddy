@@ -98,16 +98,20 @@ export interface HealthReading {
 export interface WeatherData {
   location: string;
   temperatureC: number;
-  feelsLikeC: number;
-  humidity: number; // %
-  windKph: number;
+  feelsLikeC: number | null;
+  humidity: number | null; // %
+  windKph: number | null;
   condition: string;
   conditionIcon: string;
-  uvIndex: number;
-  airQuality: number; // AQI
-  psi: number; // Pollutant Standards Index (SG)
-  rainProbability: number; // % chance of rain
+  uvIndex: number | null;
+  airQuality: number | null; // AQI, distinct from Singapore PSI
+  psi: number | null; // Central Singapore 24-hour Pollutant Standards Index
+  rainProbability: number | null; // Only supplied when the source provides a probability
   updatedAt: string;
+  stationName: string;
+  source: string;
+  forecastValidUntil: string | null;
+  forecastPeriod: string | null;
 }
 export interface HealthAdvice {
   id: string;
