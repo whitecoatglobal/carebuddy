@@ -96,7 +96,33 @@ describe("Buddy TokenHub", () => {
         async () =>
           new Response(
             JSON.stringify({
-              choices: [{ message: { content: "Your preparation proposal" } }],
+              choices: [
+                {
+                  finish_reason: "tool_calls",
+                  message: {
+                    content: null,
+                    tool_calls: [
+                      {
+                        type: "function",
+                        function: {
+                          name: "createReminder",
+                          arguments: JSON.stringify({
+                            input: {
+                              profileId: "qa-self",
+                              category: "Appointment preparation",
+                              title: "Dental cleaning preparation",
+                              scheduledAt: "2026-10-07T19:00:00+08:00",
+                              recurrence: "None",
+                              instructions: "Review provider instructions",
+                              appointmentId: "qa-dental",
+                            },
+                          }),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
             }),
           ),
       ),
@@ -178,7 +204,30 @@ describe("Buddy TokenHub", () => {
           new Response(
             JSON.stringify({
               choices: [
-                { message: { content: "I already saved your changes" } },
+                {
+                  finish_reason: "tool_calls",
+                  message: {
+                    content: "I already saved your changes",
+                    tool_calls: [
+                      {
+                        type: "function",
+                        function: {
+                          name: "createReminder",
+                          arguments: JSON.stringify({
+                            input: {
+                              profileId: "qa-self",
+                              category: "Bedtime",
+                              title: "Bedtime reminder",
+                              scheduledAt: "2099-10-07T22:00:00+08:00",
+                              recurrence: "None",
+                              instructions: "",
+                            },
+                          }),
+                        },
+                      },
+                    ],
+                  },
+                },
               ],
             }),
           ),
