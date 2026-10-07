@@ -932,7 +932,7 @@ export function buildChatAction(
     };
   }
   if (
-    /appointment|prepar/.test(t) &&
+    /prepar|(?:get|getting).*ready|what.*bring/.test(t) &&
     !(
       /move|change|snooze|later|complete|record|done|skip/.test(t) &&
       s.reminders.some((r) => r.id === contextId && r.profileId === p.id)

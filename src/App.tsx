@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import { usePwa } from "./pwa";
+import { ChatMarkdown } from "./ChatMarkdown";
 import { APP_NAME } from "./config";
 import {
   loadState,
@@ -1609,7 +1610,11 @@ export default function App() {
                   {m.role === "assistant" ? "Buddy" : "You"} ·{" "}
                   {formatTime(m.timestamp)}
                 </small>
-                <p>{m.text}</p>
+                {m.role === "assistant" ? (
+                  <ChatMarkdown text={m.text} />
+                ) : (
+                  <p>{m.text}</p>
+                )}
                 {m.actionReceipt && (
                   <ReceiptView receipt={m.actionReceipt} state={state} />
                 )}
@@ -1709,7 +1714,7 @@ export default function App() {
             {buddyThinking ? "Sending…" : "Send"}
           </button>
         </form>
-        <p className="helper">Your messages and changes stay on this device.</p>
+        <p className="helper">Messages and actions are linked to the selected person.</p>
       </>
     );
   }

@@ -46,6 +46,80 @@ afterEach(() => {
 });
 
 describe("Buddy TokenHub", () => {
+  it("lists appointments without proposing an unwanted preparation reminder", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              choices: [
+                {
+                  message: {
+                    content:
+                      "**Dental cleaning**\n\n- Tomorrow at 11:30 am\n- Harbour Dental Studio",
+                  },
+                },
+              ],
+            }),
+          ),
+      ),
+    );
+    const s = state();
+    s.now = "2026-10-07T09:00:00+08:00";
+    s.appointments = [
+      {
+        id: "qa-dental",
+        profileId: "qa-self",
+        category: "Dental",
+        title: "Dental cleaning",
+        startsAt: "2026-10-08T11:30:00+08:00",
+        locationLabel: "Harbour Dental Studio",
+        checklist: [false, false, false],
+        recordOrigin: "demo",
+        providerConfirmed: false,
+        provenanceHistory: [],
+      },
+    ];
+    const reply = await interpretBuddyMessage(
+      s,
+      "Show my upcoming appointments.",
+    );
+    expect(reply.action).toBeUndefined();
+    expect(reply.text).toContain("**Dental cleaning**");
+  });
+
+  it("still proposes preparation when the user explicitly requests it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              choices: [{ message: { content: "Your preparation proposal" } }],
+            }),
+          ),
+      ),
+    );
+    const s = state();
+    s.now = "2026-10-07T09:00:00+08:00";
+    s.appointments = [
+      {
+        id: "qa-dental",
+        profileId: "qa-self",
+        category: "Dental",
+        title: "Dental cleaning",
+        startsAt: "2026-10-08T11:30:00+08:00",
+        locationLabel: "Harbour Dental Studio",
+        checklist: [false, false, false],
+        recordOrigin: "demo",
+        providerConfirmed: false,
+        provenanceHistory: [],
+      },
+    ];
+    const reply = await interpretBuddyMessage(s, "Prepare for my appointment");
+    expect(reply.action?.command.type).toBe("createReminder");
+  });
   it("uses the configured model and sends only the selected profile's context", async () => {
     const transport = vi.fn(
       async () =>
