@@ -1,65 +1,60 @@
-# Care Buddy — refined v1.1 demo
+# Care Buddy
 
-A fictional mobile PWA for care organisation and routine navigation. React, TypeScript and Vite; all data stays in the current browser. The four tabs are Today, Family, Benefits and Buddy. The demo clock is fixed, with settings controls for scenarios and reset.
+Care Buddy is a React/TypeScript care organiser with an Express/SQLite backend, separate signed-in accounts, and Buddy powered by Tencent TokenHub DeepSeek Flash.
+
+## Data and changes
+
+- Each account owns its care records. Session cookies are HttpOnly, Secure in production, and protected by Origin/CSRF checks.
+- App forms save validated commands on the server. Browser snapshots cannot overwrite database state.
+- Buddy can propose reminders, appointment records, family details, custom checklists, benefit notes and existing preferences. Review the before/after details and press Confirm to save.
+- The server checks record ownership, permissions, dates, duplicates, revisions and proposal expiry. Transactions, idempotency keys and audit history protect retries and concurrent changes.
+- Adding an appointment record does not book or confirm a clinic visit. Notes do not verify insurance coverage. Wearable readings require a real device integration; the UI may show explicitly labeled sample sleep material.
+- Public weather uses NEA/MSS data via data.gov.sg and sends no personal care state.
 
 ## Run locally
 
-Use Node.js 22.12 or newer (Node.js 24 LTS is suitable). From this folder:
+Use Node.js 22.12 or newer. Install dependencies and build the shared package:
 
 ```sh
 npm ci
-npm run dev
+npm run build -w shared
 ```
 
-The development server reports its local URL. To exercise installability and offline caching, use the production build:
+For a same-origin local production preview:
 
 ```sh
-npm run build
-npm run preview
+VITE_BUDDY_BACKEND_URL=/ npm run build
+npm run build:backend
+APP_ORIGIN=http://127.0.0.1:3000 NODE_ENV=development npm run start:backend
 ```
 
-Open `http://127.0.0.1:4173`. Automated checks:
+Open `http://127.0.0.1:3000`, create an account, and sign in. Configure TokenHub variables in the backend process environment as described in [TokenHub setup](docs/tokenhub.md). Keys belong on the server.
+
+## Verification
 
 ```sh
+npm run build -w shared
 npm test
-npm run test:e2e
+VITE_BUDDY_BACKEND_URL=/ npm run build
+npm run build:backend
 ```
 
-Browser tests require an available Playwright Chromium browser. If it is absent, install it explicitly with `npx playwright install chromium`. See the validation report for the checks actually performed.
+Account API integration tests bind an isolated localhost server and use test databases. Browser verification covers sign-in, confirmation, persistence, account isolation, profile-intent races, and sign-out, including network failure and cross-tab privacy. Historical demo acceptance/PWA specs need authenticated fixtures before they can be used as current release gates.
 
-## Install and use offline
+## Existing records
 
-On a phone, serve the production build over HTTPS; `localhost` is the development exception. A desktop's `127.0.0.1` address is not reachable from a phone. Public hosting is separate from this delivery.
+Legacy anonymous snapshots remain in the database but their public APIs are closed. Existing browser records are archived as unclaimed migration evidence and never loaded into a signed-in account automatically. After creating the destination account, provide its username and the migration reference shown in the app for administrator review.
 
-- iPhone: open the HTTPS app in Safari, tap Share, then Add to Home Screen. Browser and OS wording can vary.
-- Android: open it in Chrome and choose Install app or Add to Home screen from the browser menu when available. A prompt is not guaranteed.
-- Visit online once and wait for the app's offline-ready state before disconnecting. Only the local app shell is cached. Browser storage clearing removes local demo data and cached files.
-- On a new version, the app offers a refresh when the replacement service worker has finished caching. Refresh activates it; no automatic mid-task reload is performed.
-
-## WorkBuddy preparation
-
-`workbuddy-skills/` contains three original SKILL.md packages and ZIPs: appointment preparation, reminder changes and sample benefit explanations. Each includes deterministic Node.js scripts, fictional fixtures and the shared TypeScript contract. Run a local dry-run from an extracted skill directory:
+The administrator previews the mapping before importing:
 
 ```sh
-node scripts/propose.mjs < fixtures/request.json
+node scripts/migrate-account.mjs --db /absolute/path/care-buddy.db --client-id SOURCE --username DESTINATION
 ```
 
-Regenerate ZIPs from the current app seed with `node scripts/package-skills.mjs`; run their local guards with `node scripts/test-skills.mjs`. ZIP integrity and hashes are recorded in `workbuddy-skills/SHA256SUMS`.
+Only after review, repeat with `--confirm PREVIEW_HASH`. The hash binds the source, destination, revision and timezones. The tool rejects a changed preview or nonempty destination and leaves the legacy source intact. Do not create new care records in the destination account before the initial migration.
 
-They return proposals or source-labelled explanations, with `executed: false`. Settings now exports current context and imports an unexecuted reminder proposal with fresh source checks and explicit confirmation. This manual JSON roundtrip is tested locally. They do not establish a live WorkBuddy connection; a live host adapter remains separate. WorkBuddy import and host runtime execution have not been verified. The ZIP shape follows Tencent's documented skill-package shape; host versions can differ. No skills were installed into the user's environment.
+## Deployment
 
-Primary format references, checked 30 September 2026: [WorkBuddy Open Platform Skill guide](https://open.workbuddy.cn/en/docs/skill) and [Tencent WorkBuddy Skills](https://cloud.tencent.com/document/product/1831/134432). Packages include the current bilingual description/version/author fields. See [hackathon fit and requirements](HACKATHON-WORKBUDDY.md) for sources, recommended skill capabilities and runtime gaps.
+Live application: https://carebuddy.life. The account/action release was verified on 7 October 2026 with 101 passing tests and real DeepSeek proposals/confirmed writes. Code, dependencies and SQLite backup: `/home/ubuntu/care-buddy-backups/accounts-20261007-112554`.
 
-## Boundaries
-
-All people, appointments and benefits are fictional. No real patient data, LLM calls, backend, appointment booking, insurance adjudication, push notifications or device permissions. Car mode is a simulation. Benefits are sample-plan statements and require real-world confirmation. GP output is a preview. Browser-local data is unsuitable for real patient information.
-
-The selected self-triage/navigation challenge remains a product positioning gap: this demo organises care and supports routine navigation; it does not assess symptoms or provide clinical routing. The official judging rubric and actual WorkBuddy runtime are unverified. This friends' project has not been published into WhiteCoat knowledge records.
-
-## Verified delivery
-
-See [validation and demo guide](VALIDATION.md) for acceptance results, screenshots, evidence and remaining boundaries.
-
-## Refined product behavior
-
-The main screens remove repeated demo labels while Settings retains the fictional-data and local-execution disclosure. Today counts and summaries follow current records; the layout uses a compact mobile profile bar and a two-column desktop canvas. Buddy supports state-driven day summaries, explicitly requested routine creation, reminder reports/snooze, appointment-relative preparation and category-specific benefit explanations. Actions still need confirmation. The former canned weather forecast was replaced with current care progress. The tagline no longer implies an unverified WorkBuddy runtime connection.
+[Approved account/action design](docs/superpowers/specs/2026-10-07-account-owned-buddy-actions.md) · [Implementation and verification](docs/superpowers/plans/2026-10-07-account-owned-buddy-actions.md)
