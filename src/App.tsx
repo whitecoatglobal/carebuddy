@@ -16,7 +16,6 @@ import {
   isoAt,
   notificationTime,
   statusLabel,
-  buildChatAction,
   preparationTime,
   assertFreshAction,
   importSkillProposal,
@@ -305,6 +304,7 @@ export default function App() {
   const [discard, setDiscard] = useState(false);
   const [loading, setLoading] = useState(false);
   const [buddyThinking, setBuddyThinking] = useState(false);
+  const buddyRequestPending = useRef(false);
   const [health, setHealth] = useState<HealthSnapshot | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthError, setHealthError] = useState("");
@@ -1517,7 +1517,11 @@ export default function App() {
   };
   const send = async (text: string, scope?: "occurrence" | "future") => {
     text = text.trim();
-    if (!text) return;
+    if (!text || buddyRequestPending.current) return;
+    buddyRequestPending.current = true;
+    setBuddyThinking(true);
+    setError("");
+    const requestProfileId = profile.id;
     const sentText = text;
     commit({
       type: "chatMessage",
@@ -1530,31 +1534,28 @@ export default function App() {
         timestamp: stateRef.current.now,
       },
     });
-    if (isBackendEnabled()) {
-      setBuddyThinking(true);
-      try {
-        const backendReply = await interpretBuddyMessage(
-          stateRef.current,
-          sentText,
-          context,
-          scope,
-        );
-        setBuddyThinking(false);
-        if (backendReply) {
-          applyReply(backendReply, sentText);
-          return;
-        }
-      } catch {
-        setBuddyThinking(false);
+    try {
+      const backendReply = await interpretBuddyMessage(
+        stateRef.current,
+        sentText,
+        context,
+        scope,
+      );
+      if (stateRef.current.selectedProfileId === requestProfileId) {
+        applyReply(backendReply, sentText);
       }
+    } catch (error) {
+      if (stateRef.current.selectedProfileId === requestProfileId) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Buddy could not complete the request.",
+        );
+      }
+    } finally {
+      buddyRequestPending.current = false;
+      setBuddyThinking(false);
     }
-    const localReply = buildChatAction(
-      stateRef.current,
-      sentText,
-      context || undefined,
-      scope,
-    );
-    applyReply(localReply, sentText);
   };
   function renderBuddy() {
     const source = [
@@ -1674,14 +1675,14 @@ export default function App() {
             "Explain my benefits",
             "What’s next today?",
           ].map((t) => (
-            <button key={t} onClick={() => send(t)}>
+            <button key={t} onClick={() => send(t)} disabled={buddyThinking}>
               {t}
             </button>
           ))}
         </div>
         {buddyThinking && (
           <p className="helper" aria-live="polite">
-            Buddy is preparing a demo response…
+            Buddy is preparing a response…
           </p>
         )}
         <form

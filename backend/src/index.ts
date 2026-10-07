@@ -4,6 +4,7 @@ import helmet from "helmet";
 import path from "node:path";
 import { interpretBuddyMessage } from "./interpret.js";
 import { buildHealthSnapshot } from "./health.js";
+import { TokenHubError, isTokenHubConfigured } from "./tokenHub.js";
 import {
   loadStateRow,
   upsertState,
@@ -29,10 +30,10 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "512kb" }));
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", service: "care-buddy-backend", ai: "deterministic", db: "sqlite" });
+  res.json({ status: "ok", service: "care-buddy-backend", ai: "tokenhub", aiConfigured: isTokenHubConfigured(), db: "sqlite" });
 });
 
-app.post("/api/buddy/interpret", (req, res) => {
+app.post("/api/buddy/interpret", async (req, res) => {
   const { state, clientId, message, contextId, scope } = req.body || {};
   if (typeof message !== "string") {
     res.status(400).json({ error: "Missing message" });
@@ -43,10 +44,14 @@ app.post("/api/buddy/interpret", (req, res) => {
       state && typeof state === "object"
         ? state
         : ensureClientState(typeof clientId === "string" ? clientId : "guest");
-    const result = interpretBuddyMessage(sourceState, message, contextId, scope);
+    const result = await interpretBuddyMessage(sourceState, message, contextId, scope);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : "Interpretation failed" });
+    if (err instanceof TokenHubError) {
+      res.status(err.status).json({ error: err.message, code: err.code });
+      return;
+    }
+    res.status(500).json({ error: "Buddy could not process this request. Please try again." });
   }
 });
 
