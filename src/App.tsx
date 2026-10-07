@@ -1030,49 +1030,27 @@ export default function App() {
           </div>
         </div>
         <div className="today-notifications">
-          <div className="notif-card notif-medication">
-            <div className="notif-icon">💊</div>
-            <div className="notif-body">
-              <strong>Rise and Shine! A brand new day, a brand new you!</strong>
-              <p>Time for your morning medication.</p>
-            </div>
-            <button
-              className="primary"
-              disabled={!profile.canManage}
-              onClick={() => {
-                const med = todayReminders.find(
-                  (r) => r.category === "Medication" && !r.outcome,
-                );
-                if (med) complete(med, "taken");
-              }}
-            >
-              <Icon name="check" /> Mark as taken
-            </button>
-          </div>
-          <div className="notif-card notif-sleep">
-            <div className="notif-icon">🌙</div>
-            <div className="notif-body">
-              <strong>Review your sleep</strong>
-              <p>Sleep duration: 6 hours 37 mins</p>
-              <p className="notif-detail">
-                Your REM sleep is only around 1 hour, and you are tossing and
-                turning throughout your sleep which correlates to your lower body
-                temperature during those times. CareBuddy suggests raising the AC
-                temperature by 1 degree tonight to get a better sleep.
-              </p>
-            </div>
-            <div className="notif-actions">
+          {todayReminders.some((r) => r.category === "Medication" && !r.outcome) && (
+            <div className="notif-card notif-medication">
+              <div className="notif-icon">💊</div>
+              <div className="notif-body">
+                <strong>Medication reminder</strong>
+                <p>Time for your scheduled medication.</p>
+              </div>
               <button
-                className="btn-green"
-                onClick={() => go("/health")}
+                className="primary"
+                disabled={!profile.canManage}
+                onClick={() => {
+                  const med = todayReminders.find(
+                    (r) => r.category === "Medication" && !r.outcome,
+                  );
+                  if (med) complete(med, "taken");
+                }}
               >
-                <Icon name="search" /> Review Sleep
-              </button>
-              <button className="btn-remind-later">
-                Remind me later
+                <Icon name="check" /> Mark as taken
               </button>
             </div>
-          </div>
+          )}
         </div>
         {todayWeather && todayWeather.rainProbability > 20 && (
           <div className="rain-note">
@@ -1540,13 +1518,6 @@ export default function App() {
   const send = async (text: string, scope?: "occurrence" | "future") => {
     text = text.trim();
     if (!text) return;
-    if (text === "Run urgent-help demo") {
-      commit(
-        { type: "scenario", name: "Urgent-help demo" },
-        { done: () => go("/urgent") },
-      );
-      return;
-    }
     const sentText = text;
     commit({
       type: "chatMessage",
@@ -1855,50 +1826,6 @@ export default function App() {
             />
           </label>
         </details>
-        <h2>Presenter controls</h2>
-        <p className="helper">
-          Local test fixtures only. No backend execution or consent workflow.
-        </p>
-        <div className="scenario-grid">
-          {[
-            "Empty day",
-            "Loading",
-            "Save error",
-            "Unknown benefit",
-            "View-only dependent",
-            "Manage-access fixture",
-            "Missing appointment",
-            "Urgent-help demo",
-          ].map((name) => (
-            <button
-              key={name}
-              onClick={() => {
-                if (name === "Save error") {
-                  failNext.current = true;
-                  setToast(
-                    "Next save will fail. Your input will be preserved.",
-                  );
-                  return;
-                }
-                if (name === "Loading") {
-                  setLoading(true);
-                  setTimeout(() => setLoading(false), 1000);
-                  go("/today");
-                  return;
-                }
-                commit(
-                  { type: "scenario", name },
-                  {
-                    done: () =>
-                      go(name === "Urgent-help demo" ? "/urgent" : "/today"),
-                  },
-                );
-              }}
-            >
-              {name}
-            </button>
-          ))}
-        </div>
         <button
           className="danger-text"
           onClick={() =>

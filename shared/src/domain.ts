@@ -49,342 +49,8 @@ export const statusLabel = (r: Reminder) =>
         ? "Recorded as skipped"
         : "Upcoming";
 export function seed(): State {
-  const reminder = (
-    id: string,
-    profileId: string,
-    category: Category,
-    title: string,
-    time: string,
-    recurrence: "None" | "Daily",
-    appointmentId: string | null = null,
-  ): Reminder => ({
-    id,
-    profileId,
-    category,
-    title,
-    scheduledAt: isoAt("2026-09-30", time),
-    notificationSnoozedUntil: null,
-    recurrence,
-    seriesId: recurrence === "Daily" ? id : null,
-    occurrenceDate: "2026-09-30",
-    instructions:
-      category === "Medication"
-        ? "Use the instructions already provided to you"
-        : "",
-    appointmentId,
-    outcome: null,
-    completedAt: null,
-    recordedBy: null,
-    recordedAt: null,
-    occurrenceOverride: false,
-    deletedAt: null,
-    history: [],
-  });
-  const benefit = (
-    id: string,
-    profileId: string,
-    category: string,
-    status: Benefit["status"],
-    conditions: string,
-  ): Benefit => ({
-    id,
-    profileId,
-    category,
-    status,
-    conditions,
-    source: "Care plan · illustrative terms, v1",
-    policyDate: "2026-09-30T00:00:00+08:00",
-  });
-  const base: State = {
-    version: 1,
-    started: false,
-    now: BASE_NOW,
-    selectedProfileId: "p-me",
-    profiles: [
-      {
-        id: "p-me",
-        displayName: "Me",
-        relationship: "Self",
-        canView: true,
-        canManage: true,
-      },
-      {
-        id: "p-maya",
-        displayName: "Maya",
-        relationship: "Parent",
-        canView: true,
-        canManage: true,
-      },
-      {
-        id: "p-leo",
-        displayName: "Leo",
-        relationship: "Child",
-        canView: true,
-        canManage: false,
-      },
-    ],
-    reminders: [
-      reminder(
-        "r-med-me",
-        "p-me",
-        "Medication",
-        "Morning medication",
-        "08:00",
-        "Daily",
-      ),
-      reminder(
-        "r-bed-me",
-        "p-me",
-        "Bedtime",
-        "Bedtime reminder",
-        "22:00",
-        "Daily",
-      ),
-      reminder(
-        "r-screen-maya",
-        "p-maya",
-        "Appointment preparation",
-        "Review screening preparation",
-        "19:00",
-        "None",
-        "a-screen-maya",
-      ),
-      reminder(
-        "r-bath-leo",
-        "p-leo",
-        "Personal care",
-        "Bath-time reminder",
-        "19:30",
-        "Daily",
-      ),
-    ],
-    appointments: [
-      {
-        id: "a-check-me",
-        profileId: "p-me",
-        category: "health-check",
-        title: "Routine health check",
-        startsAt: isoAt("2026-09-30", "14:00"),
-        locationLabel: "Orchard Family Clinic · fictional",
-        checklist: [false, false, false],
-        recordOrigin: "demo",
-        providerConfirmed: false,
-        provenanceHistory: [],
-      },
-      {
-        id: "a-screen-maya",
-        profileId: "p-maya",
-        category: "screening",
-        title: "Health screening",
-        startsAt: isoAt("2026-10-01", "10:00"),
-        locationLabel: "Orchard Family Clinic · fictional",
-        checklist: [false, false, false],
-        recordOrigin: "demo",
-        providerConfirmed: false,
-        provenanceHistory: [],
-      },
-      {
-        id: "a-dental-leo",
-        profileId: "p-leo",
-        category: "dental",
-        title: "Dental visit",
-        startsAt: isoAt("2026-10-02", "16:00"),
-        locationLabel: "Harbour Dental Studio · fictional",
-        checklist: [false, false, false],
-        recordOrigin: "demo",
-        providerConfirmed: false,
-        provenanceHistory: [],
-      },
-    ],
-    benefits: [
-      benefit(
-        "b-gp-me",
-        "p-me",
-        "gp",
-        "Listed in sample plan",
-        "Illustrative household plan: GP consultation allowance of S$40 per visit, up to 6 visits per plan year. Panel provider and current eligibility require confirmation.",
-      ),
-      benefit(
-        "b-check-me",
-        "p-me",
-        "health-check",
-        "Conditions apply",
-        "Illustrative annual health-check allowance of S$180. One visit per plan year; confirm eligible tests and provider before attending.",
-      ),
-      benefit(
-        "b-screen-maya",
-        "p-maya",
-        "screening",
-        "Conditions apply",
-        "Illustrative screening allowance of S$150 per plan year. Confirm the screening package, remaining allowance and eligible provider.",
-      ),
-      benefit(
-        "b-dental-leo",
-        "p-leo",
-        "dental",
-        "Needs confirmation",
-        "The available terms do not contain enough information to confirm dental cover.",
-      ),
-      ...["p-me", "p-maya", "p-leo"].map((p) =>
-        benefit(
-          `b-other-${p}`,
-          p,
-          "other",
-          "Not listed in sample data",
-          "Not listed does not mean not covered.",
-        ),
-      ),
-    ],
-    chats: [],
-    notifications: [
-      {
-        id: "n-me",
-        profileId: "p-me",
-        title: "Reminder due",
-        targetType: "reminder",
-        targetId: "r-med-me",
-        readAt: null,
-        timestamp: BASE_NOW,
-      },
-      {
-        id: "n-maya",
-        profileId: "p-maya",
-        title: "Appointment preparation",
-        targetType: "appointment",
-        targetId: "a-screen-maya",
-        readAt: null,
-        timestamp: BASE_NOW,
-      },
-      {
-        id: "n-leo",
-        profileId: "p-leo",
-        title: "Sample benefit needs confirmation",
-        targetType: "benefit",
-        targetId: "b-dental-leo",
-        readAt: null,
-        timestamp: BASE_NOW,
-      },
-    ],
-    appliedActions: ["synthetic-household-v2"],
-    activity: [],
-    carMode: "disconnected",
-    preferences: { genericReminders: true, spokenReminders: false },
-    scenario: "",
-  };
-  for (const profile of base.profiles) {
-    for (const category of ["gp", "screening", "dental"]) {
-      if (
-        base.benefits.some(
-          (b) =>
-            b.profileId === profile.id &&
-            (b.category === category ||
-              (category === "screening" && b.category === "health-check")),
-        )
-      )
-        continue;
-      base.benefits.push({
-        ...benefit(
-          `b-${category}-${profile.id}`,
-          profile.id,
-          category,
-          "Needs confirmation",
-          "The available terms do not contain enough information to confirm cover.",
-        ),
-        source: "No sample terms supplied",
-        policyDate: null,
-      });
-    }
-  }
-  // Fictional household records; never provider-confirmed or clinical advice.
-  const extras: [string, string, Category, string, string, string][] = [
-    [
-      "syn-walk",
-      "p-me",
-      "Personal care",
-      "Lunchtime walk at the park",
-      "12:30",
-      "Bring water and comfortable shoes.",
-    ],
-    [
-      "syn-docs",
-      "p-me",
-      "Other",
-      "Pack health-check documents",
-      "11:00",
-      "Bring your ID, previous reports and a list of questions.",
-    ],
-    [
-      "syn-call",
-      "p-me",
-      "Other",
-      "Check in with Maya after lunch",
-      "13:15",
-      "Ask if she needs help getting ready for tomorrow.",
-    ],
-    [
-      "syn-maya-walk",
-      "p-maya",
-      "Personal care",
-      "Morning garden walk",
-      "10:30",
-      "A relaxed walk with a neighbour.",
-    ],
-    [
-      "syn-maya-bag",
-      "p-maya",
-      "Other",
-      "Pack screening-day bag",
-      "20:00",
-      "ID, appointment note, water bottle and a light jacket.",
-    ],
-    [
-      "syn-leo-brush",
-      "p-leo",
-      "Personal care",
-      "Brush teeth before school",
-      "07:15",
-      "Morning routine with a parent.",
-    ],
-    [
-      "syn-leo-bag",
-      "p-leo",
-      "Other",
-      "Pack swimming bag",
-      "17:00",
-      "Towel, goggles and a change of clothes.",
-    ],
-  ];
-  for (const [id, profileId, category, title, time, instructions] of extras) {
-    const r = reminder(id, profileId, category, title, time, "None", null);
-    r.instructions = instructions;
-    if (id === "syn-leo-brush") {
-      r.outcome = "complete";
-      r.completedAt = isoAt("2026-09-30", "07:20");
-      r.recordedAt = r.completedAt;
-      r.recordedBy = "Me";
-    }
-    base.reminders.push(r);
-  }
-  base.appointments.push({
-    id: "syn-dental-me",
-    profileId: "p-me",
-    category: "dental",
-    title: "Dental cleaning",
-    startsAt: isoAt("2026-10-07", "11:30"),
-    locationLabel: "Harbour Dental Studio · fictional",
-    checklist: [false, false, false],
-    recordOrigin: "demo",
-    providerConfirmed: false,
-    provenanceHistory: [],
-  });
-  base.activity.push({
-    id: "syn-history",
-    text: "Packed previous screening reports",
-    at: isoAt("2026-09-29", "20:15"),
-    actor: "Me",
-    subject: "p-maya",
-  });
-  return materialize(base);
+  // Returns a fully empty state — no demo data.
+  return emptyState();
 }
 
 export function emptyState(): State {
@@ -407,29 +73,11 @@ export function emptyState(): State {
   };
 }
 /**
- * Re-seeds the synthetic (syn-*) reminders + appointments from `seed()` once.
- * Each seeded record is tagged with an action id pushed into `appliedActions`
- * so that intentional deletions (which drop the record but keep the tag) are
- * not undone on subsequent loads.
+ * No-op: synthetic demo data has been removed.
+ * Kept for backward compatibility with existing states that have the tag.
  */
-export function ensureSyntheticRecords(s: State): void {
-  const fresh = seed();
-  const reminderIds = new Set(s.reminders.map((r) => r.id));
-  const apptIds = new Set(s.appointments.map((a) => a.id));
-  const seededTag = "synthetic-household-v2";
-  if (!s.appliedActions.includes(seededTag)) {
-    for (const r of fresh.reminders) {
-      if (r.id.startsWith("syn-") && !reminderIds.has(r.id)) {
-        s.reminders.push(r);
-      }
-    }
-    for (const a of fresh.appointments) {
-      if (a.id.startsWith("syn-") && !apptIds.has(a.id)) {
-        s.appointments.push(a);
-      }
-    }
-    s.appliedActions.push(seededTag);
-  }
+export function ensureSyntheticRecords(_s: State): void {
+  // intentionally empty
 }
 
 export function materialize(s: State): State {
@@ -742,12 +390,6 @@ export function execute(
   };
   switch (c.type) {
     case "start": {
-      if (s.profiles.length === 0) {
-        const base = seed();
-        base.now = s.now;
-        base.started = true;
-        return materialize(base);
-      }
       s.started = true;
       break;
     }
@@ -756,10 +398,12 @@ export function execute(
       fresh.started = true;
       return fresh;
     }
-    case "selectProfile":
-      profile(c.profileId, false);
+    case "selectProfile": {
+      const sp = s.profiles.find((x) => x.id === c.profileId);
+      if (!sp?.canView) throw new Error("This profile is no longer available");
       s.selectedProfileId = c.profileId;
       break;
+    }
     case "createReminder": {
       inputCheck(c.input);
       const i = c.input;
@@ -928,8 +572,9 @@ export function execute(
         displayName: c.displayName.trim(),
         relationship: c.relationship,
         canView: true,
-        canManage: false,
+        canManage: c.canManage ?? false,
       });
+      s.selectedProfileId = id;
       s.activity.push(
         event(
           id,
@@ -976,7 +621,8 @@ export function execute(
     }
     case "removeDependent": {
       if (c.id === "p-me") throw new Error("Me cannot be removed");
-      profile(c.id, false);
+      const p = s.profiles.find((x) => x.id === c.id);
+      if (!p?.canView) throw new Error("This profile is no longer available");
       s.profiles = s.profiles.filter((p) => p.id !== c.id);
       s.reminders = s.reminders.filter((r) => r.profileId !== c.id);
       s.appointments = s.appointments.filter((a) => a.profileId !== c.id);

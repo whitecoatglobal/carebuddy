@@ -176,6 +176,7 @@ export type Command =
       displayName: string;
       relationship: string;
       acknowledged: boolean;
+      canManage?: boolean;
     }
   | {
       type: "updateDependent";

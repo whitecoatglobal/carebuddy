@@ -4,18 +4,6 @@ import type {
   HealthAdvice,
 } from "./types.js";
 
-function seeded(seed: number) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 0xffffffff;
-  };
-}
-
-function clamp(n: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, n));
-}
-
 function deterministicNow(stateNow?: string): number {
   if (stateNow) {
     const t = Date.parse(stateNow);
@@ -25,99 +13,36 @@ function deterministicNow(stateNow?: string): number {
 }
 
 /**
- * Generate a deterministic, gently varying health reading for a profile.
- * Values stay inside plausible resting ranges and drift across time so the
- * "live" stats feel alive without real device integration.
+ * Returns null — no fake health readings.
+ * Integrate a real wearable API here when available.
  */
 export function buildHealthReading(
-  profileId: string,
-  stateNow?: string,
-): HealthReading {
-  const base = deterministicNow(stateNow) / 60000; // minute bucket
-  const rand = seeded(profileId.split("").reduce((a, c) => a + c.charCodeAt(0), 0) + Math.floor(base));
-  const drift = Math.sin(base / 7) * 0.5 + 0.5;
-  const heartRate = Math.round(clamp(62 + drift * 8 + rand() * 6, 55, 95));
-  const systolic = Math.round(clamp(116 + drift * 6 + rand() * 8, 100, 140));
-  const diastolic = Math.round(clamp(74 + drift * 4 + rand() * 6, 60, 90));
-  const breathingRate = Math.round(clamp(15 + drift * 2 + rand() * 3, 11, 22));
-  const sleepHours = Math.round(clamp(6.5 + rand() * 2, 4, 9) * 10) / 10;
-  const sleepQuality: HealthReading["sleepQuality"] =
-    sleepHours >= 7.5 ? "Restful" : sleepHours >= 6 ? "Light" : "Fragmented";
-  const steps = Math.round(clamp(4000 + rand() * 8000, 0, 16000));
-  return {
-    heartRate,
-    systolic,
-    diastolic,
-    breathingRate,
-    sleepHours,
-    sleepQuality,
-    steps,
-    updatedAt: new Date(deterministicNow(stateNow)).toISOString(),
-  };
+  _profileId: string,
+  _stateNow?: string,
+): HealthReading | null {
+  return null;
 }
 
 /**
- * Generate deterministic current weather. No external API is called.
+ * Returns null — no fake weather.
+ * Integrate a real weather API here when available.
  */
-export function buildWeather(stateNow?: string): WeatherData {
-  const t = deterministicNow(stateNow);
-  const rand = seeded(Math.floor(t / (1000 * 60 * 60))); // hourly bucket
-  const temperatureC = Math.round(clamp(14 + Math.sin(t / 86400000) * 8 + rand() * 4, -5, 38));
-  const humidity = Math.round(clamp(55 + rand() * 30, 20, 95));
-  const windKph = Math.round(clamp(8 + rand() * 14, 0, 35));
-  const uvIndex = Math.round(clamp(rand() * 9, 0, 11));
-  const airQuality = Math.round(clamp(30 + rand() * 60, 10, 180));
-  const psi = Math.round(clamp(20 + rand() * 80, 5, 200));
-  const rainProbability = Math.round(clamp(rand() * 60 + (humidity > 75 ? 20 : 0), 0, 95));
-  const condition =
-    temperatureC >= 28
-      ? "Sunny"
-      : temperatureC >= 18
-        ? "Partly cloudy"
-        : temperatureC >= 10
-          ? "Cloudy"
-          : "Cold";
-  const conditionIcon =
-    condition === "Sunny"
-      ? "☀️"
-      : condition === "Partly cloudy"
-        ? "⛅"
-        : condition === "Cloudy"
-          ? "☁️"
-          : "🌧️";
-  return {
-    location: "Local area",
-    temperatureC,
-    feelsLikeC: temperatureC + Math.round(windKph / 5) - 1,
-    humidity,
-    windKph,
-    condition,
-    conditionIcon,
-    uvIndex,
-    airQuality,
-    psi,
-    rainProbability,
-    updatedAt: new Date(t).toISOString(),
-  };
-}
-
-function id(prefix: string, n: number): string {
-  return `${prefix}-${n}`;
+export function buildWeather(_stateNow?: string): WeatherData | null {
+  return null;
 }
 
 /**
- * Produce deterministic, plain-language advice from a reading + weather pair.
- * This is the "AI interpretation" surface: it inspects vitals and weather and
- * returns structured recommendations a carer can act on.
+ * Returns empty array when no reading/weather data is available.
  */
 export function buildHealthAdvice(
-  reading: HealthReading,
-  weather: WeatherData,
+  reading: HealthReading | null,
+  weather: WeatherData | null,
 ): HealthAdvice[] {
+  if (!reading || !weather) return [];
   const advice: HealthAdvice[] = [];
   let i = 0;
+  const id = (prefix: string, n: number) => `${prefix}-${n}`;
 
-  // Heart rate
   if (reading.heartRate > 90) {
     advice.push({
       id: id("hr", ++i),
@@ -141,7 +66,6 @@ export function buildHealthAdvice(
     });
   }
 
-  // Blood pressure
   if (reading.systolic >= 140 || reading.diastolic >= 90) {
     advice.push({
       id: id("bp", ++i),
@@ -165,7 +89,6 @@ export function buildHealthAdvice(
     });
   }
 
-  // Breathing
   if (reading.breathingRate > 20) {
     advice.push({
       id: id("br", ++i),
@@ -182,7 +105,6 @@ export function buildHealthAdvice(
     });
   }
 
-  // Sleep
   if (reading.sleepHours < 6) {
     advice.push({
       id: id("sl", ++i),
@@ -206,7 +128,6 @@ export function buildHealthAdvice(
     });
   }
 
-  // Weather
   if (weather.temperatureC >= 30) {
     advice.push({
       id: id("wx", ++i),

@@ -10,8 +10,8 @@ import {
 } from "care-buddy-shared";
 
 export interface HealthSnapshot {
-  reading: HealthReading;
-  weather: WeatherData;
+  reading: HealthReading | null;
+  weather: WeatherData | null;
   advice: HealthAdvice[];
 }
 

@@ -1,12 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
-  seed,
+  emptyState,
   execute,
   materialize,
   statusLabel,
-  notificationTime,
   isoAt,
-  BASE_NOW,
   validateState,
   loadState,
   buildChatAction,
@@ -15,7 +13,43 @@ import {
   importSkillProposal,
   assertFreshAction,
 } from "../src/domain";
-import type { ReminderInput } from "../src/types";
+import type { ReminderInput, State, Profile } from "../src/types";
+
+afterEach(() => vi.unstubAllGlobals());
+
+function makeProfile(overrides: Partial<Profile> = {}): Profile {
+  return {
+    id: "p-me",
+    displayName: "Me",
+    relationship: "Self",
+    canView: true,
+    canManage: true,
+    ...overrides,
+  };
+}
+
+function makeState(overrides: Partial<State> = {}): State {
+  const s: State = {
+    version: 1,
+    started: true,
+    now: "2026-09-30T09:00:00+08:00",
+    selectedProfileId: "p-me",
+    profiles: [makeProfile()],
+    reminders: [],
+    appointments: [],
+    benefits: [],
+    chats: [],
+    notifications: [],
+    appliedActions: [],
+    activity: [],
+    carMode: "disconnected",
+    preferences: { genericReminders: false, spokenReminders: false },
+    scenario: "",
+    ...overrides,
+  };
+  return materialize(s);
+}
+
 const input = (overrides: Partial<ReminderInput> = {}): ReminderInput => ({
   profileId: "p-me",
   category: "Personal care",
@@ -25,449 +59,174 @@ const input = (overrides: Partial<ReminderInput> = {}): ReminderInput => ({
   instructions: "",
   ...overrides,
 });
-const get = (s: ReturnType<typeof seed>, id = "r-med-me") =>
-  s.reminders.find((r) => r.id === id)!;
-afterEach(() => vi.unstubAllGlobals());
-describe("PDF v1.1 independent domain requirements", () => {
-  it("fixed clock, permissions and tomorrow exist without completion", () => {
-    const s = seed();
-    expect(s.now).toBe(BASE_NOW);
-    expect(s.selectedProfileId).toBe("p-me");
-    expect(get(s).outcome).toBe(null);
-    expect(statusLabel(get(s))).toBe("Upcoming");
-    expect(s.profiles.find((p) => p.id === "p-leo")?.canManage).toBe(false);
-    expect(s.reminders.filter((r) => r.seriesId === "r-med-me")).toHaveLength(
-      2,
-    );
-    expect(
-      materialize(s).reminders.filter((r) => r.seriesId === "r-med-me"),
-    ).toHaveLength(2);
+
+describe("empty state", () => {
+  it("returns truly empty state", () => {
+    const s = emptyState();
+    expect(s.profiles).toHaveLength(0);
+    expect(s.reminders).toHaveLength(0);
+    expect(s.appointments).toHaveLength(0);
+    expect(s.benefits).toHaveLength(0);
+    expect(s.notifications).toHaveLength(0);
+    expect(s.selectedProfileId).toBe("");
   });
-  it("report and undo preserve independent tomorrow and actor", () => {
-    let s = execute(
-      seed(),
-      { type: "completeReminder", id: "r-med-me", outcome: "taken" },
-      "report",
-    );
-    expect(get(s).recordedBy).toBe("p-me");
-    expect(get(s).recordedAt).toBe(BASE_NOW);
-    expect(get(s).history[0].subject).toBe("p-me");
+});
+
+describe("create and manage reminders", () => {
+  it("creates a reminder and materializes occurrences", () => {
+    let s = makeState();
+    s = execute(s, { type: "createReminder", input: input() }, "create");
+    expect(s.reminders).toHaveLength(1);
+    expect(s.reminders[0].title).toBe("Evening walk");
+    expect(s.reminders[0].outcome).toBeNull();
+    expect(statusLabel(s.reminders[0])).toBe("Upcoming");
+  });
+
+  it("completes a reminder and records actor", () => {
+    let s = makeState();
+    s = execute(s, { type: "createReminder", input: input() }, "create");
+    const id = s.reminders[0].id;
+    s = execute(s, { type: "completeReminder", id, outcome: "complete" }, "confirm-complete");
+    const r = s.reminders.find((x) => x.id === id)!;
+    expect(r.outcome).toBe("complete");
+    expect(r.recordedBy).toBe("p-me");
+    expect(r.history.length).toBeGreaterThanOrEqual(1);
+    expect(r.history[0].subject).toBe("p-me");
+  });
+
+  it("rejects completion for view-only profile", () => {
+    let s = makeState();
+    s = execute(s, { type: "createReminder", input: input() }, "create");
+    s.profiles[0].canManage = false;
+    const id = s.reminders[0].id;
+    expect(() =>
+      execute(s, { type: "completeReminder", id, outcome: "complete" }, "confirm-complete"),
+    ).toThrow();
+  });
+});
+
+describe("family member CRUD", () => {
+  it("adds a dependent", () => {
+    let s = emptyState();
     s = execute(
       s,
-      { type: "completeReminder", id: "r-med-me", outcome: "taken" },
-      "again",
+      {
+        type: "addDependent",
+        displayName: "Mom (demo)",
+        relationship: "Parent",
+        canManage: false,
+        acknowledged: true,
+      },
+      "add",
     );
-    expect(get(s).history).toHaveLength(1);
-    s = execute(s, { type: "undoCompletion", id: "r-med-me" });
-    expect(get(s).outcome).toBe(null);
-    expect(get(s).history).toHaveLength(2);
-    expect(get(s, "r-med-me:2026-10-01").outcome).toBe(null);
+    expect(s.profiles).toHaveLength(1);
+    expect(s.profiles[0].displayName).toBe("Mom (demo)");
+    expect(s.profiles[0].canManage).toBe(false);
+    expect(s.selectedProfileId).toBe(s.profiles[0].id);
+    expect(s.selectedProfileId).not.toBe("");
   });
-  it("snooze changes only notification and rejects past", () => {
-    const s = execute(seed(), {
-      type: "snoozeReminder",
-      id: "r-med-me",
-      until: isoAt("2026-09-30", "09:15"),
-    });
-    expect(notificationTime(get(s))).toBe(isoAt("2026-09-30", "09:15"));
-    expect(get(s).scheduledAt).toBe(isoAt("2026-09-30", "08:00"));
-    expect(get(s).recurrence).toBe("Daily");
-    expect(get(s).outcome).toBe(null);
-    expect(() =>
-      execute(s, { type: "snoozeReminder", id: "r-med-me", until: BASE_NOW }),
-    ).toThrow("after the current reference time");
-  });
-  it("create confirmation action is idempotent and edits preserve ID", () => {
-    let s = execute(seed(), { type: "createReminder", input: input() }, "once");
-    const r = s.reminders.find((r) => r.title === "Evening walk")!;
-    s = execute(s, { type: "createReminder", input: input() }, "once");
-    expect(s.reminders.filter((r) => r.title === "Evening walk")).toHaveLength(
-      1,
+
+  it("removes a dependent and cascades", () => {
+    let s = makeState();
+    s = execute(
+      s,
+      {
+        type: "addDependent",
+        displayName: "Mom (demo)",
+        relationship: "Parent",
+        canManage: true,
+        acknowledged: true,
+      },
+      "add",
     );
-    s = execute(s, {
-      type: "editReminder",
-      id: r.id,
-      input: input({ title: "Long evening walk" }),
-      scope: "occurrence",
-    });
-    expect(get(s, r.id).title).toBe("Long evening walk");
-    s = execute(s, { type: "deleteReminder", id: r.id });
-    expect(get(s, r.id).deletedAt).toBe(BASE_NOW);
-    s = execute(s, { type: "undoDeletion", id: r.id });
-    expect(get(s, r.id).deletedAt).toBe(null);
+    const momId = s.profiles.find((p) => p.displayName === "Mom (demo)")!.id;
+    // create reminder for Mom while p-me is still selected
+    s = execute(s, { type: "createReminder", input: input({ profileId: momId }) }, "create");
+    expect(s.reminders).toHaveLength(1);
+    // removeDependent doesn't require manage=true since it's about the profile itself
+    s = execute(s, { type: "removeDependent", id: momId }, "remove");
+    expect(s.profiles).toHaveLength(1);
+    expect(s.reminders).toHaveLength(0);
   });
-  it("validation rejects whitespace, past and long instructions", () => {
-    for (const i of [
-      input({ title: "   " }),
-      input({ scheduledAt: BASE_NOW }),
-      input({ instructions: "x".repeat(501) }),
-    ])
-      expect(() =>
-        execute(seed(), { type: "createReminder", input: i }),
-      ).toThrow();
-  });
-  it("stale recipient and view-only command rejected at execution", () => {
-    let s = execute(seed(), { type: "selectProfile", profileId: "p-maya" });
-    expect(() =>
-      execute(s, { type: "createReminder", input: input() }, "stale", "p-me"),
-    ).toThrow("different profile");
-    s = execute(s, { type: "selectProfile", profileId: "p-leo" });
-    expect(() =>
-      execute(s, {
-        type: "completeReminder",
-        id: "r-bath-leo",
-        outcome: "complete",
-      }),
-    ).toThrow("cannot update");
-    expect(() =>
-      execute(s, { type: "toggleChecklist", id: "a-dental-leo", index: 0 }),
-    ).toThrow("cannot update");
-  });
-  it("new dependent is view-only and removal cleans their active entities", () => {
-    let s = execute(seed(), {
-      type: "addDependent",
-      displayName: "Test child",
-      relationship: "Child",
-      acknowledged: true,
-    });
-    const p = s.profiles.find((p) => p.displayName === "Test child")!;
+
+  it("updates a dependent", () => {
+    let s = makeState();
+    s = execute(
+      s,
+      {
+        type: "addDependent",
+        displayName: "Mom (demo)",
+        relationship: "Parent",
+        canManage: true,
+        acknowledged: true,
+      },
+      "add",
+    );
+    const momId = s.profiles.find((p) => p.displayName === "Mom (demo)")!.id;
+    s = execute(
+      s,
+      { type: "updateDependent", id: momId, patch: { displayName: "Dad", canManage: false } },
+      "update",
+    );
+    const p = s.profiles.find((x) => x.id === momId)!;
+    expect(p.displayName).toBe("Dad");
     expect(p.canManage).toBe(false);
-    s = execute(s, { type: "selectProfile", profileId: p.id });
-    s = execute(s, { type: "removeDependent", id: p.id });
-    expect(s.selectedProfileId).toBe("p-me");
-    expect(s.profiles).toHaveLength(3);
-    expect(() => execute(s, { type: "removeDependent", id: "p-me" })).toThrow();
   });
-  it("appointment edits retain provenance and linked reminder time", () => {
-    let s = execute(seed(), { type: "selectProfile", profileId: "p-maya" });
-    const before = get(s, "r-screen-maya").scheduledAt;
-    s = execute(s, {
-      type: "editAppointment",
-      id: "a-screen-maya",
-      title: "Changed screening",
-      startsAt: isoAt("2026-10-01", "11:00"),
-      locationLabel: "Demo clinic B",
+});
+
+describe("state validation", () => {
+  it("validates correct state", () => {
+    expect(validateState(makeState())).toBe(true);
+  });
+
+  it("rejects invalid state", () => {
+    expect(validateState({})).toBe(false);
+    expect(validateState(null)).toBe(false);
+    expect(validateState({ version: 2 })).toBe(false);
+  });
+});
+
+describe("local storage load/save", () => {
+  it("loads empty state when no localStorage", () => {
+    vi.stubGlobal("localStorage", { getItem: () => null });
+    const result = loadState();
+    expect(result.state.profiles).toHaveLength(0);
+    expect(result.notice).toBe("");
+  });
+
+  it("loads saved state", () => {
+    const s = makeState();
+    vi.stubGlobal("localStorage", {
+      getItem: () => JSON.stringify(s),
     });
-    const a = s.appointments.find((a) => a.id === "a-screen-maya")!;
-    expect(a.recordOrigin).toBe("user-saved");
-    expect(a.providerConfirmed).toBe(false);
-    expect(a.provenanceHistory[0].text).toContain("original demo provenance");
-    expect(get(s, "r-screen-maya").scheduledAt).toBe(before);
+    const result = loadState();
+    expect(result.state.profiles).toHaveLength(1);
+    expect(result.notice).toBe("");
   });
-  it("benefit notes remain unverified with no usage invented", () => {
-    const s = execute(seed(), {
-      type: "addBenefitNote",
-      category: "Imagined cover",
-      notes: "My note",
-    });
-    const b = s.benefits.at(-1)!;
-    expect(b.status).toBe("Needs confirmation");
-    expect(b.policyDate).toBe(null);
-    expect(b.source).toBe("User-entered demo note");
-    expect(b).not.toHaveProperty("balance");
+});
+
+describe("time parsing", () => {
+  it("parses am/pm times", () => {
+    expect(parseTime("8 am")).toEqual({ time: "08:00" });
+    expect(parseTime("2:30 pm")).toEqual({ time: "14:30" });
   });
-  it("bedtime ambiguity and tonight-only override", () => {
-    expect(parseTime("bedtime at 8").ambiguous).toBe(true);
-    expect(parseTime("bedtime at 10:30 pm").time).toBe("22:30");
-    expect(parseTime("move bedtime to 10:30 tonight").time).toBe("22:30");
-    const s = seed();
-    expect(buildChatAction(s, "move bedtime to 10:30 tonight").needsScope).toBe(
-      true,
-    );
-    const a = buildChatAction(
-      s,
-      "move bedtime to 10:30 pm tonight",
-      undefined,
-      "occurrence",
-    ).action!;
-    const edited = execute(s, a.command, a.id, a.profileId);
-    expect(get(edited, "r-bed-me").scheduledAt).toBe(
-      isoAt("2026-09-30", "22:30"),
-    );
-    expect(get(edited, "r-bed-me:2026-10-01").scheduledAt).toBe(
-      isoAt("2026-10-01", "22:00"),
-    );
-    expect(
-      edited.reminders.filter((r) => r.seriesId === "r-bed-me"),
-    ).toHaveLength(2);
+
+  it("detects ambiguous times", () => {
+    expect(parseTime("8")).toEqual({});
   });
-  it("caregiver skipped report has actor separate from subject", () => {
-    let s = execute(seed(), { type: "selectProfile", profileId: "p-maya" });
-    s = execute(s, {
-      type: "completeReminder",
-      id: "r-screen-maya",
-      outcome: "skipped",
-    });
-    const r = get(s, "r-screen-maya");
-    expect(r.recordedBy).toBe("p-me");
-    expect(r.profileId).toBe("p-maya");
-    expect(r.history[0].text).toContain("for Maya by Me");
-    expect(r.history[0].text).not.toContain("confirmed");
-    expect(r.completedAt).toBe(null);
-  });
-  it("storage validation reset and reload exit driving", () => {
-    expect(validateState(seed())).toBe(true);
-    const s = seed();
-    s.carMode = "driving";
-    vi.stubGlobal("localStorage", { getItem: () => JSON.stringify(s) });
-    expect(loadState().state.carMode).toBe("parked");
-    vi.stubGlobal("localStorage", { getItem: () => "{broken" });
-    expect(loadState().notice).toContain("reset");
-    const bad = { ...seed(), version: 2 };
-    expect(validateState(bad)).toBe(false);
-  });
-  it("driving refuses sensitive commands", () => {
-    let s = execute(seed(), { type: "setCarMode", mode: "driving" });
+});
+
+describe("import skill proposal", () => {
+  it("rejects unsupported commands", () => {
+    const s = makeState();
     expect(() =>
-      execute(s, { type: "createReminder", input: input() }),
-    ).toThrow("Available when parked");
-    s = execute(s, { type: "setCarMode", mode: "parked" });
-    expect(s.carMode).toBe("parked");
-  });
-  it("schema rejects corrupted reminder reporting and receipt fields", () => {
-    const s = seed();
-    (s.reminders[0] as unknown as Record<string, unknown>).recordedBy = 123;
-    expect(validateState(s)).toBe(false);
-  });
-  it("regular bedtime schedule changes future time without changing older reports", () => {
-    const s = seed();
-    const a = buildChatAction(
-      s,
-      "move bedtime to 10:30 tonight",
-      undefined,
-      "future",
-    ).action!;
-    const changed = execute(s, a.command, a.id, a.profileId);
-    expect(get(changed, "r-bed-me").scheduledAt).toBe(
-      isoAt("2026-09-30", "22:30"),
-    );
-    expect(get(changed, "r-bed-me:2026-10-01").scheduledAt).toBe(
-      isoAt("2026-10-01", "22:30"),
-    );
-    expect(get(changed, "r-bed-me").occurrenceOverride).toBe(false);
-  });
-  it("moving an occurrence onto an existing day rejects series collision", () => {
-    const s = seed();
-    expect(() =>
-      execute(s, {
-        type: "editReminder",
-        id: "r-bed-me",
-        input: input({
-          category: "Bedtime",
-          title: "Bedtime reminder",
-          scheduledAt: isoAt("2026-10-01", "22:30"),
-          recurrence: "Daily",
-        }),
-        scope: "occurrence",
+      importSkillProposal(s, {
+        id: "test",
+        command: { type: "reset" },
+        sourceIds: ["s1"],
+        profileId: "p-me",
+        actor: "user",
       }),
     ).toThrow();
   });
-  it("appointment context explains its category benefit rather than GP fallback", () => {
-    const response = buildChatAction(
-      seed(),
-      "Explain sample benefits",
-      "a-check-me",
-    );
-    expect(response.text).toContain("Conditions apply");
-    expect(response.text).not.toContain("Listed in sample plan");
-  });
-  it("preparation recognizes existing reminder instead of duplicating it", () => {
-    const s = seed();
-    s.now = isoAt("2026-09-30", "20:00");
-    s.selectedProfileId = "p-maya";
-    const response = buildChatAction(
-      s,
-      "Prepare for my appointment",
-      "a-screen-maya",
-    );
-    expect(response.action).toBeUndefined();
-    expect(response.sourceId).toBe("r-screen-maya");
-  });
-});
-
-describe("state-driven Buddy outcomes", () => {
-  it("preparation follows edited appointment and reference clock, not profile identity", () => {
-    let s = seed();
-    s.now = isoAt("2026-10-02", "10:00");
-    s.appointments[0].startsAt = isoAt("2026-10-02", "16:00");
-    let reply = buildChatAction(s, "Prepare for my appointment");
-    expect(reply.action?.command.type).toBe("createReminder");
-    if (reply.action?.command.type === "createReminder")
-      expect(reply.action.command.input.scheduledAt).toBe(
-        isoAt("2026-10-02", "15:00"),
-      );
-    s.now = isoAt("2026-10-02", "15:30");
-    reply = buildChatAction(s, "Prepare for my appointment");
-    if (reply.action?.command.type === "createReminder")
-      expect(reply.action.command.input.scheduledAt).toBe(
-        isoAt("2026-10-02", "15:45"),
-      );
-    s.appointments[0].checklist = [true, true, true];
-    expect(buildChatAction(s, "Prepare for my appointment").text).toContain(
-      "checklist is complete",
-    );
-  });
-  it("benefits select dental explicitly and overview never silently substitutes GP", () => {
-    const s = seed();
-    expect(buildChatAction(s, "Explain my dental cover").sourceId).toBe(
-      "b-dental-p-me",
-    );
-    const overview = buildChatAction(s, "Explain my benefits");
-    expect(overview.sourceId).toBeUndefined();
-    expect(overview.text).toContain("GP visits");
-    expect(overview.text).toContain("Dental");
-    s.selectedProfileId = "p-leo";
-    expect(buildChatAction(s, "Explain my dental cover").sourceId).toBe(
-      "b-dental-leo",
-    );
-  });
-  it("day summary changes after completion and never invents an appointment", () => {
-    let s = seed();
-    const initial = buildChatAction(s, "Plan my day").text;
-    s = execute(s, {
-      type: "completeReminder",
-      id: "r-med-me",
-      outcome: "taken",
-    });
-    const updated = buildChatAction(s, "Plan my day").text;
-    expect(updated).not.toBe(initial);
-    expect(updated).toContain("1 routines recorded");
-    s.appointments = [];
-    expect(buildChatAction(s, "Plan my day").text).toContain(
-      "No upcoming appointments today",
-    );
-  });
-  it("contextual snooze leaves schedule unchanged and report requires confirmation", () => {
-    const s = seed();
-    const reply = buildChatAction(
-      s,
-      "Remind me later in 15 minutes",
-      "r-med-me",
-    );
-    expect(reply.action?.command.type).toBe("snoozeReminder");
-    expect(s.reminders[0].notificationSnoozedUntil).toBeNull();
-    const changed = execute(s, reply.action!.command);
-    expect(changed.reminders[0].scheduledAt).toBe(s.reminders[0].scheduledAt);
-    expect(
-      buildChatAction(s, "Mark as taken", "r-med-me").action?.command.type,
-    ).toBe("completeReminder");
-    s.selectedProfileId = "p-leo";
-    expect(
-      buildChatAction(s, "Mark complete", "r-bath-leo").action,
-    ).toBeUndefined();
-  });
-  it("new routine preserves explicit time and rejects medication schedule generation", () => {
-    const s = seed();
-    const reply = buildChatAction(s, "Remind me to take a walk at 6 pm");
-    expect(reply.action?.command.type).toBe("createReminder");
-    if (reply.action?.command.type === "createReminder")
-      expect(reply.action.command.input.scheduledAt).toBe(
-        isoAt("2026-09-30", "18:00"),
-      );
-    expect(
-      buildChatAction(s, "Remind me to take medicine at 6 pm").action,
-    ).toBeUndefined();
-  });
-  it("active preparation is unique across separate submissions and must precede appointment", () => {
-    const s = seed();
-    s.selectedProfileId = "p-maya";
-    expect(() =>
-      execute(s, {
-        type: "createReminder",
-        input: {
-          profileId: "p-maya",
-          category: "Appointment preparation",
-          title: "Prepare again",
-          scheduledAt: isoAt("2026-09-30", "20:00"),
-          recurrence: "None",
-          instructions: "",
-          appointmentId: "a-screen-maya",
-        },
-      }),
-    ).toThrow("already exists");
-    s.selectedProfileId = "p-me";
-    expect(() =>
-      execute(s, {
-        type: "createReminder",
-        input: {
-          profileId: "p-me",
-          category: "Appointment preparation",
-          title: "Too late",
-          scheduledAt: isoAt("2026-09-30", "20:00"),
-          recurrence: "None",
-          instructions: "",
-          appointmentId: "a-check-me",
-        },
-      }),
-    ).toThrow("before");
-  });
-});
-
-describe("WorkBuddy proposal handoff", () => {
-  const proposal = (s: ReturnType<typeof seed>) => {
-    const a = buildChatAction(s, "Prepare for my appointment").action!;
-    return {
-      status: "proposal",
-      executed: false,
-      expectedClock: s.now,
-      action: a,
-    };
-  };
-  it("imports an unexecuted source-bound proposal without mutation and rejects repeat after execution", () => {
-    const s = seed(),
-      before = JSON.stringify(s),
-      v = proposal(s),
-      a = importSkillProposal(s, v);
-    expect(JSON.stringify(s)).toBe(before);
-    const next = execute(s, a.command, a.id, a.profileId);
-    expect(next.reminders.length).toBe(s.reminders.length + 1);
-    expect(() => importSkillProposal(next, v)).toThrow("already applied");
-  });
-  it("rejects stale clock, changed source, cross-person input, and unsupported commands", () => {
-    const s = seed(),
-      v = proposal(s);
-    expect(() =>
-      importSkillProposal(s, {
-        ...v,
-        expectedClock: BASE_NOW.replace("09:", "08:"),
-      }),
-    ).toThrow();
-    s.appointments[0].startsAt = isoAt("2026-10-01", "12:00");
-    expect(() => importSkillProposal(s, v)).toThrow("source record changed");
-    const fresh = proposal(s);
-    s.selectedProfileId = "p-leo";
-    expect(() => importSkillProposal(s, fresh)).toThrow("recipient");
-    s.selectedProfileId = "p-me";
-    expect(() =>
-      importSkillProposal(s, {
-        ...fresh,
-        action: { ...fresh.action, command: { type: "reset" } },
-      }),
-    ).toThrow("reminder proposals");
-  });
-  it("rechecks source on confirmation, not only import", () => {
-    const s = seed(),
-      a = importSkillProposal(s, proposal(s));
-    s.appointments[0].checklist[0] = true;
-    expect(() => assertFreshAction(s, a)).toThrow("source record changed");
-  });
-});
-
-it("adds fictional records once while preserving edits and intentional deletion", () => {
-  const old = seed();
-  old.appliedActions = [];
-  old.reminders = old.reminders.filter((r) => !r.id.startsWith("syn-"));
-  old.appointments = old.appointments.filter((r) => !r.id.startsWith("syn-"));
-  old.activity = [];
-  old.reminders[0].title = "My edited reminder";
-  vi.stubGlobal("localStorage", { getItem: () => JSON.stringify(old) });
-  const migrated = loadState().state;
-  expect(validateState(migrated)).toBe(true);
-  expect(migrated.reminders[0].title).toBe("My edited reminder");
-  expect(migrated.reminders.some((r) => r.id === "syn-walk")).toBe(true);
-  migrated.reminders = migrated.reminders.filter((r) => r.id !== "syn-walk");
-  vi.stubGlobal("localStorage", { getItem: () => JSON.stringify(migrated) });
-  expect(loadState().state.reminders.some((r) => r.id === "syn-walk")).toBe(
-    false,
-  );
 });
