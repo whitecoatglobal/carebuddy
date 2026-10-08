@@ -3,13 +3,16 @@ import { HEALTH_METRICS, SAMPLE_HEALTH_CHECK } from "./healthData";
 
 export function HealthCard({ onReview }: { onReview: () => void }) {
   return (
-    <section className="health-review-card" aria-label="Daily health sample">
+    <section
+      className="health-review-card health-refined-card"
+      aria-label="Daily health sample"
+    >
       <div className="health-card-heading">
         <span className="feature-icon health-feature-icon">
           <Icon name="pulse" />
         </span>
-        <span className="eyebrow">DAILY HEALTH</span>
-        <span className="sample-tag">Sample</span>
+        <span className="eyebrow">AVAILABLE INFORMATION</span>
+        <span className="sample-tag">Sample data</span>
       </div>
       <dl className="health-card-readings">
         {HEALTH_METRICS.slice(0, 4).map((metric) => (
@@ -19,16 +22,14 @@ export function HealthCard({ onReview }: { onReview: () => void }) {
               {metric.cardLabel}
             </dt>
             <dd>
-              {metric.value}
-              {" "}
-              <small>{metric.unit}</small>
+              {metric.value} <small>{metric.unit}</small>
             </dd>
           </div>
         ))}
       </dl>
       <p>Morning sample · {SAMPLE_HEALTH_CHECK.time} · At rest</p>
-      <button className="text-button health-card-link" onClick={onReview}>
-        Review Health <Icon name="arrow" />
+      <button className="primary health-card-link" onClick={onReview}>
+        Review sample readings <Icon name="arrow" />
       </button>
     </section>
   );

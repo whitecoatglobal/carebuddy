@@ -25,3 +25,16 @@ describe("documented benefit highlights", () => {
     ).toEqual(["SGD 40.50 per visit"]);
   });
 });
+
+it("preserves annual allowance and a documented single-visit limit", () => {
+  expect(
+    getBenefitHighlights(
+      "Illustrative annual health-check allowance of S$180. One visit per plan year; confirm eligible tests.",
+    ),
+  ).toEqual(["Annual allowance: S$180", "One visit per plan year"]);
+});
+it("preserves an upper-bound qualifier on the allowance", () => {
+  expect(
+    getBenefitHighlights("Up to S$40 per visit, 6 visits per year."),
+  ).toEqual(["Up to S$40 per visit", "6 visits per year"]);
+});

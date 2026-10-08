@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { Icon } from "./Icon";
+
+export type StarterRoutine = "Bedtime" | "Walking" | "Drinking water";
 
 export function Onboarding({
   onSelf,
   onFamily,
   onSleep,
 }: {
-  onSelf: () => void;
+  onSelf: (starter?: StarterRoutine) => void;
   onFamily: () => void;
   onSleep: () => void;
 }) {
+  const [starter, setStarter] = useState<StarterRoutine | "">("");
   return (
     <div className="onboarding">
       <div className="onboarding-art" aria-hidden="true">
@@ -34,8 +38,33 @@ export function Onboarding({
       <p className="onboarding-lead">
         Small routines, better rest, and care for the people who matter to you.
       </p>
+      <div className="onboarding-starter">
+        <label htmlFor="starter-routine">
+          Start with a routine <span>(optional)</span>
+        </label>
+        <select
+          id="starter-routine"
+          value={starter}
+          onChange={(event) =>
+            setStarter(event.target.value as StarterRoutine | "")
+          }
+          aria-describedby="starter-routine-help"
+        >
+          <option value="">Choose later</option>
+          <option>Bedtime</option>
+          <option>Walking</option>
+          <option>Drinking water</option>
+        </select>
+        <p id="starter-routine-help">
+          Starter routines are available for your own care space. Review the
+          time before saving. New family profiles start with view access.
+        </p>
+      </div>
       <div className="onboarding-choices">
-        <button className="onboarding-choice" onClick={onSelf}>
+        <button
+          className="onboarding-choice"
+          onClick={() => onSelf(starter || undefined)}
+        >
           <span className="choice-icon">
             <Icon name="leaf" />
           </span>

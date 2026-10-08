@@ -22,54 +22,81 @@ export function WeatherBanner({
 }) {
   return (
     <section
-      className="weather-banner"
+      className="weather-banner weather-strip"
       aria-label="Singapore weather"
       aria-busy={loading}
     >
-      {weather ? (
-        <>
-          <span className="weather-icon-lg" aria-hidden="true">
-            {weather.conditionIcon}
+      <details>
+        <summary>
+          <span className="weather-strip-icon" aria-hidden="true">
+            {weather?.conditionIcon || "☁"}
           </span>
-          <div className="weather-banner-main">
-            <span className="weather-temp-lg">{weather.temperatureC}°C</span>
-            <span className="weather-cond-lg">{weather.condition}</span>
-            {weather.forecastValidUntil && (
-              <small>2-hour forecast · {weather.forecastPeriod}</small>
-            )}
-          </div>
-          <div className="weather-banner-stats">
-            {weather.humidity !== null && (
-              <div>
-                <small>Humidity</small>
-                <span>{Math.round(weather.humidity)}%</span>
-              </div>
-            )}
-            {weather.psi !== null && (
-              <div>
-                <small>24-hour PSI · Central</small>
-                <span>
-                  {weather.psi} · {psiLabel(weather.psi)}
-                </span>
-              </div>
-            )}
-          </div>
-          <p className="weather-source">
-            {weather.location} · Updated {formatTime(weather.updatedAt)} ·{" "}
-            {weather.source}
-          </p>
-        </>
-      ) : loading ? (
-        <span className="weather-cond-lg" role="status">
-          Loading weather…
-        </span>
-      ) : (
-        <>
-          <span className="weather-cond-lg" role="alert">
-            {error || "Weather is unavailable."}
+          <span className="weather-strip-copy">
+            <strong>
+              {weather
+                ? `${weather.temperatureC}°C · ${weather.condition}`
+                : loading
+                  ? "Loading weather…"
+                  : "Weather unavailable"}
+            </strong>
+            <small>{weather?.location || "Singapore"}</small>
           </span>
-          <button onClick={onRetry}>Retry weather</button>
-        </>
+          <span className="weather-strip-toggle" aria-hidden="true">
+            Details <span>⌄</span>
+          </span>
+        </summary>
+        <div className="weather-strip-details">
+          {weather && (
+            <>
+              {weather.forecastValidUntil && (
+                <p>2-hour forecast · {weather.forecastPeriod}</p>
+              )}
+              <dl className="weather-strip-stats">
+                {weather.humidity !== null && (
+                  <div>
+                    <dt>Humidity</dt>
+                    <dd>{Math.round(weather.humidity)}%</dd>
+                  </div>
+                )}
+                {weather.psi !== null && (
+                  <div>
+                    <dt>24-hour PSI · Central</dt>
+                    <dd>
+                      {weather.psi} · {psiLabel(weather.psi)}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              <p className="weather-source">
+                {weather.location} · Updated {formatTime(weather.updatedAt)} ·{" "}
+                {weather.source}
+              </p>
+            </>
+          )}
+          {!weather && !loading && !error && <p>Weather is unavailable.</p>}
+          {!error && (
+            <button
+              className="text-button"
+              onClick={onRetry}
+              disabled={loading}
+            >
+              {weather ? "Refresh weather" : "Retry weather"}
+            </button>
+          )}
+        </div>
+      </details>
+      {loading && (
+        <p className="weather-strip-status" role="status">
+          {weather ? "Updating weather…" : "Loading weather…"}
+        </p>
+      )}
+      {error && (
+        <div className="weather-strip-error">
+          <p role="alert">{error}</p>
+          <button className="text-button" onClick={onRetry} disabled={loading}>
+            Retry weather
+          </button>
+        </div>
       )}
     </section>
   );

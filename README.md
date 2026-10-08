@@ -15,9 +15,9 @@ This version is a fictional public prototype. Browser client references separate
 
 ## Refreshed interface
 
-Today keeps the original full weather card at the top, followed by a personal greeting, routine progress, the next reminder, last night's sample sleep, and the daily timeline. Completed routines can be expanded. Starter routines prefill their review forms.
+Today leads with a personal greeting, the selected person, routine progress and Next up beside the desktop timeline. Weather is a compact expandable strip below the daily focus, retaining provider details and refresh. Completed routines can be expanded. Onboarding offers self/family choices and optional bedtime, walking or drinking-water starters for self care; new family profiles retain view access. Starter routines open editable review forms before saving.
 
-Family and Benefits use clearer cards and access labels. Sleep details explain the stage percentages and recommendations, with a bedtime routine action that reuses an existing routine. New care spaces can create a fictional self profile or add a family member. Forms keep their main fields visible and place optional fields under More options.
+Family cards emphasize identity and next actions, with removal in an overflow disclosure. Benefits summarize recorded allowances and limits while retaining conditions, source and full policy date in expandable details. Sleep preserves every sample value and offers compact stage disclosures plus one wind-down recommendation; its reminder action reuses an existing routine where appropriate. Forms keep what, when and repeat visible, optional instructions expandable, and review actions outside the scroll area. Buddy shortens its introduction after conversation begins. Reference-clock, car simulation and WorkBuddy controls remain under Advanced / Demo tools. See [UI validation](docs/ui-refinements-validation.md) for coverage and test limitations.
 
 ## Run locally
 

@@ -1,0 +1,101 @@
+.sleep-refined .sleep-stages-panel {
+  margin: 20px 0;
+  padding: 20px;
+}
+.sleep-refined .sleep-stages-layout {
+  display: block;
+}
+.sleep-refined .sleep-stage-list {
+  gap: 8px;
+}
+.sleep-refined .sleep-stage {
+  padding: 0 14px;
+}
+.sleep-refined .sleep-stage summary {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+.sleep-refined .sleep-stage summary::-webkit-details-marker {
+  display: none;
+}
+.sleep-refined .sleep-stage-heading {
+  width: 100%;
+  gap: 10px;
+}
+.sleep-refined .sleep-stage-heading > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.sleep-refined .sleep-stage-heading .sleep-stage-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+.sleep-refined .sleep-stage-heading > strong {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.sleep-refined .sleep-stage-heading small {
+  font-size: 13px;
+}
+.sleep-refined .sleep-stage-heading > svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.sleep-refined .sleep-stage[open] .sleep-stage-heading > svg {
+  transform: rotate(90deg);
+}
+.sleep-refined .sleep-stage p {
+  padding-bottom: 14px;
+}
+.sleep-refined .sleep-phase {
+  margin-right: 8px;
+  font-weight: 650;
+}
+.sleep-refined .sleep-recommendation-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.sleep-refined .sleep-recommendation-featured button {
+  margin-top: 16px;
+}
+.sleep-refined .sleep-recommendation-featured button + p {
+  margin-top: 10px;
+}
+.health-refined .health-snapshot {
+  padding: 20px;
+}
+.health-refined .health-readings-panel {
+  padding: 20px;
+}
+.health-refined-card .health-card-link {
+  margin-top: 4px;
+}
+@media (max-width: 400px) {
+  .sleep-refined .sleep-stages-panel {
+    padding: 16px;
+  }
+  .sleep-refined .sleep-stage-heading > span {
+    gap: 5px;
+  }
+  .sleep-refined .sleep-stage-heading small {
+    width: 100%;
+    padding-left: 15px;
+  }
+  .sleep-refined .sleep-recommendation {
+    padding: 16px;
+    gap: 10px;
+  }
+  .sleep-refined .sleep-recommendation-number {
+    display: none;
+  }
+}
+.health-refined-card .health-card-link.primary {
+  color: #fff !important;
+  padding: 10px 14px !important;
+}
