@@ -18,6 +18,18 @@ Today keeps the original full weather card at the top, followed by a personal gr
 
 Family and Benefits use clearer cards and access labels. Sleep details explain the stage percentages and recommendations, with a bedtime routine action that reuses an existing routine. New care spaces can create a fictional self profile or add a family member. Forms keep their main fields visible and place optional fields under More options.
 
+## Care journey
+
+Open **Care journey** from Today to use three new AI-assisted workflows:
+
+- **Letter to plan:** read a fictional photo/PDF or pasted letter, review exact source evidence, and confirm selected appointment/reminder records together.
+- **Appointment brief:** prepare a source-linked visit summary from recorded routines, concerns and questions, then download it.
+- **After your visit:** organise fictional consultation notes into reviewed actions and a saved follow-through checklist.
+
+Drafts, sources, checklist progress and briefs stay in the current browser. Confirmed care records use the existing sync. This public prototype is not suitable for real patient documents. WorkBuddy skill packaging remains separate; generation uses the configured Tencent TokenHub backend.
+
+Photo/PDF extraction needs `tesseract-ocr` and `poppler-utils` on the backend host. English OCR, 6 MB files, five PDF pages and 24,000 text characters are supported. See [care journey contracts, limits and verification](docs/care-journey.md).
+
 ## Run locally
 
 The current build was verified with Node.js 24. Install dependencies and build the shared package:

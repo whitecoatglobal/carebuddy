@@ -1,0 +1,211 @@
+.care-journey {
+  max-width: 960px;
+  margin: auto;
+  padding-bottom: 32px;
+}
+.cj-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.cj-heading h1 {
+  margin-bottom: 8px;
+}
+.cj-boundary {
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 16px;
+  background: #edf5f6;
+  border-radius: 12px;
+  margin: 20px 0;
+  color: #405c66;
+}
+.cj-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+.cj-tabs button {
+  flex: 1;
+  min-height: 46px;
+}
+.cj-tabs button[aria-pressed="true"] {
+  background: #286395;
+  color: white;
+  border-color: #286395;
+}
+.cj-card {
+  padding: 24px;
+  margin: 20px 0;
+  border: 1px solid #dbe5e7;
+  border-radius: 18px;
+  background: #fff;
+}
+.cj-card h2 {
+  font-size: 25px;
+  margin: 0 0 12px;
+}
+.cj-card h3 {
+  margin: 24px 0 12px;
+}
+.cj-card p,
+.cj-card li {
+  line-height: 1.65;
+}
+.cj-card label:not(.cj-check) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 18px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.cj-card input:not([type="checkbox"]),
+.cj-card textarea,
+.cj-card select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #b8cdd2;
+  border-radius: 8px;
+  font: inherit;
+  background: white;
+  color: #243c44;
+}
+.cj-card textarea {
+  min-height: 115px;
+  resize: vertical;
+}
+.cj-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 18px 0;
+}
+.cj-check input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.cj-action {
+  border: 1px solid #cbdce1;
+  border-radius: 12px;
+  padding: 18px;
+  margin: 22px 0;
+}
+.cj-action legend {
+  padding: 0 8px;
+  font-weight: 700;
+  color: #286395;
+}
+.cj-card blockquote {
+  margin: 15px 0;
+  border-left: 3px solid #44b79e;
+  padding: 8px 14px;
+  background: #f3f9f7;
+  font-size: 13px;
+  color: #40675e;
+  white-space: pre-wrap;
+}
+.cj-source {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #f4f7f8;
+  padding: 15px;
+  font: 14px/1.7 sans-serif;
+}
+.cj-card summary {
+  cursor: pointer;
+  min-height: 36px;
+  font-weight: 600;
+}
+.cj-card button {
+  min-height: 44px;
+}
+.cj-card .primary {
+  background: #286395;
+  color: white;
+  border: 1px solid #286395;
+}
+.cj-card button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.cj-citation {
+  display: block;
+  font-size: 11px;
+  color: #536f78;
+  overflow-wrap: anywhere;
+}
+.cj-saved {
+  padding: 16px 0;
+  border-bottom: 1px solid #dbe5e7;
+}
+.cj-brief li {
+  margin-bottom: 12px;
+}
+.cj-launch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 16px;
+  background: #e9f5f5;
+  border: 1px solid #b7dcd7;
+  margin: 18px 0;
+}
+.cj-launch strong {
+  display: block;
+  margin-bottom: 5px;
+}
+.cj-launch p {
+  margin: 0;
+  font-size: 13px;
+}
+.cj-launch button {
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .cj-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .cj-card {
+    padding: 18px;
+  }
+  .cj-tabs {
+    gap: 6px;
+  }
+  .cj-tabs button {
+    font-size: 12px;
+    padding: 10px 7px;
+  }
+  .cj-launch {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .cj-action {
+    padding: 14px;
+  }
+  .cj-card h2 {
+    font-size: 23px;
+  }
+}
+@media print {
+  .care-journey > *:not(.cj-brief) {
+    display: none;
+  }
+  .cj-brief button {
+    display: none;
+  }
+  .cj-brief {
+    border: 0;
+  }
+}

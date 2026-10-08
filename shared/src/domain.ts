@@ -229,6 +229,7 @@ export function validateState(v: unknown): v is State {
         typeof a.category === "string" &&
         validIso(a.startsAt) &&
         typeof a.locationLabel === "string" &&
+        (a.preparationNotes === undefined || (typeof a.preparationNotes === "string" && a.preparationNotes.length <= 500)) &&
         Array.isArray(a.checklist) &&
         a.checklist.length === 3 &&
         a.checklist.every((b) => typeof b === "boolean") &&

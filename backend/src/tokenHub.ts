@@ -57,6 +57,7 @@ export function isTokenHubConfigured(): boolean {
 
 export async function completeBuddyChat(
   messages: TokenHubMessage[],
+  limits: { maxTokens?: number; maxCharacters?: number } = {},
 ): Promise<string> {
   const config = configuration();
   try {
@@ -71,7 +72,7 @@ export async function completeBuddyChat(
         messages,
         thinking: { type: "disabled" },
         stream: false,
-        max_tokens: MAX_RESPONSE_TOKENS,
+        max_tokens: Math.min(limits.maxTokens ?? MAX_RESPONSE_TOKENS, 4096),
       }),
       redirect: "error",
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -91,7 +92,8 @@ export async function completeBuddyChat(
     if (
       typeof text !== "string" ||
       !text.trim() ||
-      text.length > MAX_RESPONSE_CHARACTERS ||
+      text.length >
+        Math.min(limits.maxCharacters ?? MAX_RESPONSE_CHARACTERS, 24000) ||
       choice?.finish_reason === "length" ||
       choice?.finish_reason === "content_filter" ||
       choice?.finish_reason === "tool_calls"
