@@ -19,6 +19,10 @@ Today leads with a personal greeting, the selected person, routine progress and 
 
 Family cards emphasize identity and next actions, with removal in an overflow disclosure. Benefits summarize recorded allowances and limits while retaining conditions, source and full policy date in expandable details. Sleep preserves every sample value and offers compact stage disclosures plus one wind-down recommendation; its reminder action reuses an existing routine where appropriate. Forms keep what, when and repeat visible, optional instructions expandable, and review actions outside the scroll area. Buddy shortens its introduction after conversation begins. Reference-clock, car simulation and WorkBuddy controls remain under Advanced / Demo tools. See [UI validation](docs/ui-refinements-validation.md) for coverage and test limitations.
 
+## Landing page
+
+The homepage at `/` follows the supplied Care Buddy mockup, using cream, sand, sage and plum with Fraunces headings and DM Sans body text. Explore the demo opens `/today`; the app logo returns to the homepage. Family examples and the Buddy walkthrough are illustrative frontend previews. Installed PWAs continue to open Today.
+
 ## Run locally
 
 The current build was verified with Node.js 24. Install dependencies and build the shared package:

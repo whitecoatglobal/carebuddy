@@ -3256,7 +3256,7 @@ export default function App() {
           )
         }
       >
-        <div className="wordmark">
+        <a className="wordmark" href="/" aria-label="Care Buddy home">
           <img
             className="brand-symbol"
             src="/branding/carebuddy-symbol-v1.png"
@@ -3272,7 +3272,7 @@ export default function App() {
             height="140"
             alt={APP_NAME}
           />
-        </div>
+        </a>
 
         <div className="header-actions">
           <button

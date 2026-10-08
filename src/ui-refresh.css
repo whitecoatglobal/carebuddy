@@ -59,6 +59,12 @@ button.text-button {
   align-items: center;
   gap: 9px;
   flex-shrink: 0;
+  text-decoration: none;
+}
+.wordmark:focus-visible {
+  outline: 3px solid var(--deep-sage);
+  outline-offset: 5px;
+  border-radius: 4px;
 }
 .wordmark img {
   display: block;

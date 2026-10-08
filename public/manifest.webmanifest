@@ -3,7 +3,7 @@
   "name": "Care Buddy \u2014 fictional care demo",
   "short_name": "Care Buddy",
   "description": "A fictional local care organisation demo",
-  "start_url": "./",
+  "start_url": "./today",
   "scope": "./",
   "display": "standalone",
   "background_color": "#FAF6F0",
