@@ -456,6 +456,89 @@ header {
 .sleep-card-link svg {
   width: 16px;
 }
+.health-review-card {
+  padding: 21px 23px;
+  background: linear-gradient(120deg, #f3e7de, #f8f0e8);
+  border: 1px solid #e4d2c5;
+  border-radius: 20px;
+  box-shadow: var(--card-shadow);
+}
+.health-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.health-card-heading .eyebrow {
+  flex: 1;
+  margin: 0;
+  font-size: 10px;
+  color: #876b5b;
+}
+.health-feature-icon {
+  background: #edd8ca;
+  color: #94634d;
+}
+.health-card-heading .feature-icon {
+  width: 33px;
+  height: 33px;
+  border-radius: 11px;
+}
+.health-card-heading .feature-icon svg {
+  width: 19px;
+  height: 19px;
+}
+.health-review-card .sample-tag {
+  color: #806555;
+  border-color: #dec9ba;
+}
+.health-card-readings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 16px;
+  margin: 0 0 17px;
+}
+.health-card-readings dt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #786659;
+  font-size: 11px;
+}
+.health-card-readings dt svg {
+  width: 14px;
+  height: 14px;
+}
+.health-card-readings dd {
+  margin: 5px 0 0;
+  color: #694f43;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.6px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.health-card-readings dd small {
+  margin-left: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: #786659;
+}
+.health-review-card > p {
+  margin: 0 0 3px;
+  font-size: 11px;
+  color: #806b5e;
+}
+.health-card-link {
+  padding: 8px 0 !important;
+  min-height: 40px;
+  font-size: 14px;
+  color: #805c48 !important;
+}
+.health-card-link svg {
+  width: 16px;
+}
 .day-timeline {
   margin: 0;
   padding: 22px;
@@ -1190,6 +1273,9 @@ header {
   align-items: stretch;
   margin-bottom: 28px;
 }
+.health-overview > .wearable-card {
+  grid-column: 1/-1;
+}
 .wearable-card {
   display: flex;
   flex-direction: column;
@@ -1448,6 +1534,186 @@ header {
 .sleep-recommendation-featured .primary {
   margin-top: 10px;
 }
+.health-details {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+.health-sample-badge {
+  background: #f2e5da;
+  color: #805c48;
+}
+.health-snapshot {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 14px 18px;
+  padding: 24px;
+  border: 1px solid #e4d2c5;
+  border-radius: 20px;
+  background: linear-gradient(125deg, #f3e7de, #f8f0e8);
+}
+.health-snapshot > .feature-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+}
+.health-snapshot h2 {
+  font-size: 26px;
+  margin: 0 0 7px;
+}
+.health-snapshot .eyebrow {
+  color: #876b5b;
+  margin-bottom: 6px;
+}
+.health-snapshot p {
+  font-size: 14px;
+  color: #786659;
+  margin: 0;
+}
+.health-snapshot-note {
+  grid-column: 1/-1;
+  border-top: 1px solid #e4d2c5;
+  padding-top: 14px;
+  font-size: 12px !important;
+}
+.health-readings-panel {
+  margin: 24px 0 28px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+}
+.health-reading-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.health-reading {
+  overflow: hidden;
+  border: 1px solid #dfdcd4;
+  border-radius: 16px;
+  background: #f8f5ef;
+}
+.health-reading:nth-child(2),
+.health-reading:nth-child(4) {
+  background: #eef4f0;
+  border-color: #d6e1d8;
+}
+.health-reading-breathing {
+  grid-column: 1/-1;
+}
+.health-reading > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 18px;
+}
+.health-reading > summary::-webkit-details-marker {
+  display: none;
+}
+.health-reading-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.health-reading-label > .feature-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+.health-reading-label > .feature-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.health-reading-label > strong {
+  flex: 1;
+  font-size: 14px;
+}
+.health-reading-label > svg {
+  width: 14px;
+  color: #9b8f83;
+}
+.health-reading[open] .health-reading-label > svg {
+  transform: rotate(90deg);
+}
+.health-reading-value {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 34px;
+  font-weight: 650;
+  letter-spacing: -0.8px;
+  line-height: 1.2;
+  color: var(--plum);
+  font-variant-numeric: tabular-nums;
+}
+.health-reading-value small {
+  margin-left: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.health-reading-context {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+.health-reading-explanation {
+  padding: 16px 18px 18px;
+  border-top: 1px solid #dfdcd4;
+}
+.health-reading-explanation .eyebrow {
+  display: block;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+.health-reading-explanation > strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.health-reading-explanation p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.health-reading-explanation p:last-child {
+  margin: 0;
+  font-size: 12px;
+}
+.health-recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.health-recommendation {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.health-recommendation h3 {
+  font-size: 18px;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+.health-recommendation p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.health-reading-links {
+  margin-top: 24px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.health-reading-links a {
+  color: var(--deep-sage);
+  text-underline-offset: 3px;
+}
 @media (min-width: 768px) {
   .preview-banner {
     margin-left: 184px;
@@ -1483,6 +1749,30 @@ header {
   }
   .health-overview {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .health-overview > .wearable-card {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+  }
+  .health-overview > .wearable-card .coming-soon-tag {
+    margin: 0;
+  }
+  .health-reading-breathing > summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 20px;
+  }
+  .health-reading-breathing .health-reading-value {
+    grid-column: 2;
+    grid-row: 1/3;
+    margin: 0;
+  }
+  .health-reading-breathing .health-reading-context {
+    grid-column: 1;
+    padding-left: 40px;
   }
   .sheet {
     border-radius: 24px;
@@ -1584,6 +1874,35 @@ header {
   }
   .sleep-review-card {
     padding: 19px 21px;
+  }
+  .health-review-card {
+    padding: 19px 21px;
+  }
+  .health-page-heading {
+    flex-wrap: wrap;
+  }
+  .health-page-heading .health-sample-badge {
+    margin-top: 0;
+  }
+  .health-snapshot,
+  .health-readings-panel {
+    padding: 20px;
+  }
+  .health-snapshot {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .health-snapshot > .feature-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+  .health-snapshot h2 {
+    font-size: 23px;
+  }
+  .health-reading-grid,
+  .health-recommendation-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
   .routine-starters {
     margin-top: 25px;

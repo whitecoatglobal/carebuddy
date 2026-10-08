@@ -110,6 +110,18 @@ export function Icon({ name }: { name: string }) {
         <path d="M3 12h4l2-5 3 10 2-5h7" />
       </>
     ),
+    thermometer: (
+      <>
+        <path d="M10 14.7V5a2 2 0 0 1 4 0v9.7a4 4 0 1 1-4 0Z" />
+        <path d="M12 9v8m5-11h2m-2 4h2" />
+        <circle cx="12" cy="18" r="1" />
+      </>
+    ),
+    lungs: (
+      <>
+        <path d="M12 3v8m0-3-4 4m4-4 4 4M8 8c-3 0-6 5-6 9 0 3 3 4 6 2V8Zm8 0c3 0 6 5 6 9 0 3-3 4-6 2V8Z" />
+      </>
+    ),
     search: (
       <>
         <circle cx="11" cy="11" r="7" />

@@ -8,6 +8,7 @@ Care Buddy is a public self-care prototype built with React, TypeScript, Vite, E
 - If the former account screen archived a browser's records, the public app restores that browser's valid backup and client reference once. It keeps any populated current care space.
 - A fresh public demo shows a fictional self profile and medication, water, walking and bedtime routines. The content is defined in the frontend and labelled as sample data.
 - Sleep remains frontend sample data: 63% score, 6h 40m asleep, and 55% light / 20% deep / 25% REM. Review Sleep stays available on Today and opens the stage breakdown and recommendations.
+- The Daily Health card beside Sleep shows frontend sample BP, pulse, body temperature, and oxygen saturation. Review Health adds breathing rate, expandable explanations, adult references, measurement tips, and links to MedlinePlus, AHA, and FDA. These readings are illustrative and do not come from a connected device.
 - Weather uses NEA/MSS data through data.gov.sg. Buddy calls Tencent TokenHub from the backend, and care changes use the app's review and confirmation flow.
 
 This version is a fictional public prototype. Browser client references separate demo care spaces; they are not account authentication. Appointment requests and benefits are illustrative, and wearable pairing requires a future device integration.

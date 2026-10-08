@@ -17,6 +17,8 @@ import {
 import { ChatMarkdown } from "./ChatMarkdown";
 import { WeatherBanner } from "./WeatherBanner";
 import { SleepDetails } from "./SleepDetails";
+import { HealthCard } from "./HealthCard";
+import { HealthDetails } from "./HealthDetails";
 import {
   SAMPLE_SLEEP_NIGHT,
   formatSleepDuration,
@@ -715,6 +717,8 @@ export default function App() {
     });
   const openSleep = (from: "today" | "health") =>
     go("/health/sleep?from=" + from);
+  const openHealthDetails = (from: "today" | "health") =>
+    go("/health/vitals?from=" + from);
   const startTemplate = (id: string) => {
     const template = ROUTINE_TEMPLATES.find((item) => item.id === id);
     if (!template) return;
@@ -1096,6 +1100,7 @@ export default function App() {
               </button>
             )}
             {renderSleepCard("today")}
+            <HealthCard onReview={() => openHealthDetails("today")} />
           </div>
           {todayReminders.length > 0 ? (
             <div className="day-timeline">
@@ -2269,6 +2274,9 @@ export default function App() {
             <button onClick={() => openSleep("health")}>
               Explore sample sleep
             </button>
+            <button onClick={() => openHealthDetails("health")}>
+              Explore sample health
+            </button>
           </div>
         </>
       );
@@ -2281,6 +2289,7 @@ export default function App() {
         </p>
         <div className="health-overview">
           {renderSleepCard("health")}
+          <HealthCard onReview={() => openHealthDetails("health")} />
           <section className="wearable-card">
             <span className="feature-icon">
               <Icon name="pulse" />
@@ -3239,7 +3248,8 @@ export default function App() {
         {path !== "/" &&
           path !== "/today" &&
           path !== "/welcome" &&
-          (path !== "/health/sleep" || state.profiles.length > 0) &&
+          (!["/health/sleep", "/health/vitals"].includes(path) ||
+            state.profiles.length > 0) &&
           renderProfilePicker()}
         {error && !pending && (
           <div role="alert" className="error">
@@ -3306,6 +3316,24 @@ export default function App() {
                     acknowledged: "",
                     nextTemplate: "wind-down",
                   })
+            }
+          />
+        ) : path === "/health/vitals" ? (
+          <HealthDetails
+            profileName={profile.id ? profile.displayName : undefined}
+            now={liveTime}
+            backLabel={
+              new URLSearchParams(route.split("?")[1]).get("from") === "health"
+                ? "Health"
+                : "Today"
+            }
+            onBack={() =>
+              go(
+                new URLSearchParams(route.split("?")[1]).get("from") ===
+                  "health"
+                  ? "/health"
+                  : "/today",
+              )
             }
           />
         ) : path === "/health" ? (
