@@ -60,17 +60,17 @@ function approve(id: string) {
     id,
   );
 }
-it("registers browser ID as blocked without returning care records", async () => {
+it("registers a new browser ID as allowed without exposing care records in the access response", async () => {
   const r = await request("/api/access", "client-new");
   expect(r.status).toBe(200);
-  expect(r.body).toEqual({ clientId: "client-new", isVisible: false });
+  expect(r.body).toEqual({ clientId: "client-new", isVisible: true });
   expect(
     db
       .prepare("SELECT is_visible FROM state_snapshots WHERE client_id=?")
       .get("client-new").is_visible,
-  ).toBe(0);
+  ).toBe(1);
   expect((await request("/api/state/client-new", "client-new")).status).toBe(
-    403,
+    200,
   );
 });
 it("denies missing and unapproved IDs across every care route before creating records", async () => {
@@ -198,5 +198,34 @@ it("adds the visibility column to existing databases without changing saved reco
     )
     .get("client-legacy");
   expect(row.state_json).toBe('{"existing":"preserved"}');
-  expect(row.is_visible).toBe(0);
+  expect(row.is_visible).toBe(1);
+});
+
+it("preserves an explicitly blocked ID across access checks and state upserts", async () => {
+  ensureClientState("client-manually-blocked");
+  db.prepare("UPDATE state_snapshots SET is_visible=0 WHERE client_id=?").run(
+    "client-manually-blocked",
+  );
+  const existing = ensureClientState("client-manually-blocked");
+  upsertState("client-manually-blocked", JSON.stringify(existing));
+  expect(
+    (await request("/api/access", "client-manually-blocked")).body.isVisible,
+  ).toBe(false);
+  expect(
+    (
+      await request(
+        "/api/state/client-manually-blocked",
+        "client-manually-blocked",
+      )
+    ).status,
+  ).toBe(403);
+});
+it("defaults ordinary new snapshot writes to allowed", () => {
+  const fresh = ensureClientState("client-new-upsert");
+  expect(fresh).toBeTruthy();
+  expect(
+    db
+      .prepare("SELECT is_visible FROM state_snapshots WHERE client_id=?")
+      .get("client-new-upsert").is_visible,
+  ).toBe(1);
 });

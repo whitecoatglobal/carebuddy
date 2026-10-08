@@ -32,13 +32,14 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 CREATE INDEX IF NOT EXISTS idx_chat_client ON chat_messages(client_id, timestamp);
 `);
 
-// Existing snapshots are preserved. Visibility is never sourced from uploaded state.
+// New browser rows default to allowed. Visibility is never sourced from uploaded state.
+// Explicit INSERT values also support existing databases whose SQL column default was 0.
 const columns = db.pragma("table_info(state_snapshots)") as Array<{
   name: string;
 }>;
 if (!columns.some((column) => column.name === "is_visible")) {
   db.exec(
-    "ALTER TABLE state_snapshots ADD COLUMN is_visible INTEGER NOT NULL DEFAULT 0 CHECK (is_visible IN (0, 1))",
+    "ALTER TABLE state_snapshots ADD COLUMN is_visible INTEGER NOT NULL DEFAULT 1 CHECK (is_visible IN (0, 1))",
   );
 }
 
@@ -53,7 +54,7 @@ export function registerClientId(clientId: string): void {
   const fresh = emptyState();
   fresh.started = true;
   db.prepare(
-    "INSERT OR IGNORE INTO state_snapshots(client_id, state_json, updated_at) VALUES (?, ?, ?)",
+    "INSERT OR IGNORE INTO state_snapshots(client_id, state_json, updated_at, is_visible) VALUES (?, ?, ?, 1)",
   ).run(clientId, JSON.stringify(fresh), new Date().toISOString());
 }
 
@@ -100,8 +101,8 @@ export function loadStateRow(clientId: string): StoredState | null {
 export function upsertState(clientId: string, stateJson: string): StoredState {
   const now = new Date().toISOString();
   db.prepare(
-    `INSERT INTO state_snapshots (client_id, state_json, updated_at)
-     VALUES (?, ?, ?)
+    `INSERT INTO state_snapshots (client_id, state_json, updated_at, is_visible)
+     VALUES (?, ?, ?, 1)
      ON CONFLICT(client_id) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at`,
   ).run(clientId, stateJson, now);
   return { clientId, stateJson, updatedAt: now };

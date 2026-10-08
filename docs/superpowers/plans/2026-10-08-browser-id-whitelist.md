@@ -17,3 +17,7 @@
 - [x] Back up live database and add the visibility column without altering snapshot JSON or timestamps.
 - [x] Commit and push changes.
 - [x] Owner authorised all existing IDs on 8 October 2026. Backed up code and data, enabled all 129 existing rows, deployed the gate, retained provider secrets, and verified allowed/blocked browser flows without login.
+
+## Approved policy amendment — 8 October 2026
+
+Owner requested all current rows and new application rows be allowed by default. Explicit INSERTs now set `is_visible=1`; existing manually blocked rows remain 0 on conflict. Missing IDs and the shared storage-error fallback remain denied. Tests verify automatic access and persistent manual revocation. Live policy deployed and browser-verified without login.

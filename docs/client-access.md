@@ -9,8 +9,8 @@ Access follows the browser's existing `care-buddy.client-id` local-storage value
 
 ## Configure access
 
-1. Open Care Buddy in the browser to approve. The blocked screen shows its browser ID. You can also run `localStorage.getItem("care-buddy.client-id")` in that browser's developer console.
-2. That first access check registers a new, empty database row with `is_visible=0`, without replacing any existing records.
+1. Open Care Buddy in the browser. New browser IDs are allowed by default. A manually blocked browser shows its ID on the blocked screen. You can also run `localStorage.getItem("care-buddy.client-id")` in that browser's developer console.
+2. That first access check registers a new, empty database row with `is_visible=1`, without replacing existing records or changing an explicit block.
 3. Open the server database `/home/ubuntu/care-buddy/data/care-buddy.db` in your SQLite administration tool, find the exact `client_id`, and set `is_visible` to `1`.
 4. Click **Check again** in the browser.
 
@@ -35,7 +35,7 @@ Set the same row to `0` to revoke access. No service restart is required. Confir
 - IDs in record paths or an explicitly supplied body `clientId` must match the header.
 - The record-list endpoint returns only the requesting client ID; it no longer exposes all clients.
 - The existing full-state upload and AI context contract is preserved. Uploaded JSON cannot alter the database access column.
-- Missing/new/existing IDs default to blocked after the migration. The shared `client-local` storage-error fallback is always rejected, even if flagged visible.
+- Missing IDs are rejected. New browser rows default to allowed; existing manually blocked rows stay blocked. The shared `client-local` storage-error fallback is always rejected, even if flagged visible.
 - `/api/access` exposes only the requesting ID and access status. Non-personal service status and weather remain public.
 - Care/API responses use `Cache-Control: no-store`. The frontend checks access before rendering existing locally cached care records.
 - Clearing local storage or changing browsers produces another ID that must be separately approved. Previously downloaded records cannot be remotely erased through revocation.
@@ -46,7 +46,7 @@ This is a browser-ID allowlist, not authenticated user identity. An approved ID 
 
 ## Deployment
 
-The database migration preserves saved JSON and adds `is_visible=0` to all existing rows. Obtain the owner's approved browser IDs before replacing the live app; otherwise every browser will be blocked. Retain the existing TokenHub credentials and database directory. Back up the database and application first, then approve only the supplied IDs and verify both allowed and blocked requests.
+The initial whitelist release used a blocked default; the owner subsequently changed the policy to allow by default. Application INSERTs explicitly set `is_visible=1`, including on older databases whose underlying SQL column default remains 0. Existing rows set to 0 are never re-enabled by access checks or ordinary uploads. New databases add the column with SQL default 1. The policy update enabled all existing rows once, as requested. Retain the existing TokenHub credentials and database directory. Back up the database and application first, then approve only the supplied IDs and verify both allowed and blocked requests.
 
 ## Verification and current rollout — 8 October 2026
 
@@ -64,3 +64,11 @@ The database migration preserves saved JSON and adds `is_visible=0` to all exist
 - All 68 tests and shared/backend/frontend production builds passed before deployment. Staged Linux allow/deny checks passed.
 - Live Chrome verification using isolated temporary browser IDs confirmed an approved ID opens the care interface without a login/password screen, a new ID shows the access-blocked screen, another client's record path is denied, and the ID-list endpoint exposes only the requesting ID.
 - Test rows were removed; 129 approved rows remained and SQLite integrity was `ok`. Provider credentials and existing care record content were preserved.
+
+## Default-allow policy update — 8 October 2026
+
+The owner requested default visibility 1. Deployed application INSERTs now create both access-registration and ordinary new snapshot rows with `is_visible=1`. Existing rows explicitly set to 0 retain that value through access checks and upserts.
+
+All 129 existing rows were set to 1 again during deployment; saved JSON and timestamps stayed unchanged. Backup: `/home/ubuntu/care-buddy-backups/client-access-default-allow-20261008-034857`.
+
+70 tests and both builds passed. Live Chrome confirmed a new browser ID automatically opens the app without login, then an administrative change to 0 blocks that browser and remains blocked on repeated access checks. The QA row was removed; database integrity was `ok`.

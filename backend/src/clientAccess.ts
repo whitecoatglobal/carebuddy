@@ -22,7 +22,7 @@ export function checkBrowserAccess(req: Request, res: Response): void {
       });
     return;
   }
-  // Registers an empty, blocked row only; never replaces an existing snapshot.
+  // Registers an empty, allowed row only; never replaces an existing snapshot or revocation.
   registerClientId(id);
   res.json({ clientId: id, isVisible: isClientVisible(id) });
 }
