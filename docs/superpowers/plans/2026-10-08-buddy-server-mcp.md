@@ -18,3 +18,9 @@ Frontend contract:
 - Existing SQ UI, sample health/sleep/weather and current default-visible browser policy retained.
 
 Tasks: backend/MCP and API tests; frontend queued persistence and tests; shared Action metadata; independent spec/security review; complete build and browser/provider tests; backup and deploy; commit/push reviewed changes. No manual changes to users' care records.
+
+## Completion — 8 October 2026
+
+Implemented and independently reviewed. Added trusted server-owned operation status to every assistant bubble, and saved status requires a confirmed receipt. Fixed late profile responses, A→B→A stale intent, family auto-selection and confirmation-modal ownership. Existing caches are not imported across browser IDs. Invalid persisted JSON returns a controlled error without overwriting records.
+
+Final verification: 113 unit/integration tests, 14 UI scenarios, all builds, isolated browser failure/retry/Today/reload/idempotency test, real-provider staged MCP confirmation, and real-provider live browser Today update. Production audit: zero advisories. Temporary QA records removed; 129 original snapshots preserved; database integrity ok. SQ’s concurrent UI refinements were integrated and deployed with the same server persistence flow.

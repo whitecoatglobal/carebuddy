@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { emptyState } from "../shared/src/domain";
+import { emptyState, execute, uid } from "../shared/src/domain";
 import type { State, WeatherData } from "../shared/src/types";
 
 const now = "2030-10-08T09:00:00+08:00";
@@ -80,28 +80,72 @@ const weather: WeatherData = {
 };
 export async function prepare(page: Page, s: State = fixture()) {
   await page.clock.setFixedTime(new Date(now));
-  await page.addInitScript((state) => {
-    if (!sessionStorage.getItem("ui-fixture-installed")) {
-      localStorage.setItem("care-buddy-demo-v1", JSON.stringify(state));
-      sessionStorage.setItem("ui-fixture-installed", "yes");
-    }
-  }, s);
+  let saved = structuredClone(s);
+  let revision = 1;
+  const applied = new Set<string>();
+  await page.addInitScript(() => {
+    localStorage.setItem("care-buddy.client-id", "client-ui-fixture");
+  });
   await page.route("**/api/access", (route) =>
-    route.fulfill({
-      json: {
-        clientId: route.request().headers()["x-carebuddy-client-id"],
-        isVisible: true,
-      },
-    }),
+    route.fulfill({ json: { clientId: "client-ui-fixture", isVisible: true } }),
   );
   await page.route("**/api/state/**", (route) =>
-    route.fulfill({ json: { state: null } }),
+    route.fulfill({ json: { state: saved, revision } }),
   );
-  await page.route("**/api/buddy/interpret", (route) =>
-    route.fulfill({
-      json: { text: "We can plan a routine together. No changes made." },
-    }),
-  );
+  await page.route("**/api/commands", async (route) => {
+    const body = route.request().postDataJSON();
+    if (!applied.has(body.actionId)) {
+      if (body.expectedRevision !== revision) {
+        await route.fulfill({
+          status: 409,
+          json: { error: "Care records changed" },
+        });
+        return;
+      }
+      try {
+        saved = execute(
+          saved,
+          body.command,
+          body.actionId,
+          body.command.type === "selectProfile" ? undefined : body.profileId,
+        );
+        applied.add(body.actionId);
+        if (!["selectProfile", "chatMessage"].includes(body.command.type))
+          revision++;
+      } catch (error) {
+        await route.fulfill({
+          status: 400,
+          json: { error: (error as Error).message },
+        });
+        return;
+      }
+    }
+    await route.fulfill({ json: { state: saved, revision } });
+  });
+  await page.route("**/api/buddy/interpret", (route) => {
+    const body = route.request().postDataJSON();
+    saved.chats.push({
+      id: uid(),
+      profileId: body.profileId,
+      role: "user",
+      text: body.message,
+      timestamp: saved.now,
+      contextId: null,
+    });
+    const text = "We can plan a routine together. No changes made.";
+    saved.chats.push({
+      id: uid(),
+      profileId: body.profileId,
+      role: "assistant",
+      text,
+      timestamp: saved.now,
+      contextId: null,
+      operationStatus: "not_changed",
+    });
+    return route.fulfill({
+      json: { text, state: saved, revision, operationStatus: "not_changed" },
+    });
+  });
   await page.route("**/api/weather", (route) =>
     route.fulfill({ json: { weather } }),
   );
@@ -110,15 +154,23 @@ export async function prepare(page: Page, s: State = fixture()) {
   );
 }
 export const state = (page: Page) =>
-  page.evaluate(() => JSON.parse(localStorage.getItem("care-buddy-demo-v1")!));
+  page.evaluate(() =>
+    JSON.parse(
+      localStorage.getItem(
+        `care-buddy.server-cache.${localStorage.getItem("care-buddy.client-id")}`,
+      )!,
+    ),
+  );
 export const navigate = (page: Page, path: string) =>
   page.evaluate((path) => {
     history.pushState({}, "", path);
     dispatchEvent(new PopStateEvent("popstate"));
   }, path);
-export const confirm = (page: Page) =>
-  page
-    .getByRole("dialog")
-    .last()
-    .getByRole("button", { name: "Confirm", exact: true })
-    .click();
+export const confirm = async (page: Page) => {
+  const dialog = page.getByRole("dialog").last();
+  const label = await dialog.getAttribute("aria-label");
+  await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: label!, exact: true })
+    .waitFor({ state: "detached" });
+};

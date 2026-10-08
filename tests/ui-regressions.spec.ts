@@ -119,7 +119,9 @@ test("Advanced tools preserve clock, car navigation and WorkBuddy export", async
   await page
     .getByRole("button", { name: "Advance 15 minutes", exact: true })
     .click();
-  expect(Date.parse((await state(page)).now) - before).toBe(15 * 60_000);
+  await expect
+    .poll(async () => Date.parse((await state(page)).now) - before)
+    .toBe(15 * 60_000);
   await page.getByText("WorkBuddy handoff", { exact: true }).click();
   const download = page.waitForEvent("download");
   await page

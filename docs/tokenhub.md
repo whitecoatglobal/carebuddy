@@ -87,8 +87,10 @@ Tests stub the external provider boundary to verify payloads, selected-profile i
 
 ## Browser-owned MCP release — 8 October 2026
 
-111 unit/integration tests and shared/backend/frontend production builds passed. Independent review checked server transactions, legacy schema coexistence, cross-browser isolation, proposal expiry/revision, server-owned save feedback and frontend profile races. Production dependency audit found zero advisories.
+113 unit/integration tests and shared/backend/frontend production builds passed after integrating SQ’s interface refinements (`2eebde5`). All 14 UI scenarios passed; the two async-save fixture checks were adapted and rerun after the server-first contract change. Independent review checked server transactions, legacy schema coexistence, cross-browser isolation, proposal expiry/revision, server-owned save feedback and frontend profile races. Production dependency audit found zero advisories.
 
 An isolated browser test demonstrated 7:30 pm → 9:00 pm after Confirm, immediate Today refresh, persistence after reload, no false success on a failed save and harmless repeated confirmation. A staged real TokenHub call independently confirmed MCP tool dispatch and save-after-confirm. Live Chrome repeated the real-provider reminder update and rejected cross-browser confirmation, without a login screen.
 
 The running app and database were backed up to `/home/ubuntu/care-buddy-backups/server-mcp-20261008-042101`. All 129 original snapshots and visibility flags were unchanged by the deployment. Live QA rows were removed and SQLite integrity was `ok`. SQ's sample health/sleep content remains outside model-owned writes.
+
+The final merged release was backed up to `/home/ubuntu/care-buddy-backups/server-mcp-20261008-042755`. Its published JS asset is `index-CkJIBYdu.js`. The merged release passed the isolated failed-save/Confirm/Today/reload regression again, preserved all 129 existing database snapshots and visibility settings, and initialized successfully on the Linux host.
