@@ -101,7 +101,7 @@ export async function interpretBuddyMessage(
         /\b(?:i|we|buddy)(?:['’]ve|\s+(?:have|has))?(?:\s+(?:already|just|successfully))?\s+(?:saved|created|updated|changed|added|deleted|removed|completed|snoozed|rescheduled|booked)\b|\b(?:your|the)\s+[^.!?\n]{0,80}\s+(?:(?:has|have)\s+been|was|were)\s+(?:saved|created|updated|changed|added|deleted|completed|snoozed|rescheduled|booked)\b|\b(?:your|the)\s+[^.!?\n]{0,80}\s+is\s+now\s+(?:set|scheduled|updated|saved)\b|^\s*(?:\*\*)?(?:saved|updated|created|added|deleted|completed)\b|我(?:已经|已|刚刚|已为你|已经为你|为你)?(?:保存|创建|更新|修改|添加|删除|完成)|(?:提醒|更改|修改)(?:已|已经)(?:保存|创建|更新|完成)/i;
       return {
         text: operationClaim.test(text)
-          ? "No change has been saved yet. Please describe the change so I can prepare it for you to review and confirm."
+          ? "No change has been saved yet. Please describe the change so I can save it."
           : text,
       };
     }
@@ -132,7 +132,7 @@ export async function interpretBuddyMessage(
           ? [command.input.appointmentId]
           : [];
     return {
-      text: `### Review this change\n\n${labels[command.type]} for **${profile.displayName.replace(/[\\*_\[\]<>]/g, "\\$&")}**. Check the details below, then confirm to save.`,
+      text: `Preparing ${labels[command.type].toLowerCase()} for ${profile.displayName}.`,
       action: {
         id: actionId,
         profileId: profile.id,

@@ -56,8 +56,10 @@ const reminder = seed.reminders.find((r) => r.occurrenceDate === date);
 registerClientId(clientId);
 upsertState(clientId, JSON.stringify(seed));
 const realFetch = globalThis.fetch;
+let providerCalls = 0;
 globalThis.fetch = async (url, options) => {
   if (String(url).startsWith("https://tokenhub.example/")) {
+    providerCalls++;
     const body = JSON.parse(options.body);
     assert.ok(body.tools.some((t) => t.function.name === "editReminder"));
     return new Response(
@@ -128,40 +130,45 @@ try {
   await page
     .getByPlaceholder("What’s on your mind?")
     .fill("Move Leo’s bath-time reminder to 9 pm every evening.");
-  await page.getByRole("button", { name: "Send", exact: true }).click();
-  const confirm = page.getByRole("button", { name: "Confirm", exact: true });
-  await confirm.waitFor();
-  assert.equal(
-    row().reminders.find((r) => r.id === reminder.id).scheduledAt,
-    isoAt(date, "19:30"),
-  );
-  await page.getByText("Awaiting confirmation", { exact: true }).waitFor();
-  await page.route("**/api/proposals/*/confirm", (route) =>
-    route.fulfill({
+  let attemptedBody;
+  await page.route("**/api/buddy/interpret", (route) => {
+    attemptedBody = route.request().postDataJSON();
+    return route.fulfill({
       status: 503,
       contentType: "application/json",
       body: JSON.stringify({ error: "Could not save. Please try again." }),
-    }),
-  );
-  await confirm.click();
+    });
+  });
+  await page.getByRole("button", { name: "Send", exact: true }).click();
   await page.getByRole("alert").filter({ hasText: "Could not save" }).waitFor();
   assert.equal(
     row().reminders.find((r) => r.id === reminder.id).scheduledAt,
     isoAt(date, "19:30"),
   );
   assert.equal(
-    await page
-      .locator(".chat-bubble.assistant")
-      .filter({ hasText: "Saved. Update reminder." })
-      .count(),
+    await page.getByRole("button", { name: "Confirm", exact: true }).count(),
     0,
   );
-  await page.unroute("**/api/proposals/*/confirm");
-  await confirm.click();
+  await page.unroute("**/api/buddy/interpret");
+  const replied = page.waitForResponse((r) =>
+    r.url().endsWith("/api/buddy/interpret"),
+  );
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  const response = await replied;
+  assert.equal(response.status(), 200);
+  const result = await response.json();
+  assert.equal(result.operationStatus, "saved");
+  assert.equal(result.actionReceipt.authorization, "chat_request");
+  assert.equal(result.actionReceipt.confirmation, false);
+  assert.equal(result.action, undefined);
   await page
     .locator(".chat-bubble.assistant")
-    .filter({ hasText: "Saved. Update reminder." })
+    .filter({ hasText: "Updated" })
     .waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: "Confirm", exact: true }).count(),
+    0,
+  );
   assert.equal(
     row().reminders.find((r) => r.id === reminder.id).scheduledAt,
     isoAt(date, "21:00"),
@@ -181,24 +188,22 @@ try {
     .waitFor();
   assert.equal(await page.locator('input[type="password"]').count(), 0);
   const applied = row().appliedActions.length;
-  const proposal = db
-    .prepare("SELECT id FROM browser_pending_proposals WHERE client_id=?")
-    .get(clientId);
   const again = await realFetch(
-    `http://127.0.0.1:${server.address().port}/api/proposals/${proposal.id}/confirm`,
+    `http://127.0.0.1:${server.address().port}/api/buddy/interpret`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-CareBuddy-Client-Id": clientId,
       },
-      body: JSON.stringify({ profileId: "p-leo" }),
+      body: JSON.stringify(attemptedBody),
     },
   );
   assert.equal(again.status, 200);
   assert.equal(row().appliedActions.length, applied);
+  assert.equal(providerCalls, 1);
   console.log(
-    "BROWSER PASS: MCP proposal does not write; failed save has no success; Confirm saves; Today immediately shows 9pm; reload persists; duplicate confirmation is harmless; no login",
+    "BROWSER PASS: failed request does not save; retry auto-saves with same request ID; no Confirm dialog; Today immediately shows 9pm; reload persists; replay does not repeat provider or save; no login",
   );
 } finally {
   await browser?.close();

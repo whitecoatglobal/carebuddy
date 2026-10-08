@@ -67,6 +67,7 @@ export interface Benefit {
   notes?: string;
 }
 export interface Receipt {
+  authorization?: "chat_request" | "review";
   actionId: string;
   sourceIds: string[];
   profileId: string;

@@ -284,7 +284,8 @@ export function validateState(v: unknown): v is State {
             ) &&
             (c.operationStatus !== "saved" ||
               (isRecord(c.actionReceipt) &&
-                c.actionReceipt.confirmation === true &&
+                (c.actionReceipt.confirmation === true ||
+                  c.actionReceipt.authorization === "chat_request") &&
                 c.actionReceipt.outcome === "Saved")))) &&
         validIso(c.timestamp),
     )

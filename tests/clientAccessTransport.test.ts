@@ -43,6 +43,7 @@ it("carries the same browser ID on state, Buddy and health requests", async () =
   expect(JSON.parse(String(calls[3][1].body))).toEqual({
     message: "Hello",
     profileId: "p-me",
+    requestId: expect.any(String),
   });
   for (const call of fetcher.mock.calls as unknown as Array<
     [string, RequestInit]

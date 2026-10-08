@@ -80,3 +80,26 @@ it("shows people rather than internal browser and profile identifiers in audit f
   expect(displayActor("p-removed", "client-mine", profiles)).toBe("Caregiver");
   expect(displayActor("Alice", "client-mine", profiles)).toBe("Alice");
 });
+
+it("recognizes explicit chat-request authorization without claiming a separate confirmation", () => {
+  const receipt = {
+    actionId: "confirmed-action",
+    sourceIds: [],
+    profileId: "p-me",
+    actor: "client-mine",
+    operation: "Update reminder",
+    confirmation: false,
+    authorization: "chat_request" as const,
+    outcome: "Saved" as const,
+    timestamp: message.timestamp,
+  };
+  expect(
+    chatOperationLabel({ ...message, actionReceipt: receipt }, state),
+  ).toBe("Saved");
+  expect(
+    chatOperationLabel(
+      { ...message, actionReceipt: receipt },
+      { appliedActions: [] },
+    ),
+  ).toBe("No records changed");
+});

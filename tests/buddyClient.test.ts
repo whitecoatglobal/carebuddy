@@ -50,3 +50,36 @@ it("requires a backend configuration", async () => {
     "Buddy backend is not configured",
   );
 });
+
+it("carries a stable request ID for automatic-save retries without uploading state", async () => {
+  const { emptyState } = await import("care-buddy-shared");
+  const fetcher = vi.fn(
+    async () =>
+      new Response(
+        JSON.stringify({ text: "Saved", state: emptyState(), revision: 1 }),
+      ),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const { interpretBuddyMessage } = await import("../src/buddyClient");
+  await interpretBuddyMessage(
+    "p-me",
+    "Change bedtime to 9 pm daily",
+    null,
+    "future",
+    "request-fixed",
+  );
+  await interpretBuddyMessage(
+    "p-me",
+    "Change bedtime to 9 pm daily",
+    null,
+    "future",
+    "request-fixed",
+  );
+  for (const call of fetcher.mock.calls as unknown as Array<
+    [string, RequestInit]
+  >) {
+    const body = JSON.parse(call[1].body as string);
+    expect(body.requestId).toBe("request-fixed");
+    expect(body).not.toHaveProperty("state");
+  }
+});

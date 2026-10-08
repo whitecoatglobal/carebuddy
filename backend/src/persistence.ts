@@ -250,56 +250,142 @@ export function storeChat(
   appendChat(clientId, message);
   return save(clientId, current.state, current.revision);
 }
+export function replayBuddy(
+  clientId: string,
+  requestId: string,
+  fingerprint: string,
+) {
+  const row = db
+    .prepare(
+      "SELECT fingerprint,response_json FROM browser_buddy_requests WHERE client_id=? AND request_id=?",
+    )
+    .get(clientId, requestId) as
+    { fingerprint: string; response_json: string } | undefined;
+  if (!row) return;
+  if (row.fingerprint !== fingerprint)
+    throw new PersistenceError(
+      "This request ID was already used for another Buddy request",
+      409,
+    );
+  return { ...JSON.parse(row.response_json), ...snapshot(clientId) };
+}
+function savedCommandText(command: Command, state: State, profileId: string) {
+  const person =
+    state.profiles.find((p) => p.id === profileId)?.displayName ??
+    "this profile";
+  const formatTime = (value: string) =>
+    new Intl.DateTimeFormat("en", {
+      timeZone: "Asia/Singapore",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+      .format(new Date(value))
+      .toLowerCase()
+      .replace(":00", "")
+      .replace(/\s/g, "");
+  switch (command.type) {
+    case "createReminder":
+    case "editReminder": {
+      const time = formatTime(command.input.scheduledAt);
+      const timing =
+        command.input.recurrence === "Daily" &&
+        (command.type === "createReminder" || command.scope === "future")
+          ? `${time} daily`
+          : `${time} on ${new Intl.DateTimeFormat("en", { timeZone: "Asia/Singapore", year: "numeric", month: "short", day: "numeric" }).format(new Date(command.input.scheduledAt))}`;
+      return `${command.type === "createReminder" ? "Created" : "Updated"} **${command.input.title}** for **${person}** to ${timing}${command.type === "editReminder" && command.scope === "occurrence" ? " for this occurrence" : ""}.`;
+    }
+    case "completeReminder":
+      return `Recorded **${state.reminders.find((r) => r.id === command.id)?.title}** as ${command.outcome} for **${person}**.`;
+    case "undoCompletion":
+      return `Undid the recorded outcome for **${state.reminders.find((r) => r.id === command.id)?.title}** for **${person}**.`;
+    case "snoozeReminder":
+      return `Snoozed **${state.reminders.find((r) => r.id === command.id)?.title}** to ${formatTime(command.until)} for **${person}**.`;
+    case "addDependent":
+      return `Added **${command.displayName}** as a ${command.relationship.toLowerCase()} in your family care records.`;
+    case "updateDependent":
+      return `Updated family details for **${command.patch.displayName ?? person}**.`;
+    case "toggleChecklist":
+      return `Updated appointment checklist item ${command.index + 1} for **${person}**.`;
+    case "editAppointment":
+      return `Updated **${command.title}** to ${formatTime(command.startsAt)} for **${person}** in your appointment records.`;
+    case "addBenefitNote":
+      return `Added your **${command.category}** benefit note for **${person}**.`;
+    case "setPreference":
+      return `Updated ${command.key === "genericReminders" ? "generic reminders" : "spoken reminders"} to ${command.value ? "on" : "off"}.`;
+    default:
+      throw new PersistenceError("Unsupported Buddy change");
+  }
+}
 export function persistBuddy(
   clientId: string,
   profileId: string,
   message: string,
   result: { text: string; action?: Action },
   expectedRevision: number,
+  requestId: string,
+  fingerprint: string,
 ) {
   return db.transaction(() => {
+    const replay = replayBuddy(clientId, requestId, fingerprint);
+    if (replay) return replay;
     const current = snapshot(clientId);
     if (current.revision !== expectedRevision)
       throw new PersistenceError(
-        "Care data changed while Buddy was replying. Please review and try again.",
+        "Care data changed while Buddy was replying. Please try again.",
         409,
       );
+    let text = result.text;
+    let receipt: ChatMessage["actionReceipt"];
+    const operationStatus = result.action
+      ? ("saved" as const)
+      : ("not_changed" as const);
     if (result.action) {
       const command = parseCommand(result.action.command, { aiOnly: true });
       validateProfile(current.state, profileId, command, true);
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-      result.action = {
-        ...result.action,
-        proposalId: result.action.id,
-        revision: current.revision,
-        expiresAt,
-      };
-      db.prepare(
-        "INSERT INTO browser_pending_proposals(id,client_id,profile_id,command_json,label,revision,expires_at) VALUES(?,?,?,?,?,?,?)",
-      ).run(
-        result.action.id,
+      text = savedCommandText(command, current.state, profileId);
+      const next = apply(
         clientId,
+        current.state,
+        command,
+        result.action.id,
         profileId,
-        JSON.stringify(command),
-        result.action.label,
-        current.revision,
-        expiresAt,
       );
+      save(clientId, next, current.revision + 1);
+      receipt = {
+        actionId: result.action.id,
+        sourceIds: result.action.sourceIds ?? [],
+        profileId,
+        actor: clientId,
+        operation: command.type,
+        confirmation: false,
+        authorization: "chat_request",
+        outcome: "Saved",
+        timestamp: new Date().toISOString(),
+      };
     }
-    const operationStatus = result.action
-      ? ("pending_confirmation" as const)
-      : ("not_changed" as const);
     storeChat(clientId, profileId, message, "user");
     const saved = storeChat(
       clientId,
       profileId,
-      result.text,
+      text,
       "assistant",
-      result.action,
       undefined,
+      receipt,
       operationStatus,
     );
-    return { ...result, ...saved, operationStatus };
+    const response = {
+      text,
+      operationStatus,
+      ...(receipt ? { actionReceipt: receipt } : {}),
+    };
+    db.prepare("INSERT INTO browser_buddy_requests VALUES(?,?,?,?)").run(
+      clientId,
+      requestId,
+      fingerprint,
+      JSON.stringify(response),
+    );
+    return { ...response, ...saved };
   })();
 }
 export function confirm(clientId: string, id: string, profileId: unknown) {

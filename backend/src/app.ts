@@ -14,6 +14,7 @@ import {
   snapshot,
   runCommand,
   persistBuddy,
+  replayBuddy,
   confirm,
   PersistenceError,
 } from "./persistence.js";
@@ -74,15 +75,36 @@ export function createApp() {
   });
 
   app.post("/api/buddy/interpret", async (req, res) => {
-    const { message, profileId, contextId, scope } = req.body || {};
+    const { message, profileId, contextId, scope, requestId } = req.body || {};
     try {
       if (
         !req.body ||
+        typeof requestId !== "string" ||
+        !requestId.trim() ||
+        requestId.length > 160 ||
         Object.keys(req.body).some(
-          (k) => !["message", "profileId", "contextId", "scope"].includes(k),
+          (k) =>
+            ![
+              "message",
+              "profileId",
+              "contextId",
+              "scope",
+              "requestId",
+            ].includes(k),
         )
       )
         throw new PersistenceError("Invalid Buddy request");
+      const fingerprint = JSON.stringify({
+        message,
+        profileId,
+        contextId: contextId ?? null,
+        scope: scope ?? null,
+      });
+      const replay = replayBuddy(res.locals.clientId, requestId, fingerprint);
+      if (replay) {
+        res.json(replay);
+        return;
+      }
       const current = snapshot(res.locals.clientId);
       if (profileId !== current.state.selectedProfileId)
         throw new PersistenceError(
@@ -102,6 +124,8 @@ export function createApp() {
           message,
           result,
           current.revision,
+          requestId,
+          fingerprint,
         ),
       );
     } catch (err) {

@@ -34,7 +34,7 @@ Set the same row to `0` to revoke access. No service restart is required. Confir
 - The server looks up `is_visible` on every protected request and rejects missing, invalid or blocked IDs before care database/provider work.
 - IDs in record paths or an explicitly supplied body `clientId` must match the header.
 - The record-list endpoint returns only the requesting client ID; it no longer exposes all clients.
-- Care changes now use typed server commands and confirmed MCP proposals. The old whole-state overwrite API is disabled. Buddy and health requests cannot upload their own care context. A one-time bootstrap initializes only an empty revision-zero snapshot. Browser payloads cannot alter the database access column.
+- Care changes now use typed server commands and request-authorized MCP changes. The old whole-state overwrite API is disabled. Buddy and health requests cannot upload their own care context. A one-time bootstrap initializes only an empty revision-zero snapshot. Browser payloads cannot alter the database access column.
 - Missing IDs are rejected. New browser rows default to allowed; existing manually blocked rows stay blocked. The shared `client-local` storage-error fallback is always rejected, even if flagged visible.
 - `/api/access` exposes only the requesting ID and access status. Non-personal service status and weather remain public.
 - Care/API responses use `Cache-Control: no-store`. The frontend checks access before rendering existing locally cached care records.

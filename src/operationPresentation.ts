@@ -16,7 +16,8 @@ export function chatOperationLabel(
   // Earlier server snapshots can lack the explicit status. Only a confirmed
   // receipt tied to an applied action for this same person demonstrates a save.
   const receipt = message.actionReceipt;
-  return receipt?.confirmation === true &&
+  return (receipt?.confirmation === true ||
+    receipt?.authorization === "chat_request") &&
     receipt.outcome === "Saved" &&
     receipt.profileId === message.profileId &&
     state.appliedActions.includes(receipt.actionId)

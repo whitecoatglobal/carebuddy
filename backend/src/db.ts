@@ -199,6 +199,10 @@ CREATE TABLE IF NOT EXISTS browser_command_receipts (
  client_id TEXT NOT NULL, action_id TEXT NOT NULL, fingerprint TEXT NOT NULL,
  PRIMARY KEY(client_id, action_id)
 );
+CREATE TABLE IF NOT EXISTS browser_buddy_requests (
+ client_id TEXT NOT NULL, request_id TEXT NOT NULL, fingerprint TEXT NOT NULL, response_json TEXT NOT NULL,
+ PRIMARY KEY(client_id, request_id)
+);
 CREATE TABLE IF NOT EXISTS browser_pending_proposals (
  id TEXT PRIMARY KEY, client_id TEXT NOT NULL, profile_id TEXT NOT NULL,
  command_json TEXT NOT NULL, label TEXT NOT NULL, revision INTEGER NOT NULL,

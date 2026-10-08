@@ -141,6 +141,7 @@ it("queues Buddy after saves and adopts its authoritative chat snapshot", async 
     message: "Change this",
     contextId: "reminder-one",
     scope: "future",
+    requestId: expect.any(String),
   });
   expect(buddyBody).not.toHaveProperty("state");
   expect(fetcher.mock.calls.every((call) => call[1].method !== "PUT")).toBe(

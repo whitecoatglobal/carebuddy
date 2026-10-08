@@ -182,27 +182,27 @@ export function parseCommand(
 
 const descriptions: Record<keyof typeof aiSchemas, string> = {
   createReminder:
-    "Propose a new reminder for the selected person. Require a clear future date/time and user-supplied instructions. Ask for missing details. Never invent medication directions.",
+    "Request saving a new reminder for the selected person. Require a clear future date/time and user-supplied instructions. Ask for missing details. Never invent medication directions.",
   editReminder:
-    "Propose changing an existing selected-person reminder by its exact ID. Ask occurrence versus future scope for recurring changes. Keep unchanged fields from server records.",
+    "Request saving changing an existing selected-person reminder by its exact ID. Use future scope when the user explicitly says daily or every day; ask only when occurrence versus future scope is unclear. Keep unchanged fields from server records.",
   completeReminder:
-    "Propose recording the user's explicit report of completion, taken or skipped for an existing reminder. Never infer a clinical outcome.",
+    "Request saving recording the user's explicit report of completion, taken or skipped for an existing reminder. Never infer a clinical outcome.",
   undoCompletion:
-    "Propose undoing a recorded reminder completion the user asks to undo.",
+    "Request saving undoing a recorded reminder completion the user asks to undo.",
   snoozeReminder:
-    "Propose snoozing the selected-person reminder to a specified future time.",
+    "Request saving snoozing the selected-person reminder to a specified future time.",
   addDependent:
-    "Propose adding an owned family care profile with display name and relationship. acknowledged=true denotes the pending addition reviewed by the user; no sharing or permissions are granted.",
+    "Request saving adding an owned family care profile with display name and relationship. acknowledged=true denotes the addition explicitly requested by the user; no sharing or permissions are granted.",
   updateDependent:
-    "Propose changing an existing selected family profile's display name or relationship. Account ownership and permissions cannot change.",
+    "Request saving changing an existing selected family profile's display name or relationship. Account ownership and permissions cannot change.",
   toggleChecklist:
-    "Propose toggling a selected appointment checklist item by its exact index only when explicitly requested.",
+    "Request saving toggling a selected appointment checklist item by its exact index only when explicitly requested.",
   editAppointment:
-    "Propose updating the selected person's existing appointment record by exact ID. Keep fields unchanged unless requested. No clinic booking is changed.",
+    "Request saving updating the selected person's existing appointment record by exact ID. Keep fields unchanged unless requested. No clinic booking is changed.",
   addBenefitNote:
-    "Propose adding a user-entered benefit note. This cannot verify coverage or insurer eligibility.",
+    "Request saving adding a user-entered benefit note. This cannot verify coverage or insurer eligibility.",
   setPreference:
-    "Propose changing genericReminders or spokenReminders only when the user explicitly requests the preference change.",
+    "Request saving changing genericReminders or spokenReminders only when the user explicitly requests the preference change.",
 };
 
 export const AI_TOOL_DEFINITIONS = Object.entries(aiSchemas).map(

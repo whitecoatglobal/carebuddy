@@ -1,3 +1,4 @@
+import { BuddyAttempts } from "./buddyAttempts";
 import {
   useEffect,
   useRef,
@@ -197,8 +198,14 @@ function ReceiptView({
         <dd>{displayActor(receipt.actor, clientId, state.profiles)}</dd>
         <dt>Operation</dt>
         <dd>{receipt.operation}</dd>
-        <dt>User confirmation</dt>
-        <dd>{receipt.confirmation ? "Confirmed" : "Not confirmed"}</dd>
+        <dt>Authorization</dt>
+        <dd>
+          {receipt.authorization === "chat_request"
+            ? "Requested in chat"
+            : receipt.confirmation
+              ? "Confirmed"
+              : "Not confirmed"}
+        </dd>
         <dt>Save outcome</dt>
         <dd>{receipt.outcome}</dd>
         <dt>Recorded at</dt>
@@ -737,10 +744,11 @@ export default function App() {
           <p>Fictional data only. Not a medical or insurance service.</p>
           <p>
             This is a prototype with fictional records and a reference clock.
-            Buddy uses the selected person’s care records and asks for
-            confirmation before changes. Sleep uses frontend sample data;
-            benefits, appointment requests, alerts and car connection are
-            illustrative. A live WorkBuddy connection is not configured.
+            Buddy uses the selected person’s care records and asks for automatic
+            saves for clear Buddy requests. Forms use a review step. Sleep uses
+            frontend sample data; benefits, appointment requests, alerts and car
+            connection are illustrative. A live WorkBuddy connection is not
+            configured.
           </p>
           <p>
             Care Buddy helps organise routine care. It does not assess symptoms,
@@ -1902,11 +1910,10 @@ export default function App() {
   ) => {
     setDraft("");
     if (reply.needsScope) setScopePrompt(sentText);
-    if (reply.action) {
-      setReceipt(null);
-      setPending({ action: reply.action, message: sentText });
-    }
   };
+  const buddyAttempts = useRef<BuddyAttempts | null>(null);
+  if (!buddyAttempts.current)
+    buddyAttempts.current = new BuddyAttempts(clientId.current);
   const send = async (text: string, scope?: "occurrence" | "future") => {
     text = text.trim();
     if (!text || buddyRequestPending.current) return;
@@ -1917,20 +1924,31 @@ export default function App() {
     const requestSelectionVersion = selection.current.version;
     const sentText = text;
     const requestContext = context;
+    const payload = {
+      profileId: requestProfileId,
+      message: sentText,
+      contextId: requestContext,
+      scope,
+    };
     try {
+      const requestId = buddyAttempts.current!.idFor(payload);
       const backendReply = await server.current!.run(() =>
         interpretBuddyMessage(
           requestProfileId,
           sentText,
           requestContext,
           scope,
+          requestId,
         ),
       );
-      if (
-        stateRef.current.selectedProfileId === requestProfileId &&
-        selection.current.version === requestSelectionVersion
-      ) {
+      buddyAttempts.current!.complete(payload, requestId);
+      if (selection.current.version === requestSelectionVersion) {
         applyReply(backendReply, sentText);
+        if (
+          backendReply.operationStatus === "saved" &&
+          stateRef.current.selectedProfileId !== requestProfileId
+        )
+          setToast(backendReply.text.replace(/\*\*/g, ""));
       }
     } catch (error) {
       if (
@@ -1989,7 +2007,7 @@ export default function App() {
           <p>
             {state.chats.some((message) => message.profileId === profile.id)
               ? "Here to help you make a little more room for care."
-              : "Routines, appointments, and the small things on your mind. Let’s work through them together. I’ll ask before changing a care record."}
+              : "Routines, appointments, and the small things on your mind. Let’s work through them together. Clear requests are saved for you."}
           </p>
         </div>
         {source && (
@@ -2126,8 +2144,7 @@ export default function App() {
           </button>
         </form>
         <p className="helper composer-note">
-          For {profile.displayName} · Care changes always need your
-          confirmation.
+          For {profile.displayName} · Clear requests are saved automatically.
         </p>
       </>
     );

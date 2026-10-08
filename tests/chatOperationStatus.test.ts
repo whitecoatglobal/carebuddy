@@ -30,3 +30,18 @@ it("keeps no-change and pending confirmations valid without a saved receipt", ()
   expect(validateState(state("not_changed"))).toBe(true);
   expect(validateState(state("pending_confirmation"))).toBe(true);
 });
+
+it("accepts a server saved receipt authorized by the explicit chat request", () => {
+  const receipt = {
+    actionId: "saved-request",
+    sourceIds: [],
+    profileId: "p-me",
+    actor: "client-test",
+    operation: "Update reminder",
+    confirmation: false,
+    authorization: "chat_request",
+    outcome: "Saved",
+    timestamp: new Date().toISOString(),
+  };
+  expect(validateState(state("saved", receipt))).toBe(true);
+});

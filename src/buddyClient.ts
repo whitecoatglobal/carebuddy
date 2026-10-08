@@ -1,8 +1,10 @@
 import { clientAccessHeaders, ServerError } from "./syncClient";
+import { uid } from "care-buddy-shared";
 import type { State, Action } from "./types";
 
 export interface BuddyInterpretResult {
   text: string;
+  operationStatus?: "saved" | "not_changed" | "pending_confirmation";
   state: State;
   revision: number;
   sourceId?: string;
@@ -17,6 +19,7 @@ export async function interpretBuddyMessage(
   message: string,
   contextId?: string | null,
   scope?: "occurrence" | "future",
+  requestId = uid(),
 ): Promise<BuddyInterpretResult> {
   if (!BACKEND_URL) throw new Error("Buddy backend is not configured.");
   const url = BACKEND_URL.replace(/\/$/, "") + "/api/buddy/interpret";
@@ -25,7 +28,7 @@ export async function interpretBuddyMessage(
     res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...clientAccessHeaders() },
-      body: JSON.stringify({ message, profileId, contextId, scope }),
+      body: JSON.stringify({ message, profileId, contextId, scope, requestId }),
     });
   } catch {
     throw new Error(

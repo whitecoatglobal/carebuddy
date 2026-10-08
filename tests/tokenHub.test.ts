@@ -194,7 +194,7 @@ describe("Buddy TokenHub", () => {
     },
   );
 
-  it("validates real MCP reminder tool calls and generates confirmation wording", async () => {
+  it("validates real MCP reminder tool calls and prepares a validated command for automatic persistence", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(
@@ -237,6 +237,7 @@ describe("Buddy TokenHub", () => {
     );
     expect(reply.action?.command.type).toBe("createReminder");
     expect(reply.text).not.toContain("already saved");
+    expect(reply.text).not.toMatch(/review|confirm/i);
     expect(s.reminders).toEqual([]);
   });
 
@@ -422,7 +423,7 @@ it.each([
     );
     expect(reply.action).toBeUndefined();
     expect(reply.text).toBe(
-      "No change has been saved yet. Please describe the change so I can prepare it for you to review and confirm.",
+      "No change has been saved yet. Please describe the change so I can save it.",
     );
   },
 );
