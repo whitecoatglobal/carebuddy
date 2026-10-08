@@ -321,7 +321,6 @@ export default function App() {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState("");
   const [weatherRequest, setWeatherRequest] = useState(0);
-  const [rainDismissed, setRainDismissed] = useState(false);
   const [dismissedReminderCards, setDismissedReminderCards] = useState<
     string[]
   >([]);
@@ -1063,20 +1062,6 @@ export default function App() {
           error={weatherError}
           onRetry={() => setWeatherRequest((request) => request + 1)}
         />
-        {todayWeather &&
-          /rain|shower|thunder/i.test(todayWeather.condition) &&
-          !rainDismissed && (
-            <div className="rain-hint">
-              <Icon name="rain" />
-              <span>Bring an umbrella if you’re heading out.</span>
-              <button
-                className="text-button"
-                onClick={() => setRainDismissed(true)}
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
         <div className="today-heading">
           <div>
             <span className="eyebrow">

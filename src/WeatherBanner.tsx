@@ -20,6 +20,11 @@ export function WeatherBanner({
   error: string;
   onRetry: () => void;
 }) {
+  const unhealthyPsi =
+    weather !== null && weather.psi !== null && weather.psi > 100;
+  const rainy = Boolean(
+    weather && /rain|shower|thunder/i.test(weather.condition),
+  );
   return (
     <section
       className="weather-banner"
@@ -33,7 +38,10 @@ export function WeatherBanner({
           </span>
           <div className="weather-banner-main">
             <span className="weather-temp-lg">{weather.temperatureC}°C</span>
-            <span className="weather-cond-lg">{weather.condition}</span>
+            <span className="weather-cond-lg">
+              {weather.condition}
+              {rainy && " – bring umbrella"}
+            </span>
             {weather.forecastValidUntil && (
               <small>2-hour forecast · {weather.forecastPeriod}</small>
             )}
@@ -48,8 +56,11 @@ export function WeatherBanner({
             {weather.psi !== null && (
               <div>
                 <small>24-hour PSI · Central</small>
-                <span>
+                <span
+                  className={unhealthyPsi ? "weather-psi-unhealthy" : undefined}
+                >
                   {weather.psi} · {psiLabel(weather.psi)}
+                  {unhealthyPsi && " – mask up"}
                 </span>
               </div>
             )}
