@@ -56,6 +56,20 @@ export type BenefitStatus =
   | "Conditions apply"
   | "Needs confirmation"
   | "Not listed in sample data";
+export interface BenefitUsage {
+  currency: "SGD";
+  annualAllowance: number;
+  usedAmount: number;
+  visitLimit: number;
+  visitsUsed: number;
+  claims: {
+    id: string;
+    date: string;
+    description: string;
+    amount: number;
+    status: "Paid" | "Pending" | "Declined";
+  }[];
+}
 export interface Benefit {
   id: string;
   profileId: string;
@@ -65,6 +79,7 @@ export interface Benefit {
   source: string;
   policyDate: string | null;
   notes?: string;
+  usage?: BenefitUsage;
 }
 export interface Receipt {
   authorization?: "chat_request" | "review";

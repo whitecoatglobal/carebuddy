@@ -25,6 +25,11 @@ import { WeatherBanner } from "./WeatherBanner";
 import { SleepDetails } from "./SleepDetails";
 import { HealthCard } from "./HealthCard";
 import { HealthDetails } from "./HealthDetails";
+import {
+  BenefitBalance,
+  BenefitClaims,
+  formatBenefitAmount,
+} from "./BenefitUsage";
 import { useHealthVitals } from "./useHealthVitals";
 import {
   SAMPLE_SLEEP_NIGHT,
@@ -1846,10 +1851,15 @@ export default function App() {
             ) : (
               <p>See the recorded conditions below for available terms.</p>
             )}
-            <p className="helper">
-              Used amount / remaining allowance: Not available
-            </p>
+            {b.usage ? (
+              <BenefitBalance usage={b.usage} />
+            ) : (
+              <p className="helper">
+                Used amount / remaining allowance: Not available
+              </p>
+            )}
             {b.notes && <p>{b.notes}</p>}
+            {b.usage && <BenefitClaims usage={b.usage} />}
             <details className="record-details">
               <summary>Conditions, source and policy date</summary>
               <p>{b.conditions}</p>
@@ -1872,7 +1882,11 @@ export default function App() {
                 <dt>Provider eligibility</dt>
                 <dd>Eligibility not verified</dd>
                 <dt>Used amount / remaining allowance</dt>
-                <dd>Not available</dd>
+                <dd>
+                  {b.usage
+                    ? `${formatBenefitAmount(b.usage.usedAmount)} used / ${formatBenefitAmount(b.usage.annualAllowance - b.usage.usedAmount)} remaining`
+                    : "Not available"}
+                </dd>
               </dl>
             </details>
             <p>Confirm the current terms with your benefits administrator.</p>
@@ -1956,6 +1970,7 @@ export default function App() {
                     View conditions, source and policy date
                   </span>
                 </span>
+                {b.usage && <BenefitBalance usage={b.usage} />}
                 <Icon name="arrow" />
               </button>
             ))}

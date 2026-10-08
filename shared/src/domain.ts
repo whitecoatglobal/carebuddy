@@ -232,6 +232,35 @@ function validIso(value: unknown): value is string {
 function isRecord(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === "object" && !Array.isArray(v);
 }
+function validBenefitUsage(v: unknown): boolean {
+  if (v === undefined) return true;
+  const amount = (value: unknown): value is number =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0;
+  const count = (value: unknown): value is number =>
+    amount(value) && Number.isInteger(value);
+  return (
+    isRecord(v) &&
+    v.currency === "SGD" &&
+    amount(v.annualAllowance) &&
+    amount(v.usedAmount) &&
+    v.usedAmount <= v.annualAllowance &&
+    count(v.visitLimit) &&
+    count(v.visitsUsed) &&
+    v.visitsUsed <= v.visitLimit &&
+    Array.isArray(v.claims) &&
+    v.claims.every(
+      (claim) =>
+        isRecord(claim) &&
+        typeof claim.id === "string" &&
+        !!claim.id.trim() &&
+        validIso(claim.date) &&
+        typeof claim.description === "string" &&
+        !!claim.description.trim() &&
+        amount(claim.amount) &&
+        ["Paid", "Pending", "Declined"].includes(claim.status as string),
+    )
+  );
+}
 export function validateState(v: unknown): v is State {
   if (
     !isRecord(v) ||
@@ -344,7 +373,8 @@ export function validateState(v: unknown): v is State {
         ].includes(b.status as string) &&
         typeof b.conditions === "string" &&
         typeof b.source === "string" &&
-        (b.policyDate === null || validIso(b.policyDate)),
+        (b.policyDate === null || validIso(b.policyDate)) &&
+        validBenefitUsage(b.usage),
     )
   )
     return false;

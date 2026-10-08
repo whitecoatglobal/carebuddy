@@ -2,6 +2,7 @@ import {
   emptyState,
   isoAt,
   materialize,
+  seedDemoBenefits,
   type Category,
   type State,
 } from "care-buddy-shared";
@@ -85,7 +86,7 @@ export function createPublicDemoState(now = new Date()): State {
     deletedAt: null,
     history: [],
   }));
-  return materialize(state);
+  return materialize(seedDemoBenefits(state));
 }
 
 export function publicBootstrapState(local: State, remote: State): State {

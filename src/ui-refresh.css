@@ -1120,6 +1120,77 @@ header {
   color: var(--deep-sage);
   margin-bottom: 12px;
 }
+.benefit-balance {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.benefit-balance-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.benefit-balance-amount strong {
+  font-size: 30px;
+  font-weight: 650;
+  color: var(--deep-sage);
+  letter-spacing: -0.5px;
+}
+.benefit-balance-track {
+  display: block;
+  height: 7px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--sage-wash);
+}
+.benefit-balance-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--sage);
+}
+.benefit-balance-caption {
+  padding-right: 20px;
+  line-height: 1.5;
+}
+.benefit-claims {
+  margin: 24px 0;
+}
+.benefit-claims h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+.benefit-claims ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.benefit-claims li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.benefit-claim-copy,
+.benefit-claim-result {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  font-size: 14px;
+}
+.benefit-claim-copy {
+  min-width: 0;
+}
+.benefit-claim-copy small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.benefit-claim-result {
+  flex-shrink: 0;
+  justify-items: end;
+}
 .buddy-intro {
   background: var(--sage-wash);
   padding: 20px;

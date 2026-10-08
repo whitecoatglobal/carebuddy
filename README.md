@@ -8,7 +8,7 @@ Care Buddy is a public self-care prototype built with React, TypeScript, Vite, E
 - If the former account screen archived a browser's records, the public app restores that browser's valid backup and client reference once. It keeps any populated current care space.
 - A fresh public demo shows a fictional self profile and medication, water, walking and bedtime routines. The content is defined in the frontend and labelled as sample data.
 - Sleep remains frontend sample data: 63% score, 6h 40m asleep, and 55% light / 20% deep / 25% REM. Review Sleep stays available on Today and opens the stage breakdown and recommendations.
-- The Daily Health card beside Sleep shows frontend sample BP, pulse, body temperature, and oxygen saturation. Review Health adds breathing rate, expandable explanations, adult references, measurement tips, and links to MedlinePlus, AHA, and FDA. These readings are illustrative and do not come from a connected device.
+- Your Live Health beside Sleep loads fixed BP, pulse, body temperature and oxygen readings from SQLite through the backend API. Its review adds breathing rate, expandable explanations, measurement tips and source links.
 - Weather uses NEA/MSS data through data.gov.sg. Buddy calls Tencent TokenHub from the backend, and care changes use the app's review and confirmation flow.
 
 This version is a fictional public prototype. Browser client references separate demo care spaces; they are not account authentication. Appointment requests and benefits are illustrative, and wearable pairing requires a future device integration.
@@ -28,6 +28,12 @@ The homepage at `/` follows the supplied Care Buddy mockup, using cream, sand, s
 Your Live Health and its review page load readings from `GET /api/health/vitals?profileId=…`. The backend checks browser access and the selected profile's view permission, then reads SQLite's `health_vitals` row for that browser and profile. Each profile is seeded once with the fixed demo readings (118/76 mmHg, 72 bpm, 36.7°C, 98% oxygen and 16 breaths/min). Subsequent requests preserve stored values and their update timestamp. This is database-backed demo data; a device feed is not connected yet.
 
 The frontend refreshes visible health screens every minute and when returning to the app. The card and review share the fetched readings, with loading and retry states. Sleep remains frontend data. No morning timestamp is shown on the health card.
+
+## Demo benefits
+
+Public demo care profiles without existing benefits receive a GP allowance of S$500 (S$80 used), health screening of S$250 (unused) and dental of S$300 (S$85 used). Cards show the remaining allowance and visits; details include paid or pending claims, conditions, source and policy date. Pending claims do not reduce the used balance.
+
+These fictional records are seeded once in SQLite's existing care state and returned by the care API. Existing benefit records take precedence, unavailable profiles are skipped, and ordinary care spaces are not populated. Seeding increments the care revision while preserving other saved fields, visibility and clock settings. New public demos include the same fixtures at bootstrap.
 
 ## Run locally
 

@@ -5,6 +5,7 @@ import {
   emptyState,
   materialize,
   validateState,
+  seedDemoBenefits,
   type State,
 } from "care-buddy-shared";
 
@@ -112,7 +113,26 @@ export function ensureClientState(clientId: string): State {
     try {
       const parsed: unknown = JSON.parse(row.stateJson);
       if (validateState(parsed)) {
-        return projectClock(parsed as State, row.clockMode);
+        const seeded = seedDemoBenefits(
+          parsed,
+          row.clockMode === "live" ? liveNow() : parsed.now,
+        );
+        if (seeded !== parsed) {
+          const result = db
+            .prepare(
+              `UPDATE state_snapshots
+             SET state_json = ?, revision = revision + 1, updated_at = ?
+             WHERE client_id = ? AND revision = ?`,
+            )
+            .run(
+              JSON.stringify(seeded),
+              new Date().toISOString(),
+              clientId,
+              row.revision,
+            );
+          if (!result.changes) return ensureClientState(clientId);
+        }
+        return projectClock(seeded, row.clockMode);
       }
     } catch {
       throw new Error("Saved care data could not be read");
