@@ -19,6 +19,7 @@ it("carries the same browser ID on state, Buddy and health requests", async () =
         JSON.stringify({
           state: emptyState(),
           text: "Hello",
+          revision: 0,
           reading: null,
           weather: null,
           advice: [],
@@ -28,14 +29,21 @@ it("carries the same browser ID on state, Buddy and health requests", async () =
   vi.stubGlobal("fetch", fetcher);
   const sync = await import("../src/syncClient");
   await sync.pullState("client-approved");
-  await sync.pushState("client-approved", emptyState());
+  const client = new sync.ServerClient("client-approved", () => {});
+  await client.initialize(emptyState());
+  await client.command({ type: "start" }, "action-start", "p-me");
   await (
     await import("../src/buddyClient")
-  ).interpretBuddyMessage(emptyState(), "Hello");
-  await (
-    await import("../src/healthClient")
-  ).fetchHealthSnapshot(emptyState(), "p-me");
-  expect(fetcher).toHaveBeenCalledTimes(4);
+  ).interpretBuddyMessage("p-me", "Hello");
+  await (await import("../src/healthClient")).fetchHealthSnapshot("p-me");
+  expect(fetcher).toHaveBeenCalledTimes(5);
+  const calls = fetcher.mock.calls as unknown as Array<[string, RequestInit]>;
+  expect(calls.every(([, init]) => init?.method !== "PUT")).toBe(true);
+  expect(JSON.parse(String(calls[4][1].body))).toEqual({ profileId: "p-me" });
+  expect(JSON.parse(String(calls[3][1].body))).toEqual({
+    message: "Hello",
+    profileId: "p-me",
+  });
   for (const call of fetcher.mock.calls as unknown as Array<
     [string, RequestInit]
   >) {

@@ -13,6 +13,10 @@ export interface TokenHubMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
+export interface TokenHubCompletion {
+  text?: string;
+  toolCall?: { name: string; arguments: string };
+}
 
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RESPONSE_TOKENS = 1024;
@@ -57,7 +61,8 @@ export function isTokenHubConfigured(): boolean {
 
 export async function completeBuddyChat(
   messages: TokenHubMessage[],
-): Promise<string> {
+  tools: unknown[] = [],
+): Promise<TokenHubCompletion> {
   const config = configuration();
   try {
     const response = await fetch(config.endpoint, {
@@ -72,6 +77,9 @@ export async function completeBuddyChat(
         thinking: { type: "disabled" },
         stream: false,
         max_tokens: MAX_RESPONSE_TOKENS,
+        ...(tools.length
+          ? { tools, tool_choice: "auto", parallel_tool_calls: false }
+          : {}),
       }),
       redirect: "error",
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -84,10 +92,44 @@ export async function completeBuddyChat(
       );
     }
     const data = (await response.json()) as {
-      choices?: { finish_reason?: string; message?: { content?: unknown } }[];
+      choices?: {
+        finish_reason?: string;
+        message?: {
+          content?: unknown;
+          tool_calls?: {
+            type?: string;
+            function?: { name?: unknown; arguments?: unknown };
+          }[];
+        };
+      }[];
     };
     const choice = data?.choices?.[0];
     const text = choice?.message?.content;
+    if (choice?.message?.tool_calls?.length) {
+      const calls = choice.message.tool_calls;
+      const call = calls[0];
+      if (
+        !tools.length ||
+        calls.length !== 1 ||
+        call.type !== "function" ||
+        typeof call.function?.name !== "string" ||
+        typeof call.function.arguments !== "string" ||
+        call.function.arguments.length > 16000 ||
+        choice.finish_reason === "length"
+      ) {
+        throw new TokenHubError(
+          "Buddy returned a change that could not be reviewed safely. Please request one change at a time.",
+          502,
+          "AI_INVALID_RESPONSE",
+        );
+      }
+      return {
+        toolCall: {
+          name: call.function.name,
+          arguments: call.function.arguments,
+        },
+      };
+    }
     if (
       typeof text !== "string" ||
       !text.trim() ||
@@ -102,7 +144,7 @@ export async function completeBuddyChat(
         "AI_INVALID_RESPONSE",
       );
     }
-    return text.trim();
+    return { text: text.trim() };
   } catch (error) {
     if (error instanceof TokenHubError) throw error;
     if (

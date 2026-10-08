@@ -96,7 +96,31 @@ describe("Buddy TokenHub", () => {
         async () =>
           new Response(
             JSON.stringify({
-              choices: [{ message: { content: "Your preparation proposal" } }],
+              choices: [
+                {
+                  message: {
+                    tool_calls: [
+                      {
+                        type: "function",
+                        function: {
+                          name: "createReminder",
+                          arguments: JSON.stringify({
+                            input: {
+                              profileId: "qa-self",
+                              category: "Appointment preparation",
+                              title: "Prepare dental visit",
+                              scheduledAt: "2026-10-08T10:30:00+08:00",
+                              recurrence: "None",
+                              instructions: "Bring your appointment details",
+                              appointmentId: "qa-dental",
+                            },
+                          }),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
             }),
           ),
       ),
@@ -170,7 +194,7 @@ describe("Buddy TokenHub", () => {
     },
   );
 
-  it("keeps validated reminder actions and confirmation wording unchanged", async () => {
+  it("validates real MCP reminder tool calls and generates confirmation wording", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(
@@ -178,7 +202,29 @@ describe("Buddy TokenHub", () => {
           new Response(
             JSON.stringify({
               choices: [
-                { message: { content: "I already saved your changes" } },
+                {
+                  message: {
+                    content: "I already saved your changes",
+                    tool_calls: [
+                      {
+                        type: "function",
+                        function: {
+                          name: "createReminder",
+                          arguments: JSON.stringify({
+                            input: {
+                              profileId: "qa-self",
+                              category: "Bedtime",
+                              title: "Bedtime reminder",
+                              scheduledAt: "2099-10-08T22:00:00+08:00",
+                              recurrence: "None",
+                              instructions: "",
+                            },
+                          }),
+                        },
+                      },
+                    ],
+                  },
+                },
               ],
             }),
           ),
@@ -281,4 +327,192 @@ describe("Buddy TokenHub", () => {
     ).rejects.toMatchObject({ status: 400 });
     expect(transport).not.toHaveBeenCalled();
   });
+});
+
+it.each(["deleteReminder", "reset", "createAppointment", "removeDependent"])(
+  "rejects unsupported model tool %s before producing an action",
+  async (name) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              choices: [
+                {
+                  message: {
+                    tool_calls: [
+                      { type: "function", function: { name, arguments: "{}" } },
+                    ],
+                  },
+                },
+              ],
+            }),
+          ),
+      ),
+    );
+    await expect(
+      interpretBuddyMessage(state(), "Make that change"),
+    ).rejects.toMatchObject({ status: 400 });
+  },
+);
+it("rejects MCP proposal that names another profile despite provider-visible selected context", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  tool_calls: [
+                    {
+                      type: "function",
+                      function: {
+                        name: "createReminder",
+                        arguments: JSON.stringify({
+                          input: {
+                            profileId: "qa-other",
+                            category: "Other",
+                            title: "Foreign reminder",
+                            scheduledAt: "2099-10-08T10:00:00+08:00",
+                            recurrence: "None",
+                            instructions: "",
+                          },
+                        }),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        ),
+    ),
+  );
+  await expect(
+    interpretBuddyMessage(state(), "Create reminder"),
+  ).rejects.toMatchObject({ status: 400 });
+});
+
+it.each([
+  "I saved the reminder for tonight.",
+  "I've updated your bedtime reminder.",
+  "Done — your reminder has been created.",
+  "Saved your changes.",
+  "The reminder was saved.",
+  "Done — your reminder is now set for tomorrow.",
+  "我已经保存了提醒。",
+])(
+  "does not report an unexecuted provider operation as saved: %s",
+  async (text) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ choices: [{ message: { content: text } }] }),
+          ),
+      ),
+    );
+    const reply = await interpretBuddyMessage(
+      state(),
+      "Create a bedtime reminder",
+    );
+    expect(reply.action).toBeUndefined();
+    expect(reply.text).toBe(
+      "No change has been saved yet. Please describe the change so I can prepare it for you to review and confirm.",
+    );
+  },
+);
+it("preserves truthful information about existing saved records", async () => {
+  const text =
+    "Your saved reminder is scheduled for 10 pm. Would you like to change it?";
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ choices: [{ message: { content: text } }] }),
+        ),
+    ),
+  );
+  expect(
+    (await interpretBuddyMessage(state(), "What is in my saved records?")).text,
+  ).toBe(text);
+});
+
+it("does not transmit browser access IDs from server audit fields to the provider", async () => {
+  const browserId = "client-private-audit-owner";
+  const s = state();
+  s.reminders = [
+    {
+      id: "audited-reminder",
+      profileId: "qa-self",
+      category: "Other",
+      title: "Existing reminder",
+      scheduledAt: "2099-10-08T10:00:00+08:00",
+      notificationSnoozedUntil: null,
+      recurrence: "None",
+      seriesId: null,
+      occurrenceDate: "2099-10-08",
+      instructions: "Read book",
+      appointmentId: null,
+      outcome: "complete",
+      completedAt: s.now,
+      recordedBy: browserId,
+      recordedAt: s.now,
+      occurrenceOverride: false,
+      deletedAt: null,
+      history: [
+        {
+          id: "audit-history",
+          subject: "qa-self",
+          actor: browserId,
+          text: "Reminder complete",
+          at: s.now,
+        },
+      ],
+    },
+  ];
+  s.appointments = [
+    {
+      id: "audited-appointment",
+      profileId: "qa-self",
+      category: "Dental",
+      title: "Dental appointment",
+      startsAt: "2099-10-08T11:00:00+08:00",
+      locationLabel: "Clinic",
+      checklist: [false, false, false],
+      recordOrigin: "user-saved",
+      providerConfirmed: false,
+      provenanceHistory: [
+        {
+          id: "appointment-audit",
+          subject: "qa-self",
+          actor: browserId,
+          text: "Appointment changed",
+          at: s.now,
+        },
+      ],
+    },
+  ];
+  const transport = vi.fn(async (_url, options) => {
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: "Your saved reminder is complete." } }],
+      }),
+    );
+  });
+  vi.stubGlobal("fetch", transport);
+  await interpretBuddyMessage(s, "Read my care records");
+  const providerBody = transport.mock.calls[0][1].body;
+  expect(providerBody).not.toContain(browserId);
+  expect(providerBody).toContain("audited-reminder");
+  expect(providerBody).toContain('\\"outcome\\":\\"complete\\"');
+  expect(providerBody).toContain("recordedAt");
+  expect(s.reminders[0].recordedBy).toBe(browserId);
+  expect(s.reminders[0].history[0].actor).toBe(browserId);
+  expect(s.appointments[0].provenanceHistory[0].actor).toBe(browserId);
 });

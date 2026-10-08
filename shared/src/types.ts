@@ -77,6 +77,7 @@ export interface Receipt {
   timestamp: string;
 }
 export interface ChatMessage {
+  operationStatus?: "not_changed" | "pending_confirmation" | "saved";
   id: string;
   profileId: string;
   role: "user" | "assistant";
@@ -213,6 +214,9 @@ export type Command =
   | { type: "scenario"; name: string }
   | { type: "urgentViewed" };
 export interface Action {
+  proposalId?: string;
+  revision?: number;
+  expiresAt?: string;
   id: string;
   profileId: string;
   command: Command;

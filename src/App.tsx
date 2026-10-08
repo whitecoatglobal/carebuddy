@@ -8,13 +8,18 @@ import {
 import { usePwa } from "./pwa";
 import { Icon } from "./Icon";
 import { Onboarding } from "./Onboarding";
-import { isPublicDemo, publicBootstrapState } from "./publicDemo";
+import {
+  isPublicDemo,
+  publicBootstrapState,
+  createPublicDemoState,
+} from "./publicDemo";
 import {
   ROUTINE_TEMPLATES,
   getBenefitHighlights,
   greetingFor,
 } from "./uiPresentation";
 import { ChatMarkdown } from "./ChatMarkdown";
+import { chatOperationLabel, displayActor } from "./operationPresentation";
 import { WeatherBanner } from "./WeatherBanner";
 import { SleepDetails } from "./SleepDetails";
 import { HealthCard } from "./HealthCard";
@@ -26,9 +31,6 @@ import {
 } from "./sleepData";
 import { APP_NAME } from "./config";
 import {
-  loadState,
-  saveState,
-  execute,
   formatTime,
   formatDate,
   isoAt,
@@ -37,16 +39,23 @@ import {
   preparationTime,
   assertFreshAction,
   importSkillProposal,
-  validateState,
-  materialize,
+  emptyState,
 } from "./domain";
-import { interpretBuddyMessage, isBackendEnabled } from "./buddyClient";
+import { interpretBuddyMessage } from "./buddyClient";
 import {
   fetchHealthSnapshot,
   fetchWeather,
   type HealthSnapshot,
 } from "./healthClient";
-import { getClientId, isSyncEnabled, pullState, pushState } from "./syncClient";
+import {
+  getClientId,
+  isSyncEnabled,
+  ServerClient,
+  ProfileSelection,
+  StaleChangeError,
+  loadDisplayCache,
+  saveDisplayCache,
+} from "./syncClient";
 import type {
   State,
   Command,
@@ -162,13 +171,21 @@ function Sheet({
     </div>
   );
 }
-function ReceiptView({ receipt, state }: { receipt: Receipt; state: State }) {
+function ReceiptView({
+  receipt,
+  state,
+  clientId,
+}: {
+  receipt: Receipt;
+  state: State;
+  clientId: string;
+}) {
   return (
     <details className="receipt">
       <summary>Action details · {receipt.outcome}</summary>
       <dl>
         <dt>Source</dt>
-        <dd>Care Buddy local action</dd>
+        <dd>Care Buddy action</dd>
         <dt>Information used</dt>
         <dd>{receipt.sourceIds.join(", ") || "User-entered input"}</dd>
         <dt>Person</dt>
@@ -177,12 +194,12 @@ function ReceiptView({ receipt, state }: { receipt: Receipt; state: State }) {
             ?.displayName || "Removed profile"}
         </dd>
         <dt>Actor</dt>
-        <dd>{receipt.actor === "p-me" ? "Me" : receipt.actor}</dd>
+        <dd>{displayActor(receipt.actor, clientId, state.profiles)}</dd>
         <dt>Operation</dt>
         <dd>{receipt.operation}</dd>
         <dt>User confirmation</dt>
         <dd>{receipt.confirmation ? "Confirmed" : "Not confirmed"}</dd>
-        <dt>Local save outcome</dt>
+        <dt>Save outcome</dt>
         <dd>{receipt.outcome}</dd>
         <dt>Recorded at</dt>
         <dd>{receipt.timestamp}</dd>
@@ -192,47 +209,56 @@ function ReceiptView({ receipt, state }: { receipt: Receipt; state: State }) {
 }
 export default function App() {
   const pwa = usePwa();
-  const initial = useRef(loadState());
+  const clientId = useRef(getClientId());
+  const initial = useRef({
+    state: isPublicDemo ? createPublicDemoState() : emptyState(),
+    notice: "",
+  });
+  const bootstrapCache = useRef(
+    loadDisplayCache(clientId.current, initial.current.state),
+  );
   const [state, setState] = useState(initial.current.state);
   const stateRef = useRef(state);
-  const clientId = useRef(getClientId());
+  const selection = useRef(new ProfileSelection());
   const initialPath = useRef(location.pathname);
   const [syncLoading, setSyncLoading] = useState(isSyncEnabled());
   const [route, setRoute] = useState(location.pathname + location.search);
   const [toast, setToast] = useState(initial.current.notice);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState<(() => void) | null>(null);
-  const failNext = useRef(false);
+  const server = useRef<ServerClient | null>(null);
+  if (!server.current)
+    server.current = new ServerClient(clientId.current, ({ state: remote }) => {
+      const next = selection.current.accept(remote);
+      saveDisplayCache(clientId.current, next);
+      stateRef.current = next;
+      setState(next);
+    });
   const syncedOnce = useRef(false);
   useEffect(() => {
     if (!isSyncEnabled() || syncedOnce.current) return;
     syncedOnce.current = true;
-    pullState(clientId.current)
-      .then((remote) => {
-        if (remote && validateState(remote)) {
-          const next = materialize(
-            isPublicDemo
-              ? publicBootstrapState(stateRef.current, remote)
-              : remote,
-          );
-          saveState(next);
-          stateRef.current = next;
-          setState(next);
-          if (isPublicDemo && !remote.profiles.length && next.profiles.length)
-            pushState(clientId.current, next);
-          if (
-            next.started &&
-            next.profiles.length > 0 &&
-            location.pathname === "/welcome" &&
-            ["/", "/today"].includes(initialPath.current)
-          ) {
-            history.replaceState({}, "", "/today");
-            setRoute("/today");
-          }
-        } else if (remote) {
-          pushState(clientId.current, stateRef.current);
+    server
+      .current!.initialize(
+        bootstrapCache.current,
+        isPublicDemo ? publicBootstrapState : undefined,
+      )
+      .then(({ state: next }) => {
+        if (
+          next.started &&
+          next.profiles.length > 0 &&
+          location.pathname === "/welcome" &&
+          ["/", "/today"].includes(initialPath.current)
+        ) {
+          history.replaceState({}, "", "/today");
+          setRoute("/today");
         }
       })
+      .catch((e) =>
+        setError(
+          e instanceof Error ? e.message : "Could not load care records.",
+        ),
+      )
       .finally(() => setSyncLoading(false));
   }, []);
   const [modal, setModal] = useState<{
@@ -244,6 +270,8 @@ export default function App() {
     message?: string;
     onDone?: () => void;
   } | null>(null);
+  const pendingRef = useRef(pending);
+  pendingRef.current = pending;
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [form, setForm] = useState<{
     kind: string;
@@ -364,52 +392,59 @@ export default function App() {
       expected?: string;
       success?: string;
       done?: () => void;
-      chatReceipt?: Receipt;
     } = {},
   ) => {
-    const perform = () => {
+    const selectionToken =
+      command.type === "selectProfile"
+        ? selection.current.begin(command.profileId)
+        : null;
+    const actionId = options.id || uid();
+    const profileId =
+      options.expected ||
+      ("input" in command
+        ? command.input.profileId
+        : command.type === "selectProfile"
+          ? command.profileId
+          : stateRef.current.selectedProfileId);
+    if (command.type === "selectProfile") {
+      const next = {
+        ...stateRef.current,
+        selectedProfileId: command.profileId,
+      };
+      stateRef.current = next;
+      setState(next);
+    }
+    const perform = async () => {
       try {
-        let next = execute(
-          stateRef.current,
-          command,
-          options.id || uid(),
-          options.expected,
-        );
-        if (options.chatReceipt)
-          next = execute(
-            next,
-            {
-              type: "chatMessage",
-              message: {
-                id: options.chatReceipt.actionId + "-receipt",
-                profileId: options.chatReceipt.profileId,
-                role: "assistant",
-                text: "Saved. View your updated day.",
-                contextId: context,
-                timestamp: next.now,
-                actionReceipt: options.chatReceipt,
-              },
-            },
-            options.chatReceipt.actionId + "-receipt",
-          );
-        if (failNext.current) {
-          failNext.current = false;
-          throw new Error("Could not save on this device");
+        await server.current!.command(command, actionId, profileId);
+        if (selectionToken !== null) {
+          const authoritative = selection.current.settle(selectionToken);
+          if (authoritative) {
+            stateRef.current = authoritative;
+            setState(authoritative);
+          }
         }
-        saveState(next);
-        stateRef.current = next;
-        setState(next);
         setError("");
         setRetry(null);
         if (options.success) setToast(options.success);
         options.done?.();
-        if (isSyncEnabled()) pushState(clientId.current, next);
       } catch (e) {
         setError((e as Error).message);
-        setRetry(() => perform);
+        if (command.type === "selectProfile") {
+          const authoritative =
+            selectionToken === null
+              ? null
+              : selection.current.settle(selectionToken);
+          if (authoritative) {
+            stateRef.current = authoritative;
+            setState(authoritative);
+          }
+          setRetry(null);
+        } else if (e instanceof StaleChangeError) setRetry(null);
+        else setRetry(() => perform);
       }
     };
-    perform();
+    void perform();
   };
   const select = (id: string) => {
     setPending(null);
@@ -449,6 +484,7 @@ export default function App() {
     setPending({
       action: {
         id: uid(),
+        revision: server.current?.revision ?? undefined,
         profileId:
           "input" in command
             ? command.input.profileId
@@ -460,6 +496,8 @@ export default function App() {
       onDone: done,
     });
   };
+  const confirmingRef = useRef(false);
+  const [confirming, setConfirming] = useState(false);
   const confirm = () => {
     if (!pending || stateRef.current.appliedActions.includes(pending.action.id))
       return;
@@ -481,17 +519,45 @@ export default function App() {
       outcome: "Saved",
       timestamp: state.now,
     };
-    commit(p.action.command, {
-      id: p.action.id,
-      expected: p.action.profileId,
-      success: "Saved on this device",
-      chatReceipt: p.message ? saved : undefined,
-      done: () => {
-        setReceipt(saved);
-        setPending(null);
+    const finish = () => {
+      setError("");
+      setRetry(null);
+      setToast("Saved");
+      if (pendingRef.current?.action.id === p.action.id) {
+        setReceipt({ ...saved, timestamp: stateRef.current.now });
+        setPending((current) =>
+          current?.action.id === p.action.id ? null : current,
+        );
         p.onDone?.();
-      },
-    });
+      }
+    };
+    if (confirmingRef.current) return;
+    confirmingRef.current = true;
+    setConfirming(true);
+    const operation = p.action.proposalId
+      ? server.current!.confirm(
+          p.action.proposalId,
+          p.action.profileId,
+          p.action.revision,
+        )
+      : server.current!.command(
+          p.action.command,
+          p.action.id,
+          p.action.profileId,
+          p.action.revision,
+        );
+    operation
+      .then(finish)
+      .catch((e) => {
+        setError(
+          e instanceof Error ? e.message : "Could not save. Please try again.",
+        );
+        setRetry(null);
+      })
+      .finally(() => {
+        confirmingRef.current = false;
+        setConfirming(false);
+      });
   };
   useEffect(() => {
     if (error && pending)
@@ -507,30 +573,6 @@ export default function App() {
       });
   }, [error]);
   const cancelPending = () => {
-    if (pending?.message) {
-      const r: Receipt = {
-        actionId: pending.action.id,
-        sourceIds: pending.action.sourceIds,
-        profileId: pending.action.profileId,
-        actor: "Me",
-        operation: pending.action.label,
-        confirmation: false,
-        outcome: "Cancelled",
-        timestamp: state.now,
-      };
-      commit({
-        type: "chatMessage",
-        message: {
-          id: uid(),
-          profileId: pending.action.profileId,
-          role: "assistant",
-          text: "No changes made",
-          contextId: context,
-          timestamp: state.now,
-          actionReceipt: r,
-        },
-      });
-    }
     setPending(null);
     setReceipt(null);
     setToast("No changes made");
@@ -1641,7 +1683,9 @@ export default function App() {
           <summary>Record history</summary>
           {a.provenanceHistory.map((h) => (
             <p key={h.id}>
-              {h.text} · {h.actor} · {formatTime(h.at)}
+              {h.text} ·{" "}
+              {displayActor(h.actor, clientId.current, state.profiles)} ·{" "}
+              {formatTime(h.at)}
             </p>
           ))}
         </details>
@@ -1856,17 +1900,6 @@ export default function App() {
     },
     sentText: string,
   ) => {
-    commit({
-      type: "chatMessage",
-      message: {
-        id: uid(),
-        profileId: profile.id,
-        role: "assistant",
-        text: reply.text,
-        contextId: reply.sourceId || context,
-        timestamp: stateRef.current.now,
-      },
-    });
     setDraft("");
     if (reply.needsScope) setScopePrompt(sentText);
     if (reply.action) {
@@ -1880,31 +1913,30 @@ export default function App() {
     buddyRequestPending.current = true;
     setBuddyThinking(true);
     setError("");
-    const requestProfileId = profile.id;
+    const requestProfileId = stateRef.current.selectedProfileId;
+    const requestSelectionVersion = selection.current.version;
     const sentText = text;
-    commit({
-      type: "chatMessage",
-      message: {
-        id: uid(),
-        profileId: profile.id,
-        role: "user",
-        text: sentText,
-        contextId: context,
-        timestamp: stateRef.current.now,
-      },
-    });
+    const requestContext = context;
     try {
-      const backendReply = await interpretBuddyMessage(
-        stateRef.current,
-        sentText,
-        context,
-        scope,
+      const backendReply = await server.current!.run(() =>
+        interpretBuddyMessage(
+          requestProfileId,
+          sentText,
+          requestContext,
+          scope,
+        ),
       );
-      if (stateRef.current.selectedProfileId === requestProfileId) {
+      if (
+        stateRef.current.selectedProfileId === requestProfileId &&
+        selection.current.version === requestSelectionVersion
+      ) {
         applyReply(backendReply, sentText);
       }
     } catch (error) {
-      if (stateRef.current.selectedProfileId === requestProfileId) {
+      if (
+        stateRef.current.selectedProfileId === requestProfileId &&
+        selection.current.version === requestSelectionVersion
+      ) {
         setError(
           error instanceof Error
             ? error.message
@@ -1983,8 +2015,17 @@ export default function App() {
                 ) : (
                   <p>{m.text}</p>
                 )}
+                {m.role === "assistant" && (
+                  <small className="helper">
+                    {chatOperationLabel(m, state)}
+                  </small>
+                )}
                 {m.actionReceipt && (
-                  <ReceiptView receipt={m.actionReceipt} state={state} />
+                  <ReceiptView
+                    receipt={m.actionReceipt}
+                    state={state}
+                    clientId={clientId.current}
+                  />
                 )}
                 {m.role === "assistant" &&
                   !m.actionReceipt &&
@@ -2265,15 +2306,17 @@ export default function App() {
     );
   }
   function refreshHealth() {
-    if (!profile.id) return;
+    if (!profile.id || syncLoading) return;
     const requestId = ++healthRequestId.current;
     const requestedProfile = profile.id;
+    const selectionVersion = selection.current.version;
     const isCurrent = () =>
       requestId === healthRequestId.current &&
-      stateRef.current.selectedProfileId === requestedProfile;
+      stateRef.current.selectedProfileId === requestedProfile &&
+      selection.current.version === selectionVersion;
     setHealthLoading(true);
     setHealthError("");
-    fetchHealthSnapshot(stateRef.current, requestedProfile)
+    fetchHealthSnapshot(requestedProfile)
       .then((snap) => {
         if (!isCurrent()) return;
         if (snap) setHealth(snap);
@@ -2297,11 +2340,11 @@ export default function App() {
     setHealth(null);
     setHealthError("");
     setHealthLoading(false);
-    if (path === "/health" && profile.id) refreshHealth();
+    if (path === "/health" && profile.id && !syncLoading) refreshHealth();
     return () => {
       ++healthRequestId.current;
     };
-  }, [path, profile.id, state.now]);
+  }, [path, profile.id, state.now, syncLoading]);
   function renderHealth() {
     const reading = health?.reading;
     if (!profile.id)
@@ -3455,7 +3498,11 @@ export default function App() {
         )}
         {receipt?.outcome === "Saved" && (
           <div className="detail-panel">
-            <ReceiptView receipt={receipt} state={state} />
+            <ReceiptView
+              receipt={receipt}
+              state={state}
+              clientId={clientId.current}
+            />
             {state.reminders.find(
               (r) => receipt.sourceIds.includes(r.id) && r.outcome,
             ) && (
@@ -3517,7 +3564,12 @@ export default function App() {
             {detail.outcome && (
               <div className="notice">
                 Recorded as {detail.outcome} for {profile.displayName} by{" "}
-                {detail.recordedBy || "Me"} at{" "}
+                {displayActor(
+                  detail.recordedBy,
+                  clientId.current,
+                  state.profiles,
+                )}{" "}
+                at{" "}
                 {detail.recordedAt
                   ? formatTime(detail.recordedAt)
                   : "Not available"}
@@ -3632,8 +3684,9 @@ export default function App() {
             <h3>Activity history</h3>
             {detail.history.map((h) => (
               <p className="helper" key={h.id}>
-                {h.text} · Recorded by {h.actor} for {person(h.subject)} ·{" "}
-                {formatTime(h.at)}
+                {h.text} · Recorded by{" "}
+                {displayActor(h.actor, clientId.current, state.profiles)} for{" "}
+                {person(h.subject)} · {formatTime(h.at)}
               </p>
             ))}
           </Sheet>
@@ -3827,10 +3880,31 @@ export default function App() {
               )}
             </>
           )}
-          {receipt && <ReceiptView receipt={receipt} state={state} />}
+          {pending.action.revision !== undefined &&
+            pending.action.revision !== server.current?.revision && (
+              <p className="helper">
+                Care records changed. Close this review and prepare a new
+                change.
+              </p>
+            )}
+          {receipt && (
+            <ReceiptView
+              receipt={receipt}
+              state={state}
+              clientId={clientId.current}
+            />
+          )}
           <div className="actions">
-            <button className="primary" onClick={confirm}>
-              {error ? "Retry" : "Confirm"}
+            <button
+              className="primary"
+              onClick={confirm}
+              disabled={
+                confirming ||
+                (pending.action.revision !== undefined &&
+                  pending.action.revision !== server.current?.revision)
+              }
+            >
+              {confirming ? "Saving…" : "Confirm"}
             </button>
             {"input" in pending.action.command && (
               <button

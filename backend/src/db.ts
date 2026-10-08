@@ -1,7 +1,12 @@
 import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { emptyState, materialize, validateState, type State } from "care-buddy-shared";
+import {
+  emptyState,
+  materialize,
+  validateState,
+  type State,
+} from "care-buddy-shared";
 
 const DB_DIR = process.env.DB_DIR || path.resolve(process.cwd(), "../data");
 const DB_PATH = path.join(DB_DIR, "care-buddy.db");
@@ -62,6 +67,7 @@ export interface StoredState {
   clientId: string;
   stateJson: string;
   updatedAt: string;
+  revision: number;
 }
 
 export function ensureClientState(clientId: string): State {
@@ -73,8 +79,9 @@ export function ensureClientState(clientId: string): State {
         return materialize(parsed as State);
       }
     } catch {
-      // fall through to empty state
+      throw new Error("Saved care data could not be read");
     }
+    throw new Error("Saved care data is invalid");
   }
   const fresh = emptyState();
   fresh.started = true;
@@ -86,14 +93,22 @@ export function loadStateRow(clientId: string): StoredState | null {
   const row = db
     .prepare<
       [string],
-      { client_id: string; state_json: string; updated_at: string }
-    >("SELECT client_id, state_json, updated_at FROM state_snapshots WHERE client_id = ?")
+      {
+        client_id: string;
+        state_json: string;
+        updated_at: string;
+        revision: number;
+      }
+    >(
+      "SELECT client_id, state_json, updated_at, revision FROM state_snapshots WHERE client_id = ?",
+    )
     .get(clientId);
   return row
     ? {
         clientId: row.client_id,
         stateJson: row.state_json,
         updatedAt: row.updated_at,
+        revision: row.revision,
       }
     : null;
 }
@@ -105,7 +120,12 @@ export function upsertState(clientId: string, stateJson: string): StoredState {
      VALUES (?, ?, ?, 1)
      ON CONFLICT(client_id) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at`,
   ).run(clientId, stateJson, now);
-  return { clientId, stateJson, updatedAt: now };
+  return {
+    clientId,
+    stateJson,
+    updatedAt: now,
+    revision: loadStateRow(clientId)!.revision,
+  };
 }
 
 export interface StoredChat {
@@ -119,20 +139,42 @@ export interface StoredChat {
 
 export function appendChat(
   clientId: string,
-  message: { id: string; profileId: string; role: string; text: string; timestamp: string },
+  message: {
+    id: string;
+    profileId: string;
+    role: string;
+    text: string;
+    timestamp: string;
+  },
 ): void {
   db.prepare(
-    `INSERT OR REPLACE INTO chat_messages (id, client_id, profile_id, role, text, timestamp)
+    `INSERT OR IGNORE INTO chat_messages (id, client_id, profile_id, role, text, timestamp)
      VALUES (?, ?, ?, ?, ?, ?)`,
-  ).run(message.id, clientId, message.profileId, message.role, message.text, message.timestamp);
+  ).run(
+    message.id,
+    clientId,
+    message.profileId,
+    message.role,
+    message.text,
+    message.timestamp,
+  );
 }
 
 export function listChats(clientId: string): StoredChat[] {
   const rows = db
     .prepare<
       [string],
-      { id: string; client_id: string; profile_id: string; role: string; text: string; timestamp: string }
-    >("SELECT id, client_id, profile_id, role, text, timestamp FROM chat_messages WHERE client_id = ? ORDER BY timestamp ASC")
+      {
+        id: string;
+        client_id: string;
+        profile_id: string;
+        role: string;
+        text: string;
+        timestamp: string;
+      }
+    >(
+      "SELECT id, client_id, profile_id, role, text, timestamp FROM chat_messages WHERE client_id = ? ORDER BY timestamp ASC",
+    )
     .all(clientId);
   return rows.map((r) => ({
     id: r.id,
@@ -145,3 +187,21 @@ export function listChats(clientId: string): StoredChat[] {
 }
 
 export { db };
+
+// Migrations preserve the browser visibility flag and the original care JSON.
+if (!columns.some((column) => column.name === "revision")) {
+  db.exec(
+    "ALTER TABLE state_snapshots ADD COLUMN revision INTEGER NOT NULL DEFAULT 0",
+  );
+}
+db.exec(`
+CREATE TABLE IF NOT EXISTS browser_command_receipts (
+ client_id TEXT NOT NULL, action_id TEXT NOT NULL, fingerprint TEXT NOT NULL,
+ PRIMARY KEY(client_id, action_id)
+);
+CREATE TABLE IF NOT EXISTS browser_pending_proposals (
+ id TEXT PRIMARY KEY, client_id TEXT NOT NULL, profile_id TEXT NOT NULL,
+ command_json TEXT NOT NULL, label TEXT NOT NULL, revision INTEGER NOT NULL,
+ expires_at TEXT NOT NULL, confirmed INTEGER NOT NULL DEFAULT 0
+);
+`);

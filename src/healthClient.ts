@@ -1,5 +1,5 @@
 import { clientAccessHeaders } from "./syncClient";
-import type { State, HealthReading, WeatherData, HealthAdvice } from "./types";
+import type { HealthReading, WeatherData, HealthAdvice } from "./types";
 
 export interface HealthSnapshot {
   reading: HealthReading | null;
@@ -10,7 +10,6 @@ export interface HealthSnapshot {
 const BACKEND_URL = import.meta.env.VITE_BUDDY_BACKEND_URL || "";
 
 export async function fetchHealthSnapshot(
-  state: State,
   profileId: string,
 ): Promise<HealthSnapshot | null> {
   if (!BACKEND_URL) return null;
@@ -19,7 +18,7 @@ export async function fetchHealthSnapshot(
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...clientAccessHeaders() },
-      body: JSON.stringify({ profileId, state }),
+      body: JSON.stringify({ profileId }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) return null;
@@ -34,12 +33,19 @@ export async function fetchWeather(signal?: AbortSignal): Promise<WeatherData> {
   const url = BACKEND_URL.replace(/\/$/, "") + "/api/weather";
   try {
     const res = await fetch(url, {
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10_000)]) : AbortSignal.timeout(10_000),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(10_000)])
+        : AbortSignal.timeout(10_000),
       cache: "no-store",
     });
-    if (!res.ok) throw new Error("Weather is temporarily unavailable. Please try again.");
-    const { weather } = await res.json() as { weather?: WeatherData | null };
-    if (!weather || typeof weather.temperatureC !== "number" || !Number.isFinite(weather.temperatureC)) {
+    if (!res.ok)
+      throw new Error("Weather is temporarily unavailable. Please try again.");
+    const { weather } = (await res.json()) as { weather?: WeatherData | null };
+    if (
+      !weather ||
+      typeof weather.temperatureC !== "number" ||
+      !Number.isFinite(weather.temperatureC)
+    ) {
       throw new Error("Weather is temporarily unavailable. Please try again.");
     }
     return weather;

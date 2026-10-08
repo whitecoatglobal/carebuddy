@@ -145,7 +145,7 @@ it("does not let state uploads change the access flag and honors revocation imme
         "PUT",
       )
     ).status,
-  ).toBe(200);
+  ).toBe(405);
   expect(
     db
       .prepare("SELECT is_visible FROM state_snapshots WHERE client_id=?")

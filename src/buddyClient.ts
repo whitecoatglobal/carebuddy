@@ -1,8 +1,10 @@
-import { clientAccessHeaders } from "./syncClient";
+import { clientAccessHeaders, ServerError } from "./syncClient";
 import type { State, Action } from "./types";
 
 export interface BuddyInterpretResult {
   text: string;
+  state: State;
+  revision: number;
   sourceId?: string;
   needsScope?: boolean;
   action?: Action;
@@ -11,7 +13,7 @@ export interface BuddyInterpretResult {
 const BACKEND_URL = import.meta.env.VITE_BUDDY_BACKEND_URL || "";
 
 export async function interpretBuddyMessage(
-  state: State,
+  profileId: string,
   message: string,
   contextId?: string | null,
   scope?: "occurrence" | "future",
@@ -23,7 +25,7 @@ export async function interpretBuddyMessage(
     res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...clientAccessHeaders() },
-      body: JSON.stringify({ state, message, contextId, scope }),
+      body: JSON.stringify({ message, profileId, contextId, scope }),
     });
   } catch {
     throw new Error(
@@ -32,12 +34,18 @@ export async function interpretBuddyMessage(
   }
   const data = await res.json().catch(() => null);
   if (!res.ok)
-    throw new Error(
+    throw new ServerError(
       typeof data?.error === "string"
         ? data.error
         : "Buddy could not complete the request. Please try again.",
+      res.status,
     );
-  if (!data || typeof data.text !== "string" || !data.text.trim())
+  if (
+    !data?.state ||
+    !Number.isInteger(data.revision) ||
+    typeof data.text !== "string" ||
+    !data.text.trim()
+  )
     throw new Error("Buddy returned an invalid response. Please try again.");
   return data as BuddyInterpretResult;
 }

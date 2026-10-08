@@ -277,6 +277,15 @@ export function validateState(v: unknown): v is State {
         typeof c.text === "string" &&
         nullableString(c.contextId) &&
         receipt(c.actionReceipt) &&
+        (c.operationStatus === undefined ||
+          (c.role === "assistant" &&
+            ["not_changed", "pending_confirmation", "saved"].includes(
+              c.operationStatus as string,
+            ) &&
+            (c.operationStatus !== "saved" ||
+              (isRecord(c.actionReceipt) &&
+                c.actionReceipt.confirmation === true &&
+                c.actionReceipt.outcome === "Saved")))) &&
         validIso(c.timestamp),
     )
   )

@@ -7,13 +7,28 @@ import { interpretBuddyMessage } from "./interpret.js";
 import { buildHealthSnapshot } from "./health.js";
 import { getWeather } from "./weather.js";
 import { TokenHubError, isTokenHubConfigured } from "./tokenHub.js";
-import {
-  loadStateRow,
-  upsertState,
-  listChats,
-  ensureClientState,
-} from "./db.js";
+import { loadStateRow, listChats, ensureClientState } from "./db.js";
 
+import {
+  bootstrap,
+  snapshot,
+  runCommand,
+  persistBuddy,
+  confirm,
+  PersistenceError,
+} from "./persistence.js";
+import { CommandValidationError } from "./commands.js";
+function apiError(res: express.Response, err: unknown) {
+  if (err instanceof TokenHubError)
+    return res.status(err.status).json({ error: err.message, code: err.code });
+  if (err instanceof PersistenceError)
+    return res.status(err.status).json({ error: err.message });
+  if (err instanceof CommandValidationError)
+    return res.status(400).json({ error: err.message });
+  return res
+    .status(500)
+    .json({ error: "Care data could not be saved. Please try again." });
+}
 export function createApp() {
   const app = express();
   const STATIC_DIR =
@@ -59,33 +74,54 @@ export function createApp() {
   });
 
   app.post("/api/buddy/interpret", async (req, res) => {
-    const { state, message, contextId, scope } = req.body || {};
-    if (typeof message !== "string") {
-      res.status(400).json({ error: "Missing message" });
-      return;
-    }
+    const { message, profileId, contextId, scope } = req.body || {};
     try {
-      const sourceState =
-        state && typeof state === "object"
-          ? state
-          : ensureClientState(res.locals.clientId);
+      if (
+        !req.body ||
+        Object.keys(req.body).some(
+          (k) => !["message", "profileId", "contextId", "scope"].includes(k),
+        )
+      )
+        throw new PersistenceError("Invalid Buddy request");
+      const current = snapshot(res.locals.clientId);
+      if (profileId !== current.state.selectedProfileId)
+        throw new PersistenceError(
+          "Select this profile before messaging Buddy",
+          409,
+        );
       const result = await interpretBuddyMessage(
-        sourceState,
+        current.state,
         message,
         contextId,
         scope,
       );
-      res.json(result);
+      res.json(
+        persistBuddy(
+          res.locals.clientId,
+          profileId,
+          message,
+          result,
+          current.revision,
+        ),
+      );
     } catch (err) {
-      if (err instanceof TokenHubError) {
-        res.status(err.status).json({ error: err.message, code: err.code });
-        return;
-      }
-      res
-        .status(500)
-        .json({
-          error: "Buddy could not process this request. Please try again.",
-        });
+      apiError(res, err);
+    }
+  });
+  app.post("/api/commands", (req, res) => {
+    try {
+      res.json(runCommand(res.locals.clientId, req.body));
+    } catch (err) {
+      apiError(res, err);
+    }
+  });
+  app.post("/api/proposals/:id/confirm", (req, res) => {
+    try {
+      if (!req.body || Object.keys(req.body).some((k) => k !== "profileId"))
+        throw new PersistenceError("Invalid confirmation request");
+      res.json(confirm(res.locals.clientId, req.params.id, req.body.profileId));
+    } catch (err) {
+      apiError(res, err);
     }
   });
 
@@ -94,30 +130,29 @@ export function createApp() {
     try {
       res.json({ weather: await getWeather() });
     } catch {
-      res
-        .status(503)
-        .json({
-          weather: null,
-          error: "Weather is temporarily unavailable. Please try again.",
-        });
+      res.status(503).json({
+        weather: null,
+        error: "Weather is temporarily unavailable. Please try again.",
+      });
     }
   });
 
   app.post("/api/health/snapshot", async (req, res) => {
-    const { profileId, state } = req.body || {};
+    const { profileId } = req.body || {};
     if (!profileId || typeof profileId !== "string") {
       res.status(400).json({ error: "Missing profileId" });
       return;
     }
     try {
-      const snapshot = await buildHealthSnapshot(profileId, state);
-      res.json(snapshot);
+      if (!req.body || Object.keys(req.body).some((k) => k !== "profileId"))
+        throw new PersistenceError("Invalid health context request");
+      const state = snapshot(res.locals.clientId).state;
+      if (!state.profiles.some((p) => p.id === profileId && p.canView))
+        throw new PersistenceError("This profile is not available");
+      const healthSnapshot = await buildHealthSnapshot(profileId, state);
+      res.json(healthSnapshot);
     } catch (err) {
-      res
-        .status(500)
-        .json({
-          error: err instanceof Error ? err.message : "Health snapshot failed",
-        });
+      apiError(res, err);
     }
   });
 
@@ -129,25 +164,34 @@ export function createApp() {
     res.json({
       clientId: req.params.clientId,
       state,
+      revision: row!.revision,
       updatedAt: row ? row.updatedAt : new Date().toISOString(),
     });
   });
 
-  app.put("/api/state/:clientId", (req, res) => {
-    const state = req.body;
-    if (!state || typeof state !== "object") {
-      res.status(400).json({ error: "Missing state body" });
-      return;
-    }
+  app.put("/api/state/:clientId", (_req, res) => {
+    res
+      .status(405)
+      .json({ error: "Whole-state overwrite is disabled. Use care commands." });
+  });
+  app.post("/api/state/:clientId/bootstrap", (req, res) => {
     try {
-      const row = upsertState(req.params.clientId, JSON.stringify(state));
-      res.json({ clientId: row.clientId, updatedAt: row.updatedAt });
+      if (
+        !req.body ||
+        Object.keys(req.body).some(
+          (k) => !["state", "expectedRevision"].includes(k),
+        )
+      )
+        throw new PersistenceError("Invalid bootstrap request");
+      res.json(
+        bootstrap(
+          req.params.clientId,
+          req.body.state,
+          req.body.expectedRevision,
+        ),
+      );
     } catch (err) {
-      res
-        .status(500)
-        .json({
-          error: err instanceof Error ? err.message : "State save failed",
-        });
+      apiError(res, err);
     }
   });
 
@@ -191,6 +235,18 @@ export function createApp() {
     res.json({ activity: state.activity });
   });
 
+  // Express forwards synchronous route errors here; no stored care data or
+  // diagnostic stack is sent to the browser when a saved snapshot is invalid.
+  app.use(
+    (
+      err: unknown,
+      _req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction,
+    ) => {
+      apiError(res, err);
+    },
+  );
   app.use(express.static(STATIC_DIR));
   app.get("*", (_req, res) => {
     res.sendFile(path.join(STATIC_DIR, "index.html"));

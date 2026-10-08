@@ -53,13 +53,16 @@ For local development, supply these variables to the backend process, build the 
 
 ## Behavior and data flow
 
-- Only the selected viewable profile's reminders, appointments, benefits and last twelve chat messages are sent to TokenHub. Other profiles and their chats are excluded. An explicitly supplied record context must belong to the selected profile.
-- Existing action proposals still come from the validated shared domain engine. TokenHub cannot alter their commands, scope, source IDs or confirmation wording. No action runs simply because AI says it has saved something.
-- The existing parked/driving privacy restriction runs before any provider request.
-- The system prompt lives in `backend/src/buddyPrompt.ts`. It defines record grounding, selected-person scope, reference-clock handling, missing-data behavior, action confirmation, medical/benefit boundaries, and concise responses in the user's language.
-- Missing configuration returns HTTP 503 with `AI_NOT_CONFIGURED`. Provider failures return 502; timeouts return 504. Provider response bodies and credentials are not returned to the browser.
-- The frontend shows these errors and clears its loading state. It does not switch silently to a canned local response. Other existing browser persistence behavior is unchanged.
-- Account authentication and the proposed server CRUD migration are separate work. This adapter does not add authentication to the existing public API; that route retains its current access model.
+- Browser access is governed by `care-buddy.client-id` and the database `is_visible` column. The existing no-login, default-allowed browser policy is retained. These client-controlled IDs are namespaces, not verified human identities.
+- Buddy accepts only message, selected profile ID, optional owned record context and recurrence scope. The backend loads that browser's own stored snapshot; uploaded state and owner overrides are rejected.
+- A private MCP client/server pair uses the official TypeScript SDK and in-memory transport. `read_selected_care` exposes only the selected viewable profile's records. TokenHub receives schemas from MCP tools/list and its function calls are dispatched through tools/call.
+- Safe tools prepare reminder changes, selected family details, appointment edits/checklist toggles, benefit notes and reminder preferences. No arbitrary SQL, deletion, reset, permission grant or account-administration AI tool exists. View-only profiles cannot prepare writes.
+- Tools validate on a cloned snapshot. The backend stores proposals in `browser_pending_proposals`; human Confirm executes the stored command only after browser ownership, profile access, revision and expiry checks. Care updates and saved receipts commit inside SQLite transactions.
+- Normal forms use typed `/api/commands` requests. `browser_command_receipts` deduplicates stable action IDs. State snapshots retain existing JSON records and add a business revision; there is no unrestricted whole-state overwrite API.
+- The frontend queues bootstrap, commands, Buddy and Confirm. State, Today cards and save feedback update from authoritative server responses. Revision conflicts refresh records and invalidate stale work; profile intent tokens prevent delayed replies from reopening old proposals.
+- Every assistant bubble has server-owned status: No records changed, Awaiting confirmation or Saved. Only a committed confirmation receipt produces Saved. Provider prose is not write evidence; phrase filtering is secondary, not a guarantee about arbitrary natural-language wording.
+- Existing global browser cache is not silently copied into another browser ID. Display caches are scoped to the browser ID, and saved server data wins. One-time initialization is allowed only for an empty revision-zero snapshot.
+- Provider context excludes audit browser IDs and other profiles; credentials remain server-only. Driving privacy runs before provider/MCP processing. Health snapshots also use owned server records.
 
 ## Verification
 
@@ -81,3 +84,11 @@ Tests stub the external provider boundary to verify payloads, selected-profile i
 - All 31 unit tests, frontend/backend builds, and diff checks passed.
 - The running application and SQLite database were backed up to `/home/ubuntu/care-buddy-backups/tokenhub-20261007-084010` before activation.
 - Live testing used an isolated fictional profile; its persisted state was removed after verification.
+
+## Browser-owned MCP release — 8 October 2026
+
+111 unit/integration tests and shared/backend/frontend production builds passed. Independent review checked server transactions, legacy schema coexistence, cross-browser isolation, proposal expiry/revision, server-owned save feedback and frontend profile races. Production dependency audit found zero advisories.
+
+An isolated browser test demonstrated 7:30 pm → 9:00 pm after Confirm, immediate Today refresh, persistence after reload, no false success on a failed save and harmless repeated confirmation. A staged real TokenHub call independently confirmed MCP tool dispatch and save-after-confirm. Live Chrome repeated the real-provider reminder update and rejected cross-browser confirmation, without a login screen.
+
+The running app and database were backed up to `/home/ubuntu/care-buddy-backups/server-mcp-20261008-042101`. All 129 original snapshots and visibility flags were unchanged by the deployment. Live QA rows were removed and SQLite integrity was `ok`. SQ's sample health/sleep content remains outside model-owned writes.

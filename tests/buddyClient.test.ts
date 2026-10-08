@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { emptyState } from "care-buddy-shared";
 
 beforeEach(() => {
   vi.resetModules();
@@ -26,7 +25,7 @@ it("surfaces the backend's unconfigured AI error", async () => {
     ),
   );
   const { interpretBuddyMessage } = await import("../src/buddyClient");
-  await expect(interpretBuddyMessage(emptyState(), "Hello")).rejects.toThrow(
+  await expect(interpretBuddyMessage("p-me", "Hello")).rejects.toThrow(
     "Buddy AI is not configured",
   );
 });
@@ -39,7 +38,7 @@ it("reports an unreachable backend instead of returning a local reply", async ()
     }),
   );
   const { interpretBuddyMessage } = await import("../src/buddyClient");
-  await expect(interpretBuddyMessage(emptyState(), "Hello")).rejects.toThrow(
+  await expect(interpretBuddyMessage("p-me", "Hello")).rejects.toThrow(
     "Could not reach Buddy",
   );
 });
@@ -47,7 +46,7 @@ it("reports an unreachable backend instead of returning a local reply", async ()
 it("requires a backend configuration", async () => {
   vi.stubEnv("VITE_BUDDY_BACKEND_URL", "");
   const { interpretBuddyMessage } = await import("../src/buddyClient");
-  await expect(interpretBuddyMessage(emptyState(), "Hello")).rejects.toThrow(
+  await expect(interpretBuddyMessage("p-me", "Hello")).rejects.toThrow(
     "Buddy backend is not configured",
   );
 });
