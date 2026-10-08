@@ -128,3 +128,5 @@ Today refreshes owned queued reads when entering the page, becoming visible/refo
 149 unit/integration tests, all builds, five new browser clock/refresh regressions and three existing UI regression tests passed. The automatic-save/Today/reload browser flow passed again. Independent review found no blocking issue. Deployment backup: `/home/ubuntu/care-buddy-backups/live-today-20261008-063321`; all 131 snapshots/visibility values remained unchanged, integrity ok.
 
 The deployed API was checked against the uniquely identified screenshot request: live home date 8 Oct, clockMode live, medication at 10:00 on 8 and 9 Oct. This diagnostic read preserved the exact saved JSON, updated_at, revision and visibility.
+
+The final live-clock release also includes the concurrent landing-page update (`de51431`). Merged builds, all 149 tests and the automatic-save browser regression passed again. Final backup: `/home/ubuntu/care-buddy-backups/live-today-20261008-064123`; all 131 saved snapshots/visibility values remained unchanged; integrity ok.
