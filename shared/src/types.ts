@@ -158,6 +158,7 @@ export interface Notification {
   timestamp: string;
 }
 export interface State {
+  demoFamilySeeded?: true;
   clockMode?: "live" | "reference";
   dailyReminderSchedules?: {
     profileId: string;

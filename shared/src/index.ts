@@ -2,3 +2,4 @@ export * from "./types.js";
 export * from "./domain.js";
 export * from "./health.js";
 export * from "./demoBenefits.js";
+export * from "./demoFamily.js";

@@ -6,6 +6,7 @@ import {
   materialize,
   validateState,
   seedDemoBenefits,
+  seedDemoFamily,
   type State,
 } from "care-buddy-shared";
 
@@ -113,10 +114,8 @@ export function ensureClientState(clientId: string): State {
     try {
       const parsed: unknown = JSON.parse(row.stateJson);
       if (validateState(parsed)) {
-        const seeded = seedDemoBenefits(
-          parsed,
-          row.clockMode === "live" ? liveNow() : parsed.now,
-        );
+        const now = row.clockMode === "live" ? liveNow() : parsed.now;
+        const seeded = seedDemoBenefits(seedDemoFamily(parsed, now), now);
         if (seeded !== parsed) {
           const result = db
             .prepare(

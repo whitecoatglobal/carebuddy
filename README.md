@@ -35,6 +35,12 @@ Public demo care profiles without existing benefits receive a GP allowance of S$
 
 These fictional records are seeded once in SQLite's existing care state and returned by the care API. Existing benefit records take precedence, unavailable profiles are skipped, and ordinary care spaces are not populated. Seeding increments the care revision while preserving other saved fields, visibility and clock settings. New public demos include the same fixtures at bootstrap.
 
+## Demo family
+
+Public demos include Me, Mom and Dad. The two parent profiles have daily medication, blood-pressure recording, hydration, walking and bedtime routines, plus a GP follow-up for Mom and health screening for Dad. They each receive the existing GP, screening and dental benefit fixtures and load their own database-backed health readings when viewed. Appointments are care records awaiting clinic confirmation.
+
+Existing public demo spaces receive missing parents once through the backend, preserving the selected person, existing profiles, saved care, browser visibility and clock settings. Existing Mom/Mum/Mother or Dad/Father parent profiles are kept without adding duplicate or invented routines to them. A persisted `demoFamilySeeded` flag prevents removed or renamed demo family members from being recreated. Ordinary care spaces and empty onboarding states are unchanged.
+
 ## Buddy GP handoff
 
 When Buddy recommends a routine GP consultation or the user asks to see a GP, its reply includes a WhiteCoat action opening `https://link.whitecoat.com.sg/dXEf/nnq8g6r9` in a new tab. The fixed frontend link sends no chat contents or health readings. It is a user-selected handoff; no consultation is booked by Care Buddy.

@@ -14,6 +14,7 @@ function care(): State {
     acknowledged: true,
   });
   state.scenario = "public-demo";
+  state.demoFamilySeeded = true;
   return state;
 }
 beforeAll(async () => {

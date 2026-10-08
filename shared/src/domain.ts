@@ -266,6 +266,7 @@ export function validateState(v: unknown): v is State {
     !isRecord(v) ||
     v.version !== 1 ||
     typeof v.started !== "boolean" ||
+    (v.demoFamilySeeded !== undefined && v.demoFamilySeeded !== true) ||
     !validIso(v.now) ||
     typeof v.selectedProfileId !== "string"
   )
