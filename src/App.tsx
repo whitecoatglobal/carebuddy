@@ -5,6 +5,8 @@ import {
   type ReactNode,
   type FormEvent,
 } from "react";
+import { CareJourney } from "./CareJourney";
+import { applyReviewedCarePlan } from "./careJourneyState";
 import { usePwa } from "./pwa";
 import { Icon } from "./Icon";
 import { Onboarding } from "./Onboarding";
@@ -896,6 +898,16 @@ export default function App() {
               </button>
             </div>
           )}
+        <div className="cj-launch">
+          <div>
+            <strong>Your care, before and after the visit</strong>
+            <p>
+              Turn a letter into a plan, prepare a brief, or organise follow-up
+              notes.
+            </p>
+          </div>
+          <button onClick={() => go("/care/journey")}>Open care journey</button>
+        </div>
         <div className="today-heading">
           <div>
             <span className="eyebrow">
@@ -1522,6 +1534,19 @@ export default function App() {
             </p>
           </details>
         </section>
+        {a.preparationNotes && (
+          <div className="detail-panel">
+            <h2>Reviewed source instructions</h2>
+            <p style={{ whiteSpace: "pre-wrap" }}>{a.preparationNotes}</p>
+            <p className="helper">
+              Recorded from a reviewed document plan. Check the original
+              provider instructions.
+            </p>
+          </div>
+        )}
+        <button onClick={() => go("/care/journey")}>
+          Prepare a visit brief or follow-up plan
+        </button>
         <h2>Preparation checklist</h2>
         <p className="helper">
           Contact the provider for medical preparation instructions.
@@ -3316,6 +3341,31 @@ export default function App() {
           renderSettings()
         ) : path === "/car" ? (
           renderCar()
+        ) : path === "/care/journey" ? (
+          <CareJourney
+            key={clientId.current + state.selectedProfileId}
+            state={state}
+            clientId={clientId.current}
+            onBack={() => go("/today")}
+            onApply={(plan, document, expected) => {
+              const next = applyReviewedCarePlan(
+                stateRef.current,
+                plan,
+                document,
+                expected,
+              );
+              saveState(next);
+              stateRef.current = next;
+              setState(next);
+              if (isSyncEnabled())
+                void pushState(clientId.current, next).then((ok) => {
+                  if (!ok)
+                    setToast(
+                      "Saved on this browser. Server sync could not be completed.",
+                    );
+                });
+            }}
+          />
         ) : path === "/care/gp" ? (
           renderGp()
         ) : path === "/notifications" ? (

@@ -1,3 +1,4 @@
+import { careJourneyRouter } from "./careJourney.js";
 import express from "express";
 import { checkBrowserAccess, requireClientAccess } from "./clientAccess.js";
 import cors from "cors";
@@ -29,6 +30,7 @@ export function createApp() {
     }),
   );
   app.use(cors({ origin: true, credentials: true }));
+  app.use("/api/care", requireClientAccess, careJourneyRouter());
   app.use(express.json({ limit: "512kb" }));
   app.get("/api/access", checkBrowserAccess);
   app.use("/api", (req, res, next) => {
@@ -81,11 +83,9 @@ export function createApp() {
         res.status(err.status).json({ error: err.message, code: err.code });
         return;
       }
-      res
-        .status(500)
-        .json({
-          error: "Buddy could not process this request. Please try again.",
-        });
+      res.status(500).json({
+        error: "Buddy could not process this request. Please try again.",
+      });
     }
   });
 
@@ -94,12 +94,10 @@ export function createApp() {
     try {
       res.json({ weather: await getWeather() });
     } catch {
-      res
-        .status(503)
-        .json({
-          weather: null,
-          error: "Weather is temporarily unavailable. Please try again.",
-        });
+      res.status(503).json({
+        weather: null,
+        error: "Weather is temporarily unavailable. Please try again.",
+      });
     }
   });
 
@@ -113,11 +111,9 @@ export function createApp() {
       const snapshot = await buildHealthSnapshot(profileId, state);
       res.json(snapshot);
     } catch (err) {
-      res
-        .status(500)
-        .json({
-          error: err instanceof Error ? err.message : "Health snapshot failed",
-        });
+      res.status(500).json({
+        error: err instanceof Error ? err.message : "Health snapshot failed",
+      });
     }
   });
 
@@ -143,11 +139,9 @@ export function createApp() {
       const row = upsertState(req.params.clientId, JSON.stringify(state));
       res.json({ clientId: row.clientId, updatedAt: row.updatedAt });
     } catch (err) {
-      res
-        .status(500)
-        .json({
-          error: err instanceof Error ? err.message : "State save failed",
-        });
+      res.status(500).json({
+        error: err instanceof Error ? err.message : "State save failed",
+      });
     }
   });
 

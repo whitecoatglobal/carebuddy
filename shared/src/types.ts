@@ -46,6 +46,7 @@ export interface Appointment {
   title: string;
   startsAt: string;
   locationLabel: string;
+  preparationNotes?: string;
   checklist: boolean[];
   recordOrigin: "demo" | "user-saved";
   providerConfirmed: false;
