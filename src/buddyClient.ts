@@ -1,9 +1,10 @@
 import { clientAccessHeaders, ServerError } from "./syncClient";
 import { uid } from "care-buddy-shared";
-import type { State, Action } from "./types";
+import type { State, Action, ChatMessage } from "./types";
 
 export interface BuddyInterpretResult {
   text: string;
+  careNavigation?: ChatMessage["careNavigation"];
   operationStatus?: "saved" | "not_changed" | "pending_confirmation";
   state: State;
   revision: number;

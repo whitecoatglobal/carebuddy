@@ -46,6 +46,127 @@ afterEach(() => {
 });
 
 describe("Buddy TokenHub", () => {
+  it.each([
+    [
+      "A GP can discuss your concerns.\n[CARE_NAVIGATION:gp]",
+      "A GP can discuss your concerns.",
+      "gp",
+    ],
+    ["你可以向医生咨询。\n[CARE_NAVIGATION:gp]", "你可以向医生咨询。", "gp"],
+    [
+      "Contact local emergency services directly.\n[CARE_NAVIGATION:emergency]",
+      "Contact local emergency services directly.",
+      "emergency",
+    ],
+    [
+      "Contact local emergency services directly.\n[CARE_NAVIGATION:emergency]\n[CARE_NAVIGATION:gp]",
+      "Contact local emergency services directly.",
+      "emergency",
+    ],
+    [
+      "Your GP appointment is recorded for tomorrow.",
+      "Your GP appointment is recorded for tomorrow.",
+      undefined,
+    ],
+    [
+      "The quoted marker is [CARE_NAVIGATION:gp]. What would you like to organise?",
+      "The quoted marker is [CARE_NAVIGATION:gp]. What would you like to organise?",
+      undefined,
+    ],
+  ])(
+    "extracts care navigation without changing the reply: %s",
+    async (content, text, careNavigation) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({ choices: [{ message: { content } }] }),
+            ),
+        ),
+      );
+      const reply = await interpretBuddyMessage(
+        state(),
+        "Help me with my next step",
+      );
+      expect(reply.text).toBe(text);
+      expect(reply.careNavigation).toBe(careNavigation);
+      expect(reply.action).toBeUndefined();
+    },
+  );
+
+  it("offers GP navigation for a view-only profile without proposing a change", async () => {
+    const s = state();
+    s.profiles[0].canManage = false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              choices: [
+                {
+                  message: {
+                    content:
+                      "You can speak with a GP on WhiteCoat.\n[CARE_NAVIGATION:gp]",
+                  },
+                },
+              ],
+            }),
+          ),
+      ),
+    );
+    const reply = await interpretBuddyMessage(s, "I would like to see a GP");
+    expect(reply).toEqual({
+      text: "You can speak with a GP on WhiteCoat.",
+      careNavigation: "gp",
+    });
+  });
+
+  it("rejects a marker without an actual assistant reply", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              choices: [{ message: { content: "[CARE_NAVIGATION:gp]" } }],
+            }),
+          ),
+      ),
+    );
+    await expect(
+      interpretBuddyMessage(state(), "I would like to see a GP"),
+    ).rejects.toMatchObject({ status: 502, code: "AI_INVALID_RESPONSE" });
+  });
+
+  it("does not retain GP navigation on an unsupported provider booking claim", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              choices: [
+                {
+                  message: {
+                    content:
+                      "I booked your WhiteCoat consultation.\n[CARE_NAVIGATION:gp]",
+                  },
+                },
+              ],
+            }),
+          ),
+      ),
+    );
+    const reply = await interpretBuddyMessage(
+      state(),
+      "I would like to see a GP",
+    );
+    expect(reply.careNavigation).toBeUndefined();
+    expect(reply.text).not.toContain("booked");
+  });
+
   it("lists appointments without proposing an unwanted preparation reminder", async () => {
     vi.stubGlobal(
       "fetch",

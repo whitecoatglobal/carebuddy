@@ -399,6 +399,9 @@ export function validateState(v: unknown): v is State {
         typeof c.text === "string" &&
         nullableString(c.contextId) &&
         receipt(c.actionReceipt) &&
+        (c.careNavigation === undefined ||
+          (c.role === "assistant" &&
+            ["gp", "emergency"].includes(c.careNavigation as string))) &&
         (c.operationStatus === undefined ||
           (c.role === "assistant" &&
             ["not_changed", "pending_confirmation", "saved"].includes(

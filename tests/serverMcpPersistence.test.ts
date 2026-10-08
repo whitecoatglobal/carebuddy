@@ -733,3 +733,56 @@ it("Buddy request IDs are scoped to the browser and stale inference cannot save"
       .get(a, "stale-request").n,
   ).toBe(0);
 });
+
+it.each(["gp", "emergency"])(
+  "persists and replays %s navigation for the selected profile",
+  async (navigation) => {
+    const id = `client-care-navigation-${navigation}`;
+    await init(id);
+    vi.stubEnv("TOKENHUB_API_KEY", "fake");
+    vi.stubEnv("TOKENHUB_BASE_URL", "https://tokenhub.example/v1");
+    vi.stubEnv("TOKENHUB_MODEL", "test");
+    const provider = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: `Here is your next step.\n[CARE_NAVIGATION:${navigation}]`,
+                },
+              },
+            ],
+          }),
+        ),
+    );
+    vi.stubGlobal("fetch", provider);
+    const request = {
+      message: "Help me find care",
+      profileId: "p-me",
+      requestId: `care-navigation-${navigation}`,
+    };
+    const reply = await req("/api/buddy/interpret", id, request);
+    expect(reply.status).toBe(200);
+    expect(reply.body.careNavigation).toBe(navigation);
+    expect(reply.body.operationStatus).toBe("not_changed");
+    expect(reply.body.text).toBe("Here is your next step.");
+    const saved = await req(`/api/state/${id}`, id);
+    expect(saved.body.state.chats).toHaveLength(2);
+    expect(saved.body.state.chats[0]).not.toHaveProperty("careNavigation");
+    expect(saved.body.state.chats[1]).toMatchObject({
+      profileId: "p-me",
+      role: "assistant",
+      text: "Here is your next step.",
+      careNavigation: navigation,
+    });
+    const replay = await req("/api/buddy/interpret", id, request);
+    expect(replay.body.careNavigation).toBe(navigation);
+    expect(replay.body.state.chats).toHaveLength(2);
+    expect(replay.body.revision).toBe(saved.body.revision);
+    expect(provider).toHaveBeenCalledTimes(1);
+    expect((await req(`/api/state/${id}`, "client-other-browser")).status).toBe(
+      403,
+    );
+  },
+);

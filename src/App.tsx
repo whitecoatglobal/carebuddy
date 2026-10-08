@@ -20,6 +20,7 @@ import {
   greetingFor,
 } from "./uiPresentation";
 import { ChatMarkdown } from "./ChatMarkdown";
+import { BuddyCareAction } from "./BuddyCareAction";
 import { chatOperationLabel, displayActor } from "./operationPresentation";
 import { WeatherBanner } from "./WeatherBanner";
 import { SleepDetails } from "./SleepDetails";
@@ -2136,7 +2137,13 @@ export default function App() {
                   {formatTime(m.timestamp)}
                 </small>
                 {m.role === "assistant" ? (
-                  <ChatMarkdown text={m.text} />
+                  <>
+                    <ChatMarkdown text={m.text} />
+                    <BuddyCareAction
+                      navigation={m.careNavigation}
+                      onUrgentHelp={() => go("/urgent")}
+                    />
+                  </>
                 ) : (
                   <p>{m.text}</p>
                 )}

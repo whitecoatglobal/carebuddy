@@ -93,6 +93,7 @@ export interface Receipt {
   timestamp: string;
 }
 export interface ChatMessage {
+  careNavigation?: "gp" | "emergency";
   operationStatus?: "not_changed" | "pending_confirmation" | "saved";
   id: string;
   profileId: string;

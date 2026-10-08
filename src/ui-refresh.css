@@ -1249,6 +1249,78 @@ header {
   font-size: 15px;
   line-height: 1.65;
 }
+.buddy-care-action {
+  margin: 16px 0 12px;
+  padding: 18px;
+  border: 1px solid #d3dfd6;
+  border-radius: 16px;
+  background: var(--sage-wash);
+}
+.buddy-care-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.buddy-care-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  color: var(--deep-sage);
+  background: #dce8df;
+}
+.buddy-care-heading .eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+}
+.buddy-care-heading h3 {
+  margin: 0;
+  font-size: 21px;
+}
+.chat-bubble .buddy-care-action p {
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+.buddy-gp-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--deep-sage);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  text-decoration: none;
+}
+.buddy-gp-link:hover {
+  background: #3d614f;
+}
+.buddy-gp-link svg {
+  flex-shrink: 0;
+}
+.buddy-care-note {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.buddy-care-urgent {
+  border-color: #e5c8c0;
+  background: #fcf0eb;
+}
+.buddy-care-urgent .buddy-care-icon {
+  color: #b54734;
+  background: #f5ded5;
+}
 .composer {
   border: 1px solid #d6dcd6;
   border-radius: 18px;

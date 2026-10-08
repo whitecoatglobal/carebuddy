@@ -256,6 +256,7 @@ export function storeChat(
   action?: Action,
   actionReceipt?: ChatMessage["actionReceipt"],
   operationStatus?: "not_changed" | "pending_confirmation" | "saved",
+  careNavigation?: ChatMessage["careNavigation"],
 ) {
   const current = snapshot(clientId);
   const message: ChatMessage = {
@@ -268,6 +269,7 @@ export function storeChat(
     ...(action ? { action } : {}),
     ...(actionReceipt ? { actionReceipt } : {}),
     ...(operationStatus ? { operationStatus } : {}),
+    ...(role === "assistant" && careNavigation ? { careNavigation } : {}),
   };
   current.state.chats.push(message);
   appendChat(clientId, message);
@@ -357,7 +359,11 @@ export function persistBuddy(
   clientId: string,
   profileId: string,
   message: string,
-  result: { text: string; action?: Action },
+  result: {
+    text: string;
+    action?: Action;
+    careNavigation?: ChatMessage["careNavigation"];
+  },
   expectedRevision: number,
   requestId: string,
   fingerprint: string,
@@ -376,6 +382,7 @@ export function persistBuddy(
     const operationStatus = result.action
       ? ("saved" as const)
       : ("not_changed" as const);
+    const careNavigation = result.action ? undefined : result.careNavigation;
     if (result.action) {
       const command = parseCommand(result.action.command, { aiOnly: true });
       validateProfile(current.state, profileId, command, true);
@@ -409,10 +416,12 @@ export function persistBuddy(
       undefined,
       receipt,
       operationStatus,
+      careNavigation,
     );
     const response = {
       text,
       operationStatus,
+      ...(careNavigation ? { careNavigation } : {}),
       ...(receipt ? { actionReceipt: receipt } : {}),
     };
     db.prepare("INSERT INTO browser_buddy_requests VALUES(?,?,?,?)").run(

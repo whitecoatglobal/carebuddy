@@ -35,6 +35,12 @@ Public demo care profiles without existing benefits receive a GP allowance of S$
 
 These fictional records are seeded once in SQLite's existing care state and returned by the care API. Existing benefit records take precedence, unavailable profiles are skipped, and ordinary care spaces are not populated. Seeding increments the care revision while preserving other saved fields, visibility and clock settings. New public demos include the same fixtures at bootstrap.
 
+## Buddy GP handoff
+
+When Buddy recommends a routine GP consultation or the user asks to see a GP, its reply includes a WhiteCoat action opening `https://link.whitecoat.com.sg/dXEf/nnq8g6r9` in a new tab. The fixed frontend link sends no chat contents or health readings. It is a user-selected handoff; no consultation is booked by Care Buddy.
+
+The provider appends a final-line navigation marker, which the backend removes from the visible reply and stores as optional `careNavigation` metadata on the assistant message. SQLite persistence and request replay retain the action across reloads for the selected profile, including view-only profiles. Ordinary care replies have no handoff. Emergency navigation takes priority over GP navigation and opens the existing urgent-help instructions instead of WhiteCoat.
+
 ## Run locally
 
 The current build was verified with Node.js 24. Install dependencies and build the shared package:

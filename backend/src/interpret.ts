@@ -1,4 +1,10 @@
-import { type State, type Action, uid, validateState } from "care-buddy-shared";
+import {
+  type State,
+  type Action,
+  type ChatMessage,
+  uid,
+  validateState,
+} from "care-buddy-shared";
 import {
   completeBuddyChat,
   TokenHubError,
@@ -6,6 +12,7 @@ import {
 } from "./tokenHub.js";
 import { connectBuddyMcp } from "./buddyMcp.js";
 import { BUDDY_SYSTEM_PROMPT } from "./buddyPrompt.js";
+import { parseCareNavigation } from "./careNavigation.js";
 
 export interface InterpretRequest {
   state: State;
@@ -16,6 +23,7 @@ export interface InterpretRequest {
 
 export interface InterpretResult {
   text: string;
+  careNavigation?: ChatMessage["careNavigation"];
   sourceId?: string;
   needsScope?: boolean;
   action?: Action;
@@ -89,22 +97,32 @@ export async function interpretBuddyMessage(
       { role: "user", content: message },
     ];
     const completion = await completeBuddyChat(messages, await mcp.tools());
-    if (!profile.canManage)
-      return {
-        text: `You can view ${profile.displayName}’s care records, but cannot save changes for this profile. There are ${context.reminders.length} reminders and ${context.appointments.length} appointments in the saved records. Ask the profile owner to enable management before requesting a change.`,
-      };
+    const viewOnlyReply = {
+      text: `You can view ${profile.displayName}’s care records, but cannot save changes for this profile. There are ${context.reminders.length} reminders and ${context.appointments.length} appointments in the saved records. Ask the profile owner to enable management before requesting a change.`,
+    };
     if (!completion.toolCall) {
       // Only a committed server receipt can assert a new save. Provider prose
       // remains useful for reading records, but common operation claims are rejected.
-      const text = completion.text!;
+      const reply = parseCareNavigation(completion.text!);
+      const text = reply.text;
+      if (!text)
+        throw new TokenHubError(
+          "Buddy received an incomplete AI response. Please try again.",
+          502,
+          "AI_INVALID_RESPONSE",
+        );
       const operationClaim =
         /\b(?:i|we|buddy)(?:['’]ve|\s+(?:have|has))?(?:\s+(?:already|just|successfully))?\s+(?:saved|created|updated|changed|added|deleted|removed|completed|snoozed|rescheduled|booked)\b|\b(?:your|the)\s+[^.!?\n]{0,80}\s+(?:(?:has|have)\s+been|was|were)\s+(?:saved|created|updated|changed|added|deleted|completed|snoozed|rescheduled|booked)\b|\b(?:your|the)\s+[^.!?\n]{0,80}\s+is\s+now\s+(?:set|scheduled|updated|saved)\b|^\s*(?:\*\*)?(?:saved|updated|created|added|deleted|completed)\b|我(?:已经|已|刚刚|已为你|已经为你|为你)?(?:保存|创建|更新|修改|添加|删除|完成)|(?:提醒|更改|修改)(?:已|已经)(?:保存|创建|更新|完成)/i;
-      return {
-        text: operationClaim.test(text)
-          ? "No change has been saved yet. Please describe the change so I can save it."
-          : text,
-      };
+      if (operationClaim.test(text))
+        return profile.canManage
+          ? {
+              text: "No change has been saved yet. Please describe the change so I can save it.",
+            }
+          : viewOnlyReply;
+      if (!profile.canManage && !reply.careNavigation) return viewOnlyReply;
+      return reply;
     }
+    if (!profile.canManage) return viewOnlyReply;
     const command = await mcp.propose(
       completion.toolCall.name,
       completion.toolCall.arguments,
