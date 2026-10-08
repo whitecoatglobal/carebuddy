@@ -104,3 +104,13 @@ Buddy API requires `requestId`. `browser_buddy_requests` binds it to the browser
 122 tests and all builds passed. Browser verification covered failure then retry, no Confirm dialog, immediate Today update and reload persistence, and replay without a second provider call/save. A real TokenHub preflight used the exact short bedtime request and saved 9pm daily without confirmation. The live browser repeated that automatic update, rejected cross-browser record access, and safely replayed the request. Temporary QA records were removed; all 129 original snapshots/visibility values remained intact; SQLite integrity was ok.
 
 Backup: `/home/ubuntu/care-buddy-backups/buddy-auto-20261008-050243`. Browser identity remains client-controlled and has not become verified human identity. Profile manage permissions remain enforced.
+
+## Passed-time daily reminder fix — 8 October 2026
+
+Reproduced the reported 400 with real TokenHub and isolated medication records: a follow-up “yes” at 13:19 produced `editReminder` for today's 05:00, which was already past. Added `setDailyReminderTime` with exact owned reminder ID, local clock and optional explicit start date. The server chooses the next eligible future occurrence when no date was stated; explicit elapsed dates remain invalid.
+
+Clock-only changes preserve past/reported occurrences, medication directions and one-day instruction overrides. Missing anchors inherit the effective regular predecessor, not selected historical directions. Optional owned `dailyReminderSchedules` retain the effective regular clock for later materialization; normal reviewed future edits supersede it, person removal prunes it, and stopped series remain stopped. Recurrence processing and legacy future edits are fenced by both profile and series ID.
+
+139 tests and all builds passed, including morning/afternoon boundaries, explicit dates, duplicate avoidance, ownership collisions, reported records, current directions, one-day overrides, stopping and idempotent auto-save. Independent review reproduced three preservation regressions before they were fixed and rechecked the corrected cases. The existing automatic-save/Today/reload browser test also passed.
+
+Real-provider preflight repeated the screenshot's “yes” conversation. TokenHub called `setDailyReminderTime` with 05:00; the server saved 5am daily starting 9 Oct 2026 while today stayed at 8am and instructions were unchanged. Deployed with backup `/home/ubuntu/care-buddy-backups/daily-time-20261008-055208`; all 130 original snapshots and visibility values remained unchanged; database integrity was ok. No real user's records were modified for testing.

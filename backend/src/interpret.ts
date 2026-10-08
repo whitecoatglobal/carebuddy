@@ -113,6 +113,7 @@ export async function interpretBuddyMessage(
     const labels: Record<string, string> = {
       createReminder: "Create reminder",
       editReminder: "Update reminder",
+      setDailyReminderTime: "Update daily reminder time",
       completeReminder: "Record reminder outcome",
       undoCompletion: "Undo reminder outcome",
       snoozeReminder: "Snooze reminder",

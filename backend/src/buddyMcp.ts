@@ -5,7 +5,13 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { execute, uid, type State, type Command } from "care-buddy-shared";
+import {
+  dailyReminderStartForRecord,
+  execute,
+  uid,
+  type State,
+  type Command,
+} from "care-buddy-shared";
 import {
   AI_TOOL_DEFINITIONS,
   commandFromTool,
@@ -92,19 +98,53 @@ export async function connectBuddyMcp(
     } else {
       if (!allowed.some((t) => t.function.name === request.params.name))
         throw new CommandValidationError();
-      const command = commandFromTool(
-        request.params.name,
-        JSON.stringify(args),
-      );
+      let command = commandFromTool(request.params.name, JSON.stringify(args));
       if ("input" in command && command.input.profileId !== profile.id)
         throw new CommandValidationError();
-      if (
-        "id" in command &&
-        ![profile, ...records].some((r) => r.id === command.id)
-      )
-        throw new CommandValidationError();
+      if ("id" in command) {
+        const sourceId = command.id;
+        if (![profile, ...records].some((r) => r.id === sourceId))
+          throw new CommandValidationError();
+      }
       // Validation on a clone only: no store, database, network or confirmation capability.
-      execute(structuredClone(state), command, uid(), profile.id);
+      try {
+        if (command.type === "setDailyReminderTime")
+          command = {
+            ...command,
+            startDate: dailyReminderStartForRecord(
+              state,
+              command.id,
+              command.time,
+              command.startDate,
+            ),
+          };
+        execute(structuredClone(state), command, uid(), profile.id);
+      } catch (error) {
+        // Only fixed domain validation strings can cross the protocol boundary.
+        // Never relay arbitrary SDK, provider or credential-bearing errors.
+        const safeMessages = new Set([
+          "Choose a time after the current reference time",
+          "Choose a date",
+          "Choose a time",
+          "This reminder is no longer available",
+          "Enter a valid 24-hour time",
+          "Choose a valid starting date",
+          "This reminder has no active daily schedule",
+          "This occurrence has already passed or has a recorded outcome. Choose a future starting date",
+          "Cannot move a reminder to another person",
+          "This action belongs to a different profile",
+          "You can view reminders, but cannot update this profile",
+        ]);
+        const message =
+          error instanceof Error && safeMessages.has(error.message)
+            ? error.message
+            : new CommandValidationError().message;
+        data = { validationError: message };
+        return {
+          content: [{ type: "text", text: JSON.stringify(data) }],
+          isError: true,
+        };
+      }
       data = { command };
     }
     return { content: [{ type: "text", text: JSON.stringify(data) }] };
@@ -126,10 +166,18 @@ export async function connectBuddyMcp(
     try {
       const result = await client.callTool({ name, arguments: args });
       const content = result.content as Array<{ type: string; text?: string }>;
-      if (result.isError || content.length !== 1 || content[0].type !== "text")
+      if (content.length !== 1 || content[0].type !== "text")
         throw new CommandValidationError();
-      return JSON.parse(content[0].text!);
-    } catch {
+      const data = JSON.parse(content[0].text!);
+      if (result.isError)
+        throw new CommandValidationError(
+          typeof data.validationError === "string"
+            ? data.validationError
+            : undefined,
+        );
+      return data;
+    } catch (error) {
+      if (error instanceof CommandValidationError) throw error;
       throw new CommandValidationError();
     }
   }

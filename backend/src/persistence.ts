@@ -295,6 +295,19 @@ function savedCommandText(command: Command, state: State, profileId: string) {
           : `${time} on ${new Intl.DateTimeFormat("en", { timeZone: "Asia/Singapore", year: "numeric", month: "short", day: "numeric" }).format(new Date(command.input.scheduledAt))}`;
       return `${command.type === "createReminder" ? "Created" : "Updated"} **${command.input.title}** for **${person}** to ${timing}${command.type === "editReminder" && command.scope === "occurrence" ? " for this occurrence" : ""}.`;
     }
+    case "setDailyReminderTime": {
+      const title = state.reminders.find((r) => r.id === command.id)?.title;
+      if (!command.startDate)
+        throw new PersistenceError("Missing daily reminder starting date");
+      const scheduledAt = `${command.startDate}T${command.time}:00+08:00`;
+      const date = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Singapore",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }).format(new Date(scheduledAt));
+      return `Updated **${title}** for **${person}** to ${formatTime(scheduledAt)} daily starting ${date}.`;
+    }
     case "completeReminder":
       return `Recorded **${state.reminders.find((r) => r.id === command.id)?.title}** as ${command.outcome} for **${person}**.`;
     case "undoCompletion":

@@ -131,6 +131,12 @@ export interface Notification {
   timestamp: string;
 }
 export interface State {
+  dailyReminderSchedules?: {
+    profileId: string;
+    seriesId: string;
+    time: string;
+    startsOn: string;
+  }[];
   version: 1;
   started: boolean;
   now: string;
@@ -162,6 +168,12 @@ export type Command =
   | { type: "reset" }
   | { type: "selectProfile"; profileId: string }
   | { type: "createReminder"; input: ReminderInput }
+  | {
+      type: "setDailyReminderTime";
+      id: string;
+      time: string;
+      startDate?: string;
+    }
   | {
       type: "editReminder";
       id: string;

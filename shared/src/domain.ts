@@ -38,6 +38,78 @@ export const formatDate = (iso: string) =>
     month: "short",
     timeZone: "Asia/Singapore",
   }).format(new Date(iso));
+export function dailyReminderStart(
+  now: string,
+  time: string,
+  requestedDate?: string,
+): string {
+  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))
+    throw new Error("Enter a valid 24-hour time");
+  let date = requestedDate ?? day(now);
+  const validDate = (value: string) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    validIso(isoAt(value, time)) &&
+    day(isoAt(value, time)) === value;
+  if (!validDate(date)) throw new Error("Choose a valid starting date");
+  if (!requestedDate && Date.parse(isoAt(date, time)) <= Date.parse(now))
+    date = day(
+      new Date(Date.parse(isoAt(date, "12:00")) + 86400000).toISOString(),
+    );
+  if (Date.parse(isoAt(date, time)) <= Date.parse(now))
+    throw new Error("Choose a time after the current reference time");
+  return date;
+}
+export function dailyReminderStartForRecord(
+  state: State,
+  id: string,
+  time: string,
+  requestedDate?: string,
+): string {
+  const source = state.reminders.find((r) => r.id === id && !r.deletedAt);
+  if (!source || source.profileId !== state.selectedProfileId)
+    throw new Error("This reminder is no longer available");
+  if (source.recurrence !== "Daily" || !source.seriesId)
+    throw new Error("This reminder has no active daily schedule");
+  const own = state.reminders.filter(
+    (r) => r.profileId === source.profileId && r.seriesId === source.seriesId,
+  );
+  let date = dailyReminderStart(state.now, time, requestedDate);
+  while (
+    own.some(
+      (r) =>
+        r.occurrenceDate === date &&
+        (r.deletedAt ||
+          r.outcome ||
+          Date.parse(r.scheduledAt) <= Date.parse(state.now)),
+    )
+  ) {
+    if (requestedDate)
+      throw new Error(
+        "This occurrence has already passed or has a recorded outcome. Choose a future starting date",
+      );
+    date = day(
+      new Date(Date.parse(isoAt(date, "12:00")) + 86400000).toISOString(),
+    );
+  }
+  return date;
+}
+function setDailyTemplate(
+  s: State,
+  profileId: string,
+  seriesId: string,
+  time: string,
+  startsOn: string,
+) {
+  s.dailyReminderSchedules = [
+    ...(s.dailyReminderSchedules ?? []).filter(
+      (t) =>
+        t.profileId !== profileId ||
+        t.seriesId !== seriesId ||
+        t.startsOn < startsOn,
+    ),
+    { profileId, seriesId, time, startsOn },
+  ];
+}
 export const notificationTime = (r: Reminder) =>
   r.notificationSnoozedUntil || r.scheduledAt;
 export const statusLabel = (r: Reminder) =>
@@ -86,35 +158,55 @@ export function materialize(s: State): State {
     day(s.now),
     day(new Date(new Date(s.now).getTime() + 86400000).toISOString()),
   ];
-  const groups = new Set(
+  const groups = new Map(
     s.reminders
       .filter((r) => r.seriesId && r.recurrence === "Daily" && !r.deletedAt)
-      .map((r) => r.seriesId!),
+      .map((r) => [
+        JSON.stringify([r.profileId, r.seriesId]),
+        { profileId: r.profileId, seriesId: r.seriesId! },
+      ]),
   );
-  for (const seriesId of groups) {
+  for (const { profileId, seriesId } of groups.values()) {
     const originals = s.reminders
-      .filter((r) => r.seriesId === seriesId && !r.deletedAt)
+      .filter(
+        (r) =>
+          r.seriesId === seriesId && r.profileId === profileId && !r.deletedAt,
+      )
       .sort((a, b) => a.occurrenceDate.localeCompare(b.occurrenceDate));
     for (const date of dates) {
       if (
         s.reminders.some(
-          (r) => r.seriesId === seriesId && r.occurrenceDate === date,
+          (r) =>
+            r.seriesId === seriesId &&
+            r.profileId === profileId &&
+            r.occurrenceDate === date,
         )
       )
         continue;
       const prior = originals
-        .filter(
-          (r) =>
-            r.occurrenceDate <= date &&
-            !r.occurrenceOverride &&
-            r.recurrence === "Daily",
-        )
+        .filter((r) => r.occurrenceDate <= date && !r.occurrenceOverride)
         .at(-1);
       if (!prior) continue;
+      if (prior.recurrence !== "Daily") continue;
+      const template = s.dailyReminderSchedules
+        ?.filter(
+          (t) =>
+            t.profileId === profileId &&
+            t.seriesId === seriesId &&
+            t.startsOn <= date,
+        )
+        .sort((a, b) => a.startsOn.localeCompare(b.startsOn))
+        .at(-1);
+      const occurrenceId = `${seriesId}:${date}`;
       s.reminders.push({
         ...prior,
-        id: `${seriesId}:${date}`,
-        scheduledAt: isoAt(date, prior.scheduledAt.slice(11, 16)),
+        id: s.reminders.some((r) => r.id === occurrenceId)
+          ? uid()
+          : occurrenceId,
+        scheduledAt: isoAt(
+          date,
+          template?.time ?? prior.scheduledAt.slice(11, 16),
+        ),
         occurrenceDate: date,
         notificationSnoozedUntil: null,
         outcome: null,
@@ -326,6 +418,25 @@ export function validateState(v: unknown): v is State {
     const arr = v[key] as { id: string }[];
     if (new Set(arr.map((x) => x.id)).size !== arr.length) return false;
   }
+  if (
+    v.dailyReminderSchedules !== undefined &&
+    (!Array.isArray(v.dailyReminderSchedules) ||
+      !v.dailyReminderSchedules.every(
+        (t) =>
+          isRecord(t) &&
+          typeof t.profileId === "string" &&
+          typeof t.seriesId === "string" &&
+          typeof t.time === "string" &&
+          /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(t.time) &&
+          typeof t.startsOn === "string" &&
+          validIso(isoAt(t.startsOn, t.time)) &&
+          day(isoAt(t.startsOn, t.time)) === t.startsOn &&
+          (v.reminders as Reminder[]).some(
+            (r) => r.profileId === t.profileId && r.seriesId === t.seriesId,
+          ),
+      ))
+  )
+    return false;
   return true;
 }
 export function validateReminder(input: ReminderInput, now: string) {
@@ -453,6 +564,62 @@ export function execute(
       });
       break;
     }
+    case "setDailyReminderTime": {
+      const r = reminder(c.id);
+      if (r.recurrence !== "Daily" || !r.seriesId)
+        throw new Error("This reminder has no active daily schedule");
+      const startDate = dailyReminderStartForRecord(
+        s,
+        c.id,
+        c.time,
+        c.startDate,
+      );
+      const own = s.reminders.filter(
+        (t) => t.profileId === r.profileId && t.seriesId === r.seriesId,
+      );
+      const latest = own
+        .filter((t) => !t.occurrenceOverride && t.occurrenceDate <= startDate)
+        .sort((a, b) => a.occurrenceDate.localeCompare(b.occurrenceDate))
+        .at(-1);
+      if (!latest || latest.recurrence !== "Daily")
+        throw new Error("This reminder has no active daily schedule");
+      if (!own.some((t) => t.occurrenceDate === startDate))
+        s.reminders.push({
+          ...structuredClone(latest),
+          id: uid(),
+          scheduledAt: isoAt(startDate, latest.scheduledAt.slice(11, 16)),
+          occurrenceDate: startDate,
+          notificationSnoozedUntil: null,
+          outcome: null,
+          completedAt: null,
+          recordedBy: null,
+          recordedAt: null,
+          occurrenceOverride: false,
+          history: [],
+          deletedAt: null,
+        });
+      for (const t of s.reminders.filter(
+        (t) =>
+          t.profileId === r.profileId &&
+          t.seriesId === r.seriesId &&
+          t.occurrenceDate >= startDate &&
+          !t.deletedAt &&
+          !t.outcome &&
+          Date.parse(t.scheduledAt) > Date.parse(s.now),
+      )) {
+        const before = formatTime(t.scheduledAt);
+        t.scheduledAt = isoAt(t.occurrenceDate, c.time);
+        t.notificationSnoozedUntil = null;
+        t.history.push(
+          event(
+            t.profileId,
+            `Daily reminder time updated from ${before} to ${formatTime(t.scheduledAt)}, starting ${startDate}`,
+          ),
+        );
+      }
+      setDailyTemplate(s, r.profileId, r.seriesId, c.time, startDate);
+      break;
+    }
     case "editReminder": {
       const r = reminder(c.id);
       inputCheck(c.input);
@@ -465,6 +632,7 @@ export function execute(
           (t) =>
             t.id !== r.id &&
             t.seriesId === r.seriesId &&
+            t.profileId === r.profileId &&
             t.occurrenceDate === day(c.input.scheduledAt),
         )
       )
@@ -478,6 +646,7 @@ export function execute(
           ? s.reminders.filter(
               (x) =>
                 x.seriesId === r.seriesId &&
+                x.profileId === r.profileId &&
                 x.occurrenceDate >= r.occurrenceDate &&
                 !x.deletedAt,
             )
@@ -505,10 +674,19 @@ export function execute(
         s.reminders = s.reminders.filter(
           (t) =>
             t === r ||
+            t.profileId !== r.profileId ||
             t.seriesId !== r.seriesId ||
             t.occurrenceDate <= r.occurrenceDate,
         );
       if (input.recurrence === "Daily" && !r.seriesId) r.seriesId = r.id;
+      if (c.scope === "future" && r.seriesId && input.recurrence === "Daily")
+        setDailyTemplate(
+          s,
+          r.profileId,
+          r.seriesId,
+          input.scheduledAt.slice(11, 16),
+          day(input.scheduledAt),
+        );
       break;
     }
     case "completeReminder": {
@@ -656,6 +834,10 @@ export function execute(
       break;
     }
     case "removeDependent": {
+      if (s.dailyReminderSchedules)
+        s.dailyReminderSchedules = s.dailyReminderSchedules.filter(
+          (t) => t.profileId !== c.id,
+        );
       if (c.id === "p-me") throw new Error("Me cannot be removed");
       const p = s.profiles.find((x) => x.id === c.id);
       if (!p?.canView) throw new Error("This profile is no longer available");

@@ -4,8 +4,10 @@ import type { Command } from "care-buddy-shared";
 export class CommandValidationError extends Error {
   readonly status = 400;
   readonly code = "INVALID_COMMAND";
-  constructor() {
-    super("Invalid care change. Check the required details and try again.");
+  constructor(
+    message = "Invalid care change. Check the required details and try again.",
+  ) {
+    super(message);
   }
 }
 const id = z.string().trim().min(1).max(160);
@@ -68,6 +70,12 @@ export const commandSchemas = {
     id,
     input: reminder,
     scope: z.enum(["occurrence", "future"]),
+  }),
+  setDailyReminderTime: z.strictObject({
+    type: z.literal("setDailyReminderTime"),
+    id,
+    time: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
+    startDate: z.iso.date().optional(),
   }),
   completeReminder: z.strictObject({
     type: z.literal("completeReminder"),
@@ -138,6 +146,7 @@ export const commandSchemas = {
 const aiSchemas = {
   createReminder: commandSchemas.createReminder,
   editReminder: commandSchemas.editReminder,
+  setDailyReminderTime: commandSchemas.setDailyReminderTime,
   completeReminder: commandSchemas.completeReminder,
   undoCompletion: commandSchemas.undoCompletion,
   snoozeReminder: commandSchemas.snoozeReminder,
@@ -184,7 +193,9 @@ const descriptions: Record<keyof typeof aiSchemas, string> = {
   createReminder:
     "Request saving a new reminder for the selected person. Require a clear future date/time and user-supplied instructions. Ask for missing details. Never invent medication directions.",
   editReminder:
-    "Request saving changing an existing selected-person reminder by its exact ID. Use future scope when the user explicitly says daily or every day; ask only when occurrence versus future scope is unclear. Keep unchanged fields from server records.",
+    "Request saving changes to one reminder occurrence or full future reminder record fields by its exact selected-person ID. For a daily time-only change prefer setDailyReminderTime. Keep unchanged fields from server records.",
+  setDailyReminderTime:
+    "Request saving a DAILY reminder notification time-only change by its exact selected-person reminder ID. Supply local HH:mm; omit startDate unless the user explicitly requests a starting date. The server chooses the next future Singapore occurrence and preserves medication instructions, doses, reported outcomes and past records. Never guess another profile or series; never backdate an explicit date.",
   completeReminder:
     "Request saving recording the user's explicit report of completion, taken or skipped for an existing reminder. Never infer a clinical outcome.",
   undoCompletion:
