@@ -5,6 +5,7 @@ import helmet from "helmet";
 import path from "node:path";
 import { interpretBuddyMessage } from "./interpret.js";
 import { buildHealthSnapshot } from "./health.js";
+import { readHealthVitals } from "./healthVitals.js";
 import { getWeather } from "./weather.js";
 import { TokenHubError, isTokenHubConfigured } from "./tokenHub.js";
 import { loadStateRow, listChats, ensureClientState } from "./db.js";
@@ -158,6 +159,39 @@ export function createApp() {
         weather: null,
         error: "Weather is temporarily unavailable. Please try again.",
       });
+    }
+  });
+
+  app.get("/api/health/vitals", (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const { profileId } = req.query;
+    if (
+      !profileId ||
+      typeof profileId !== "string" ||
+      Object.keys(req.query).some((key) => key !== "profileId")
+    ) {
+      res
+        .status(400)
+        .json({ error: "Choose a care profile for these readings" });
+      return;
+    }
+    try {
+      const state = snapshot(res.locals.clientId).state;
+      if (
+        !state.profiles.some(
+          (profile) => profile.id === profileId && profile.canView,
+        )
+      )
+        throw new PersistenceError("This profile is not available");
+      res.json({ vitals: readHealthVitals(res.locals.clientId, profileId) });
+    } catch (error) {
+      if (error instanceof PersistenceError) apiError(res, error);
+      else
+        res
+          .status(500)
+          .json({
+            error: "Health readings could not be loaded. Please try again.",
+          });
     }
   });
 

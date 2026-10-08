@@ -23,6 +23,12 @@ Family cards emphasize identity and next actions, with removal in an overflow di
 
 The homepage at `/` follows the supplied Care Buddy mockup, using cream, sand, sage and plum with Fraunces headings and DM Sans body text. Explore the demo opens `/today`; the app logo returns to the homepage. Family examples and the Buddy walkthrough are illustrative frontend previews. Installed PWAs continue to open Today.
 
+## Health readings
+
+Your Live Health and its review page load readings from `GET /api/health/vitals?profileId=…`. The backend checks browser access and the selected profile's view permission, then reads SQLite's `health_vitals` row for that browser and profile. Each profile is seeded once with the fixed demo readings (118/76 mmHg, 72 bpm, 36.7°C, 98% oxygen and 16 breaths/min). Subsequent requests preserve stored values and their update timestamp. This is database-backed demo data; a device feed is not connected yet.
+
+The frontend refreshes visible health screens every minute and when returning to the app. The card and review share the fetched readings, with loading and retry states. Sleep remains frontend data. No morning timestamp is shown on the health card.
+
 ## Run locally
 
 The current build was verified with Node.js 24. Install dependencies and build the shared package:

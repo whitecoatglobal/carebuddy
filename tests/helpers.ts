@@ -157,6 +157,35 @@ export async function prepare(page: Page, s: State = fixture()) {
   await page.route("**/api/health/snapshot", (route) =>
     route.fulfill({ json: { reading: null, weather: null, advice: [] } }),
   );
+  await page.route("**/api/health/vitals?*", (route) => {
+    const profileId = new URL(route.request().url()).searchParams.get(
+      "profileId",
+    );
+    if (
+      !saved.profiles.some(
+        (profile) => profile.id === profileId && profile.canView,
+      )
+    )
+      return route.fulfill({
+        status: 400,
+        json: { error: "Profile unavailable" },
+      });
+    return route.fulfill({
+      json: {
+        vitals: {
+          profileId,
+          systolic: 118,
+          diastolic: 76,
+          pulseBpm: 72,
+          temperatureC: 36.7,
+          oxygenPercent: 98,
+          breathingPerMinute: 16,
+          updatedAt: now,
+          source: "demo",
+        },
+      },
+    });
+  });
 }
 export const state = (page: Page) =>
   page.evaluate(() =>

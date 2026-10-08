@@ -35,6 +35,21 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_chat_client ON chat_messages(client_id, timestamp);
+
+CREATE TABLE IF NOT EXISTS health_vitals (
+  client_id TEXT NOT NULL,
+  profile_id TEXT NOT NULL,
+  systolic REAL NOT NULL,
+  diastolic REAL NOT NULL,
+  pulse_bpm REAL NOT NULL,
+  temperature_c REAL NOT NULL,
+  oxygen_percent REAL NOT NULL,
+  breathing_per_minute REAL NOT NULL,
+  updated_at TEXT NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('demo', 'device', 'manual')),
+  PRIMARY KEY (client_id, profile_id),
+  FOREIGN KEY (client_id) REFERENCES state_snapshots(client_id) ON DELETE CASCADE
+);
 `);
 
 // New browser rows default to allowed. Visibility is never sourced from uploaded state.

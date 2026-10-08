@@ -25,6 +25,7 @@ import { WeatherBanner } from "./WeatherBanner";
 import { SleepDetails } from "./SleepDetails";
 import { HealthCard } from "./HealthCard";
 import { HealthDetails } from "./HealthDetails";
+import { useHealthVitals } from "./useHealthVitals";
 import {
   SAMPLE_SLEEP_NIGHT,
   formatSleepDuration,
@@ -698,6 +699,19 @@ export default function App() {
     (r) => r.id === reminderId && r.profileId === profile.id && !r.deletedAt,
   );
   const path = route.split("?")[0];
+  const healthVitals = useHealthVitals(
+    profile.id,
+    Boolean(
+      profile.id &&
+      profile.canView &&
+      !syncLoading &&
+      ["/today", "/health", "/health/vitals"].includes(path),
+    ),
+  );
+  const liveHealth = {
+    ...healthVitals,
+    loading: syncLoading || healthVitals.loading,
+  };
   // A refresh may start only while Today is idle. Invalidate a delayed read
   // if navigation, a draft, a confirmation, or profile intent changes meanwhile.
   const refreshActivity = [
@@ -1240,7 +1254,10 @@ export default function App() {
               </button>
             )}
             {renderSleepCard("today")}
-            <HealthCard onReview={() => openHealthDetails("today")} />
+            <HealthCard
+              {...liveHealth}
+              onReview={() => openHealthDetails("today")}
+            />
           </div>
           {todayReminders.length > 0 ? (
             <div className="day-timeline">
@@ -2483,7 +2500,10 @@ export default function App() {
         </p>
         <div className="health-overview">
           {renderSleepCard("health")}
-          <HealthCard onReview={() => openHealthDetails("health")} />
+          <HealthCard
+            {...liveHealth}
+            onReview={() => openHealthDetails("health")}
+          />
           <section className="wearable-card">
             <span className="feature-icon">
               <Icon name="pulse" />
@@ -3541,8 +3561,8 @@ export default function App() {
           />
         ) : path === "/health/vitals" ? (
           <HealthDetails
+            {...liveHealth}
             profileName={profile.id ? profile.displayName : undefined}
-            now={liveTime}
             backLabel={
               new URLSearchParams(route.split("?")[1]).get("from") === "health"
                 ? "Health"

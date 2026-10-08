@@ -1,5 +1,10 @@
 import { clientAccessHeaders } from "./syncClient";
-import type { HealthReading, WeatherData, HealthAdvice } from "./types";
+import type {
+  HealthReading,
+  HealthVitals,
+  WeatherData,
+  HealthAdvice,
+} from "./types";
 
 export interface HealthSnapshot {
   reading: HealthReading | null;
@@ -8,6 +13,61 @@ export interface HealthSnapshot {
 }
 
 const BACKEND_URL = import.meta.env.VITE_BUDDY_BACKEND_URL || "";
+
+export async function fetchHealthVitals(
+  profileId: string,
+  signal?: AbortSignal,
+): Promise<HealthVitals> {
+  try {
+    signal?.throwIfAborted();
+    if (!BACKEND_URL) throw new Error("No health connection");
+    const url =
+      BACKEND_URL.replace(/\/$/, "") +
+      "/api/health/vitals?profileId=" +
+      encodeURIComponent(profileId);
+    const res = await fetch(url, {
+      headers: clientAccessHeaders(),
+      cache: "no-store",
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(10_000)])
+        : AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new Error("Health request failed");
+    const { vitals } = await res.json();
+    const numbers = [
+      "systolic",
+      "diastolic",
+      "pulseBpm",
+      "temperatureC",
+      "oxygenPercent",
+      "breathingPerMinute",
+    ];
+    if (
+      !vitals ||
+      typeof vitals !== "object" ||
+      vitals.profileId !== profileId ||
+      !numbers.every(
+        (key) =>
+          typeof vitals[key] === "number" &&
+          Number.isFinite(vitals[key]) &&
+          vitals[key] >= 0,
+      ) ||
+      vitals.oxygenPercent > 100 ||
+      typeof vitals.updatedAt !== "string" ||
+      !Number.isFinite(Date.parse(vitals.updatedAt)) ||
+      !["demo", "device", "manual"].includes(vitals.source)
+    ) {
+      throw new Error("Invalid health readings");
+    }
+    signal?.throwIfAborted();
+    return vitals as HealthVitals;
+  } catch {
+    if (signal?.aborted) throw new DOMException("Cancelled", "AbortError");
+    throw new Error(
+      "Health readings are temporarily unavailable. Please try again.",
+    );
+  }
+}
 
 export async function fetchHealthSnapshot(
   profileId: string,

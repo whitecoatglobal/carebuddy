@@ -1,20 +1,10 @@
-// Frontend sample readings. Replace this source when health data is connected.
-export const SAMPLE_HEALTH_CHECK = {
-  time: "8:00 am",
-  systolic: 118,
-  diastolic: 76,
-  pulseBpm: 72,
-  temperatureC: 36.7,
-  oxygenPercent: 98,
-  breathingPerMinute: 16,
-} as const;
+import type { HealthVitals } from "./types";
 
 export const HEALTH_METRICS = [
   {
     id: "blood-pressure",
     label: "Blood pressure",
     cardLabel: "Blood pressure",
-    value: `${SAMPLE_HEALTH_CHECK.systolic}/${SAMPLE_HEALTH_CHECK.diastolic}`,
     unit: "mmHg",
     icon: "heart",
     context: "Upper-arm cuff · At rest",
@@ -27,7 +17,6 @@ export const HEALTH_METRICS = [
     id: "pulse",
     label: "Pulse / heart rate",
     cardLabel: "Pulse",
-    value: String(SAMPLE_HEALTH_CHECK.pulseBpm),
     unit: "bpm",
     icon: "pulse",
     context: "At rest · Beats per minute",
@@ -40,7 +29,6 @@ export const HEALTH_METRICS = [
     id: "temperature",
     label: "Body temperature",
     cardLabel: "Body temperature",
-    value: SAMPLE_HEALTH_CHECK.temperatureC.toFixed(1),
     unit: "°C",
     icon: "thermometer",
     context: "Oral thermometer · Celsius",
@@ -53,7 +41,6 @@ export const HEALTH_METRICS = [
     id: "oxygen",
     label: "Blood oxygen",
     cardLabel: "Blood oxygen",
-    value: String(SAMPLE_HEALTH_CHECK.oxygenPercent),
     unit: "%",
     icon: "drop",
     context: "Fingertip pulse oximeter · SpO₂",
@@ -66,7 +53,6 @@ export const HEALTH_METRICS = [
     id: "breathing",
     label: "Breathing rate",
     cardLabel: "Breathing",
-    value: String(SAMPLE_HEALTH_CHECK.breathingPerMinute),
     unit: "breaths/min",
     icon: "lungs",
     context: "At rest · Breaths per minute",
@@ -76,6 +62,20 @@ export const HEALTH_METRICS = [
     note: "Resting readings provide a more consistent point of comparison.",
   },
 ] as const;
+
+export function healthMetricsFor(vitals: HealthVitals) {
+  const values = {
+    "blood-pressure": `${vitals.systolic}/${vitals.diastolic}`,
+    pulse: String(vitals.pulseBpm),
+    temperature: vitals.temperatureC.toFixed(1),
+    oxygen: String(vitals.oxygenPercent),
+    breathing: String(vitals.breathingPerMinute),
+  };
+  return HEALTH_METRICS.map((metric) => ({
+    ...metric,
+    value: values[metric.id],
+  }));
+}
 
 export const HEALTH_RECOMMENDATIONS = [
   {

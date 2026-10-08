@@ -97,6 +97,17 @@ export interface HealthReading {
   steps: number;
   updatedAt: string;
 }
+export interface HealthVitals {
+  profileId: string;
+  systolic: number;
+  diastolic: number;
+  pulseBpm: number;
+  temperatureC: number;
+  oxygenPercent: number;
+  breathingPerMinute: number;
+  updatedAt: string;
+  source: "demo" | "device" | "manual";
+}
 export interface WeatherData {
   location: string;
   temperatureC: number;
