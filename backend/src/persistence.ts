@@ -1,6 +1,5 @@
 import {
   execute,
-  materialize,
   uid,
   validateState,
   type State,
@@ -14,6 +13,8 @@ import {
   ensureClientState,
   upsertState,
   appendChat,
+  liveNow,
+  type ClockMode,
 } from "./db.js";
 import { parseCommand } from "./commands.js";
 export class PersistenceError extends Error {
@@ -30,13 +31,20 @@ export function snapshot(clientId: string) {
     revision: loadStateRow(clientId)!.revision,
   };
 }
-function save(clientId: string, state: State, revision: number) {
-  upsertState(clientId, JSON.stringify(state));
-  db.prepare("UPDATE state_snapshots SET revision=? WHERE client_id=?").run(
-    revision,
-    clientId,
-  );
-  return { state: materialize(state), revision };
+function save(
+  clientId: string,
+  state: State,
+  revision: number,
+  mode: ClockMode = loadStateRow(clientId)!.clockMode,
+) {
+  const stored = structuredClone(state);
+  delete stored.clockMode;
+  if (mode === "live") stored.now = liveNow();
+  upsertState(clientId, JSON.stringify(stored));
+  db.prepare(
+    "UPDATE state_snapshots SET revision=?, clock_mode=? WHERE client_id=?",
+  ).run(revision, mode, clientId);
+  return snapshot(clientId);
 }
 export function bootstrap(
   clientId: string,
@@ -56,11 +64,13 @@ export function bootstrap(
       );
     if (!validateState(raw))
       throw new PersistenceError("Invalid initial care state");
+    if ("clockMode" in raw)
+      throw new PersistenceError("Clock mode is controlled by the server");
     // Initial migration is allowed only once. Browser visibility is a separate column.
     const state = structuredClone(raw);
     state.chats = [];
     state.appliedActions = [];
-    return save(clientId, state, 1);
+    return save(clientId, state, 1, "live");
   })();
 }
 function validateProfile(
@@ -143,12 +153,20 @@ function apply(
   );
   let next: State;
   try {
-    next = execute(
-      state,
-      command,
-      actionId,
-      command.type === "selectProfile" ? undefined : profileId,
-    );
+    // The shared demo restore uses a historical fixture date. Restore directly
+    // to live time so it cannot generate unrelated historical occurrences.
+    if (command.type === "restoreClock") {
+      next = structuredClone(state);
+      next.now = liveNow();
+      next.appliedActions.push(actionId);
+    } else {
+      next = execute(
+        state,
+        command,
+        actionId,
+        command.type === "selectProfile" ? undefined : profileId,
+      );
+    }
   } catch (e) {
     throw new PersistenceError(
       e instanceof Error ? e.message : "Invalid care change",
@@ -216,7 +234,12 @@ export function runCommand(clientId: string, raw: any) {
       (["selectProfile", "chatMessage", "setCarMode"].includes(command.type)
         ? 0
         : 1);
-    const result = save(clientId, next, revision);
+    const mode = ["advanceClock", "scenario"].includes(command.type)
+      ? "reference"
+      : ["restoreClock", "reset"].includes(command.type)
+        ? "live"
+        : current.state.clockMode;
+    const result = save(clientId, next, revision, mode);
     db.prepare("INSERT INTO browser_command_receipts VALUES(?,?,?)").run(
       clientId,
       raw.actionId,

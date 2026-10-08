@@ -131,6 +131,7 @@ export interface Notification {
   timestamp: string;
 }
 export interface State {
+  clockMode?: "live" | "reference";
   dailyReminderSchedules?: {
     profileId: string;
     seriesId: string;

@@ -181,6 +181,12 @@ it("keeps an exact source through model normalization, autonomous saving and req
   expect(result.action?.command).toMatchObject({ startDate: "2026-10-09" });
   database.ensureClientState("daily-save");
   persistence.bootstrap("daily-save", state, 0);
+  // This test deliberately evaluates the 8 Oct reference-time boundary.
+  database.db
+    .prepare(
+      "UPDATE state_snapshots SET state_json=?, clock_mode='reference' WHERE client_id=?",
+    )
+    .run(JSON.stringify(state), "daily-save");
   const saved = persistence.persistBuddy(
     "daily-save",
     "p-me",

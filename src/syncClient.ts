@@ -125,6 +125,10 @@ export class ServerClient {
   revision: number | null = null;
   private tail: Promise<unknown> = Promise.resolve();
   private generation = 0;
+  private queued = 0;
+  get busy() {
+    return this.queued > 0;
+  }
   constructor(
     private clientId: string,
     private publish: (snapshot: ServerSnapshot) => void,
@@ -139,6 +143,7 @@ export class ServerClient {
 
   private enqueue<T>(operation: () => Promise<T>): Promise<T> {
     const generation = this.generation;
+    this.queued++;
     const next = this.tail.then(async () => {
       if (generation !== this.generation)
         throw new StaleChangeError(
@@ -157,8 +162,11 @@ export class ServerClient {
         throw error;
       }
     });
-    this.tail = next.catch(() => undefined);
-    return next;
+    const settled = next.finally(() => {
+      this.queued--;
+    });
+    this.tail = settled.catch(() => undefined);
+    return settled;
   }
 
   initialize(
@@ -169,7 +177,10 @@ export class ServerClient {
     return this.enqueue(async () => {
       let snapshot = await pullState(this.clientId);
       if (snapshot.revision === 0 && !snapshot.state.profiles.length) {
-        const state = bootstrap(local, snapshot.state);
+        const { clockMode: _serverClockMode, ...state } = bootstrap(
+          local,
+          snapshot.state,
+        );
         if (state.profiles.length)
           snapshot = await request(
             this.clientId,
@@ -177,6 +188,18 @@ export class ServerClient {
             { state, expectedRevision: 0 },
           );
       }
+      this.accept(snapshot);
+      return snapshot;
+    });
+  }
+
+  // Reads share the write queue, so the published revision belongs to the
+  // latest completed operation. A UI intent change can cancel publication.
+  refresh(isCurrent: () => boolean = () => true) {
+    return this.enqueue(async () => {
+      if (!isCurrent()) return null;
+      const snapshot = await pullState(this.clientId);
+      if (!isCurrent()) return null;
       this.accept(snapshot);
       return snapshot;
     });

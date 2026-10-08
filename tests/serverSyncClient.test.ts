@@ -255,3 +255,112 @@ it("invalidates a Buddy reply after switching away and back, even when selection
   selection.settle(failedChoice);
   expect(selection.version).not.toBe(latestRequest);
 });
+
+it("queues an owned refresh after saves and uses its revision for later writes", async () => {
+  let release!: (response: Response) => void;
+  const fresh = {
+    ...snapshot(8),
+    state: {
+      ...emptyState(),
+      now: "2030-10-09T09:00:00+08:00",
+      clockMode: "live",
+    },
+  };
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(json(snapshot(1)))
+    .mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          release = resolve;
+        }),
+    )
+    .mockResolvedValueOnce(json(fresh))
+    .mockResolvedValueOnce(json(snapshot(9)));
+  vi.stubGlobal("fetch", fetcher);
+  const { ServerClient } = await import("../src/syncClient");
+  const publish = vi.fn();
+  const client = new ServerClient("client/owned", publish);
+  await client.initialize(emptyState());
+  const write = client.command({ type: "start" }, "first", "p-me");
+  const refresh = client.refresh();
+  const later = client.command({ type: "start" }, "later", "p-me");
+  await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+  expect(client.busy).toBe(true);
+  release(json(snapshot(2)));
+  await Promise.all([write, refresh, later]);
+  expect(fetcher.mock.calls.map((call) => call[0])).toEqual([
+    "/api/state/client%2Fowned",
+    "/api/commands",
+    "/api/state/client%2Fowned",
+    "/api/commands",
+  ]);
+  expect(fetcher.mock.calls[2][1]).toMatchObject({
+    method: "GET",
+    cache: "no-store",
+    headers: { "X-CareBuddy-Client-Id": "client/owned" },
+  });
+  expect(fetcher.mock.calls[2][1].body).toBeUndefined();
+  expect(JSON.parse(fetcher.mock.calls[3][1].body).expectedRevision).toBe(8);
+  expect(publish.mock.calls[2][0]).toEqual(fresh);
+  expect(client.busy).toBe(false);
+  await expect(
+    client.confirm("review-before-refresh", "p-me", 2),
+  ).rejects.toThrow("Review");
+  expect(fetcher).toHaveBeenCalledTimes(4);
+});
+
+it("does not publish a delayed refresh after the captured UI intent changes", async () => {
+  let release!: (response: Response) => void;
+  let current = true;
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(json(snapshot(3)))
+    .mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          release = resolve;
+        }),
+    );
+  vi.stubGlobal("fetch", fetcher);
+  const { ServerClient } = await import("../src/syncClient");
+  const publish = vi.fn();
+  const client = new ServerClient("client-test", publish);
+  await client.initialize(emptyState());
+  const refresh = client.refresh(() => current);
+  await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+  current = false;
+  release(json(snapshot(4)));
+  expect(await refresh).toBeNull();
+  expect(publish).toHaveBeenCalledTimes(1);
+  expect(client.revision).toBe(3);
+  await client.refresh(() => false);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it("omits server clock metadata when bootstrapping a bound display cache", async () => {
+  const local = {
+    ...emptyState(),
+    clockMode: "reference" as const,
+    selectedProfileId: "p-me",
+    profiles: [
+      {
+        id: "p-me",
+        displayName: "Me",
+        relationship: "Self",
+        canManage: true,
+        canView: true,
+      },
+    ],
+  };
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(json(snapshot()))
+    .mockResolvedValueOnce(json({ state: local, revision: 1 }));
+  vi.stubGlobal("fetch", fetcher);
+  const { ServerClient } = await import("../src/syncClient");
+  await new ServerClient("client-test", vi.fn()).initialize(local);
+  const body = JSON.parse(fetcher.mock.calls[1][1].body);
+  expect(body.state).not.toHaveProperty("clockMode");
+  expect(body.state.profiles).toEqual(local.profiles);
+});

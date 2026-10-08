@@ -6,6 +6,7 @@ const now = "2030-10-08T09:00:00+08:00";
 export function fixture(): State {
   const s = emptyState();
   s.now = now;
+  s.clockMode = "reference";
   s.started = true;
   s.selectedProfileId = "p-me";
   s.profiles = [
@@ -109,6 +110,10 @@ export async function prepare(page: Page, s: State = fixture()) {
           body.actionId,
           body.command.type === "selectProfile" ? undefined : body.profileId,
         );
+        if (["reset", "restoreClock"].includes(body.command.type))
+          saved.clockMode = "live";
+        if (["advanceClock", "scenario"].includes(body.command.type))
+          saved.clockMode = "reference";
         applied.add(body.actionId);
         if (!["selectProfile", "chatMessage"].includes(body.command.type))
           revision++;

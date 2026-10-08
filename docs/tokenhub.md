@@ -116,3 +116,15 @@ Clock-only changes preserve past/reported occurrences, medication directions and
 Real-provider preflight repeated the screenshot's “yes” conversation. TokenHub called `setDailyReminderTime` with 05:00; the server saved 5am daily starting 9 Oct 2026 while today stayed at 8am and instructions were unchanged. Deployed with backup `/home/ubuntu/care-buddy-backups/daily-time-20261008-055208`; all 130 original snapshots and visibility values remained unchanged; database integrity was ok. No real user's records were modified for testing.
 
 The final release also retains the concurrent supplied-logo/manifest changes (`5186006`). Merged builds, all 139 tests and the automatic-save browser regression passed again. Final backup: `/home/ubuntu/care-buddy-backups/server-mcp-20261008-060237`; all 131 snapshots present at that cutover and their visibility values were unchanged; integrity was ok.
+
+## Live Today clock — 8 October 2026
+
+The exact screenshot request matched one browser-owned request. Its saved clock was 7 Oct (`2026-10-07T08:15Z`), while the medication occurrence for 8 Oct was already saved at 10:00. The previous Today filter kept rendering the 7 Oct 08:00 occurrence. This was a frozen-clock projection issue, not a failed save.
+
+Added server-owned `clock_mode` live/reference, default live. Normal reads project actual Singapore time and materialize the current day without rewriting source JSON/revision/visibility/timestamps. Explicit manual clock/scenario controls enter labelled reference mode; restore/reset returns live without creating historical BASE_NOW occurrences. Browser/model input cannot select the clock mode.
+
+Today refreshes owned queued reads when entering the page, becoming visible/refocused, and every idle minute. Form, draft, navigation/profile intent and save activity fence late publication. Next Up uses future care; earlier incomplete care remains in Earlier. Comparisons and date grouping use actual timestamp/Singapore day.
+
+149 unit/integration tests, all builds, five new browser clock/refresh regressions and three existing UI regression tests passed. The automatic-save/Today/reload browser flow passed again. Independent review found no blocking issue. Deployment backup: `/home/ubuntu/care-buddy-backups/live-today-20261008-063321`; all 131 snapshots/visibility values remained unchanged, integrity ok.
+
+The deployed API was checked against the uniquely identified screenshot request: live home date 8 Oct, clockMode live, medication at 10:00 on 8 and 9 Oct. This diagnostic read preserved the exact saved JSON, updated_at, revision and visibility.

@@ -47,6 +47,26 @@ if (!columns.some((column) => column.name === "is_visible")) {
     "ALTER TABLE state_snapshots ADD COLUMN is_visible INTEGER NOT NULL DEFAULT 1 CHECK (is_visible IN (0, 1))",
   );
 }
+if (!columns.some((column) => column.name === "clock_mode")) {
+  db.exec(
+    "ALTER TABLE state_snapshots ADD COLUMN clock_mode TEXT NOT NULL DEFAULT 'live' CHECK (clock_mode IN ('live', 'reference'))",
+  );
+}
+
+export type ClockMode = "live" | "reference";
+
+// Domain schedules use Singapore local dates and +08:00 timestamps.
+export function liveNow(): string {
+  return (
+    new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 19) + "+08:00"
+  );
+}
+
+function projectClock(state: State, mode: ClockMode): State {
+  state.clockMode = mode;
+  if (mode === "live") state.now = liveNow();
+  return materialize(state);
+}
 
 export function isClientVisible(clientId: string): boolean {
   const row = db
@@ -68,6 +88,7 @@ export interface StoredState {
   stateJson: string;
   updatedAt: string;
   revision: number;
+  clockMode: ClockMode;
 }
 
 export function ensureClientState(clientId: string): State {
@@ -76,7 +97,7 @@ export function ensureClientState(clientId: string): State {
     try {
       const parsed: unknown = JSON.parse(row.stateJson);
       if (validateState(parsed)) {
-        return materialize(parsed as State);
+        return projectClock(parsed as State, row.clockMode);
       }
     } catch {
       throw new Error("Saved care data could not be read");
@@ -85,8 +106,9 @@ export function ensureClientState(clientId: string): State {
   }
   const fresh = emptyState();
   fresh.started = true;
+  fresh.now = liveNow();
   upsertState(clientId, JSON.stringify(fresh));
-  return fresh;
+  return projectClock(fresh, "live");
 }
 
 export function loadStateRow(clientId: string): StoredState | null {
@@ -98,9 +120,10 @@ export function loadStateRow(clientId: string): StoredState | null {
         state_json: string;
         updated_at: string;
         revision: number;
+        clock_mode: ClockMode;
       }
     >(
-      "SELECT client_id, state_json, updated_at, revision FROM state_snapshots WHERE client_id = ?",
+      "SELECT client_id, state_json, updated_at, revision, clock_mode FROM state_snapshots WHERE client_id = ?",
     )
     .get(clientId);
   return row
@@ -109,6 +132,7 @@ export function loadStateRow(clientId: string): StoredState | null {
         stateJson: row.state_json,
         updatedAt: row.updated_at,
         revision: row.revision,
+        clockMode: row.clock_mode,
       }
     : null;
 }
@@ -125,6 +149,7 @@ export function upsertState(clientId: string, stateJson: string): StoredState {
     stateJson,
     updatedAt: now,
     revision: loadStateRow(clientId)!.revision,
+    clockMode: loadStateRow(clientId)!.clockMode,
   };
 }
 

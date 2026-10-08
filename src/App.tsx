@@ -214,6 +214,9 @@ function ReceiptView({
     </details>
   );
 }
+const singaporeDay = (iso: string) =>
+  new Date(Date.parse(iso) + 8 * 3600000).toISOString().slice(0, 10);
+
 export default function App() {
   const pwa = usePwa();
   const clientId = useRef(getClientId());
@@ -234,6 +237,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [retry, setRetry] = useState<(() => void) | null>(null);
   const server = useRef<ServerClient | null>(null);
+  const refreshIntent = useRef(0);
   if (!server.current)
     server.current = new ServerClient(clientId.current, ({ state: remote }) => {
       const next = selection.current.accept(remote);
@@ -401,6 +405,7 @@ export default function App() {
       done?: () => void;
     } = {},
   ) => {
+    refreshIntent.current++;
     const selectionToken =
       command.type === "selectProfile"
         ? selection.current.begin(command.profileId)
@@ -649,8 +654,9 @@ export default function App() {
   const reminders = state.reminders.filter(
     (r) => r.profileId === profile.id && !r.deletedAt,
   );
+  const today = singaporeDay(state.now);
   const todayReminders = reminders
-    .filter((r) => r.occurrenceDate === state.now.slice(0, 10))
+    .filter((r) => singaporeDay(r.scheduledAt) === today)
     .sort(
       (a, b) =>
         Date.parse(notificationTime(a)) - Date.parse(notificationTime(b)),
@@ -658,15 +664,20 @@ export default function App() {
   const appointments = state.appointments
     .filter((a) => a.profileId === profile.id)
     .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
-  const sorted = [...todayReminders.filter((r) => !r.outcome)].sort(
-    (a, b) =>
-      notificationTime(a).localeCompare(notificationTime(b)) ||
-      a.id.localeCompare(b.id),
-  );
+  const sorted = reminders
+    .filter(
+      (r) =>
+        !r.outcome && Date.parse(notificationTime(r)) >= Date.parse(state.now),
+    )
+    .sort(
+      (a, b) =>
+        Date.parse(notificationTime(a)) - Date.parse(notificationTime(b)) ||
+        a.id.localeCompare(b.id),
+    );
   const nextReminder = sorted[0];
   const nextAppointment = [...appointments]
-    .filter((a) => a.startsAt >= state.now)
-    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
+    .filter((a) => Date.parse(a.startsAt) >= Date.parse(state.now))
+    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
   const next =
     nextReminder &&
     (!nextAppointment ||
@@ -679,6 +690,87 @@ export default function App() {
     (r) => r.id === reminderId && r.profileId === profile.id && !r.deletedAt,
   );
   const path = route.split("?")[0];
+  // A refresh may start only while Today is idle. Invalidate a delayed read
+  // if navigation, a draft, a confirmation, or profile intent changes meanwhile.
+  const refreshActivity = [
+    route,
+    form,
+    pending,
+    modal,
+    draft,
+    snooze,
+    scopeEdit,
+    discard,
+    scopePrompt,
+    context,
+    loading,
+    buddyThinking,
+    syncLoading,
+  ];
+  const previousRefreshActivity = useRef(refreshActivity);
+  if (
+    refreshActivity.some(
+      (value, index) => value !== previousRefreshActivity.current[index],
+    )
+  ) {
+    refreshIntent.current++;
+    previousRefreshActivity.current = refreshActivity;
+  }
+  const refreshIdle = useRef(false);
+  refreshIdle.current =
+    path === "/today" &&
+    !route.includes("?") &&
+    state.started &&
+    !syncLoading &&
+    !form &&
+    !pending &&
+    !modal &&
+    !draft &&
+    !snooze &&
+    !scopeEdit &&
+    !discard &&
+    !loading &&
+    !buddyThinking;
+  const refreshToday = useRef(() => {});
+  refreshToday.current = () => {
+    const client = server.current;
+    if (
+      !isSyncEnabled() ||
+      !refreshIdle.current ||
+      !client ||
+      client.busy ||
+      buddyRequestPending.current ||
+      document.visibilityState === "hidden"
+    )
+      return;
+    const intent = refreshIntent.current;
+    const profileIntent = selection.current.version;
+    void client
+      .refresh(
+        () =>
+          refreshIdle.current &&
+          !buddyRequestPending.current &&
+          intent === refreshIntent.current &&
+          profileIntent === selection.current.version,
+      )
+      .catch(() => {
+        /* A later foreground refresh can retry a failed read. */
+      });
+  };
+  useEffect(() => {
+    refreshToday.current();
+  }, [path, syncLoading]);
+  useEffect(() => {
+    const refresh = () => refreshToday.current();
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    const timer = setInterval(refresh, 60_000);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+      clearInterval(timer);
+    };
+  }, []);
   const ask = (id?: string) => {
     setContext(id || null);
     setPending(null);
@@ -959,6 +1051,9 @@ export default function App() {
             </span>
             <h1>{greetingFor(state.now, profile.displayName)}</h1>
             <p>A little care goes a long way.</p>
+            {state.clockMode === "reference" && (
+              <span className="status">Reference clock</span>
+            )}
           </div>
           {renderProfilePicker(true)}
         </div>
@@ -1026,28 +1121,17 @@ export default function App() {
               <section className="next-card">
                 <div className="section-kicker">
                   <Icon name="clock" /> NEXT UP{" "}
-                  {next && (
-                    <span
-                      className={
-                        "status " +
-                        (Date.parse(notificationTime(next)) <
-                        Date.parse(state.now)
-                          ? "amber"
-                          : "")
-                      }
-                    >
-                      {Date.parse(notificationTime(next)) <
-                      Date.parse(state.now)
-                        ? "Earlier"
-                        : "Upcoming"}
-                    </span>
-                  )}
+                  {next && <span className="status">Upcoming</span>}
                 </div>
                 {next ? (
                   <>
                     <h2>{next.title}</h2>
                     <p className="next-time">
-                      <Icon name="clock" /> {formatTime(next.scheduledAt)}
+                      <Icon name="clock" />
+                      {singaporeDay(next.scheduledAt) !== today && (
+                        <> {formatDate(next.scheduledAt)} ·</>
+                      )}{" "}
+                      {formatTime(next.scheduledAt)}
                       {next.notificationSnoozedUntil && (
                         <small>
                           {" "}
@@ -1176,8 +1260,10 @@ export default function App() {
                         ? r.outcome === "skipped"
                         : !r.outcome &&
                           (group === "Earlier"
-                            ? notificationTime(r) < state.now
-                            : notificationTime(r) >= state.now),
+                            ? Date.parse(notificationTime(r)) <
+                              Date.parse(state.now)
+                            : Date.parse(notificationTime(r)) >=
+                              Date.parse(state.now)),
                   );
                   if (group === "Completed" && items.length === 0) return null;
                   if (group === "Completed")
@@ -1202,7 +1288,7 @@ export default function App() {
               )}
               {appointments.filter(
                 (a) =>
-                  a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
+                  singaporeDay(a.startsAt) === today &&
                   Date.parse(a.startsAt) >= Date.parse(state.now),
               ).length > 0 && (
                 <section className="timeline-group">
@@ -1210,7 +1296,7 @@ export default function App() {
                   {appointments
                     .filter(
                       (a) =>
-                        a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
+                        singaporeDay(a.startsAt) === today &&
                         Date.parse(a.startsAt) >= Date.parse(state.now),
                     )
                     .map((a) => (
@@ -1417,7 +1503,7 @@ export default function App() {
               (r) =>
                 r.profileId === member.id &&
                 !r.deletedAt &&
-                r.occurrenceDate === state.now.slice(0, 10),
+                singaporeDay(r.scheduledAt) === today,
             )
             .map(reminderRow)}
           <h2>Upcoming appointments</h2>
@@ -2208,7 +2294,10 @@ export default function App() {
           <div className="detail-panel">
             <h2>Reference clock</h2>
             <p>
-              Reference clock: {formatDate(state.now)}, {formatTime(state.now)}
+              {state.clockMode === "reference"
+                ? "Reference clock"
+                : "Live clock"}
+              : {formatDate(state.now)}, {formatTime(state.now)}
             </p>
             <div className="actions">
               <button
@@ -2710,8 +2799,12 @@ export default function App() {
     const timeCheck = () => {
       if (!v.date) errors.date = "Choose a date";
       if (!v.time) errors.time = "Choose a time";
-      if (v.date && v.time && isoAt(v.date, v.time) <= state.now)
-        errors.time = "Choose a time after the current reference time";
+      if (
+        v.date &&
+        v.time &&
+        Date.parse(isoAt(v.date, v.time)) <= Date.parse(state.now)
+      )
+        errors.time = "Choose a time after the current time";
     };
     let command: Command | undefined;
     let label = "";
@@ -3801,7 +3894,7 @@ export default function App() {
                 {
                   type: "snoozeReminder",
                   id: snooze.id,
-                  until: isoAt(state.now.slice(0, 10), snoozeTime),
+                  until: isoAt(today, snoozeTime),
                 },
                 "Notify " +
                   profile.displayName +
