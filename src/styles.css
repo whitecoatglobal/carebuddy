@@ -1977,3 +1977,13 @@ h1 {
     padding: 14px;
   }
 }
+
+.client-access-panel {
+  max-width: 36rem;
+  margin: 10vh auto;
+  padding: 2rem;
+}
+.client-access-panel code {
+  overflow-wrap: anywhere;
+  user-select: all;
+}

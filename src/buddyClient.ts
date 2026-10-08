@@ -1,3 +1,4 @@
+import { clientAccessHeaders } from "./syncClient";
 import type { State, Action } from "./types";
 
 export interface BuddyInterpretResult {
@@ -21,7 +22,7 @@ export async function interpretBuddyMessage(
   try {
     res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...clientAccessHeaders() },
       body: JSON.stringify({ state, message, contextId, scope }),
     });
   } catch {

@@ -32,6 +32,31 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 CREATE INDEX IF NOT EXISTS idx_chat_client ON chat_messages(client_id, timestamp);
 `);
 
+// Existing snapshots are preserved. Visibility is never sourced from uploaded state.
+const columns = db.pragma("table_info(state_snapshots)") as Array<{
+  name: string;
+}>;
+if (!columns.some((column) => column.name === "is_visible")) {
+  db.exec(
+    "ALTER TABLE state_snapshots ADD COLUMN is_visible INTEGER NOT NULL DEFAULT 0 CHECK (is_visible IN (0, 1))",
+  );
+}
+
+export function isClientVisible(clientId: string): boolean {
+  const row = db
+    .prepare("SELECT is_visible FROM state_snapshots WHERE client_id = ?")
+    .get(clientId) as { is_visible: number } | undefined;
+  return row?.is_visible === 1;
+}
+
+export function registerClientId(clientId: string): void {
+  const fresh = emptyState();
+  fresh.started = true;
+  db.prepare(
+    "INSERT OR IGNORE INTO state_snapshots(client_id, state_json, updated_at) VALUES (?, ?, ?)",
+  ).run(clientId, JSON.stringify(fresh), new Date().toISOString());
+}
+
 export interface StoredState {
   clientId: string;
   stateJson: string;
@@ -80,13 +105,6 @@ export function upsertState(clientId: string, stateJson: string): StoredState {
      ON CONFLICT(client_id) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at`,
   ).run(clientId, stateJson, now);
   return { clientId, stateJson, updatedAt: now };
-}
-
-export function listClientIds(): string[] {
-  const rows = db
-    .prepare<[], { client_id: string }>("SELECT client_id FROM state_snapshots ORDER BY updated_at DESC")
-    .all();
-  return rows.map((r) => r.client_id);
 }
 
 export interface StoredChat {

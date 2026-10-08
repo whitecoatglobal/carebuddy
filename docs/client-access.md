@@ -1,0 +1,57 @@
+# Care Buddy browser whitelist
+
+Access follows the browser's existing `care-buddy.client-id` local-storage value. There is no login screen or module permission table. The SQLite `state_snapshots` table has one added column:
+
+| Column | Value | Effect |
+| --- | --- | --- |
+| `is_visible` | `1` | Allows this browser ID to use the app and care APIs |
+| `is_visible` | `0` | Blocks care APIs and shows the access screen |
+
+## Configure access
+
+1. Open Care Buddy in the browser to approve. The blocked screen shows its browser ID. You can also run `localStorage.getItem("care-buddy.client-id")` in that browser's developer console.
+2. That first access check registers a new, empty database row with `is_visible=0`, without replacing any existing records.
+3. Open the server database `/home/ubuntu/care-buddy/data/care-buddy.db` in your SQLite administration tool, find the exact `client_id`, and set `is_visible` to `1`.
+4. Click **Check again** in the browser.
+
+SQL equivalent (replace the example ID with the exact browser ID):
+
+```sql
+SELECT client_id, is_visible, updated_at
+FROM state_snapshots
+ORDER BY updated_at DESC;
+
+UPDATE state_snapshots
+SET is_visible = 1
+WHERE client_id = 'client-your-browser-id';
+```
+
+Set the same row to `0` to revoke access. No service restart is required. Confirm the update affected exactly one row. Do not add an HTTP API that lets browsers update this flag.
+
+## Enforcement
+
+- Each care-data, sync, Buddy and health-snapshot request sends `X-CareBuddy-Client-Id`.
+- The server looks up `is_visible` on every protected request and rejects missing, invalid or blocked IDs before care database/provider work.
+- IDs in record paths or an explicitly supplied body `clientId` must match the header.
+- The record-list endpoint returns only the requesting client ID; it no longer exposes all clients.
+- The existing full-state upload and AI context contract is preserved. Uploaded JSON cannot alter the database access column.
+- Missing/new/existing IDs default to blocked after the migration. The shared `client-local` storage-error fallback is always rejected, even if flagged visible.
+- `/api/access` exposes only the requesting ID and access status. Non-personal service status and weather remain public.
+- Care/API responses use `Cache-Control: no-store`. The frontend checks access before rendering existing locally cached care records.
+- Clearing local storage or changing browsers produces another ID that must be separately approved. Previously downloaded records cannot be remotely erased through revocation.
+
+## Identity limitation
+
+This is a browser-ID allowlist, not authenticated user identity. An approved ID can be copied or spoofed, including through manually edited local storage or request headers. It does not establish that the requester is the record's human owner. The whitelist must not be described as secure account isolation.
+
+## Deployment
+
+The database migration preserves saved JSON and adds `is_visible=0` to all existing rows. Obtain the owner's approved browser IDs before replacing the live app; otherwise every browser will be blocked. Retain the existing TokenHub credentials and database directory. Back up the database and application first, then approve only the supplied IDs and verify both allowed and blocked requests.
+
+## Verification and current rollout — 8 October 2026
+
+- 68 tests passed after integrating SQ's interface refresh (`c87317d`), including legacy schema preservation, matching route IDs, default denial, immediate API revocation, protected AI/health requests, non-enumerating client lists and access flags unaffected by state uploads.
+- Shared, backend and frontend builds passed. A local production browser check verified blocked access, database approval opening the app, and revocation blocking after reload.
+- The column has been added to the live database. All 129 existing snapshots and timestamps stayed unchanged; SQLite integrity was `ok`. Existing rows have `is_visible=0`.
+- Database backup: `/home/ubuntu/care-buddy-backups/visibility-column-20261008-033918`.
+- The access-gate application release has **not** been deployed. Live behavior remains unchanged until the owner supplies or configures the approved IDs. The database column alone does not enforce access in the old application.

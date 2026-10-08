@@ -1,3 +1,4 @@
+import { clientAccessHeaders } from "./syncClient";
 import type { State, HealthReading, WeatherData, HealthAdvice } from "./types";
 
 export interface HealthSnapshot {
@@ -17,7 +18,7 @@ export async function fetchHealthSnapshot(
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...clientAccessHeaders() },
       body: JSON.stringify({ profileId, state }),
       signal: AbortSignal.timeout(10_000),
     });
