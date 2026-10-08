@@ -1057,6 +1057,26 @@ export default function App() {
     const hidden = dismissedReminderCards.includes(featuredKey);
     return (
       <div className="today-view">
+        <WeatherBanner
+          weather={todayWeather}
+          loading={weatherLoading}
+          error={weatherError}
+          onRetry={() => setWeatherRequest((request) => request + 1)}
+        />
+        {todayWeather &&
+          /rain|shower|thunder/i.test(todayWeather.condition) &&
+          !rainDismissed && (
+            <div className="rain-hint">
+              <Icon name="rain" />
+              <span>Bring an umbrella if you’re heading out.</span>
+              <button
+                className="text-button"
+                onClick={() => setRainDismissed(true)}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
         <div className="today-heading">
           <div>
             <span className="eyebrow">
@@ -1390,26 +1410,6 @@ export default function App() {
             </section>
           )}
         </div>
-        <WeatherBanner
-          weather={todayWeather}
-          loading={weatherLoading}
-          error={weatherError}
-          onRetry={() => setWeatherRequest((request) => request + 1)}
-        />
-        {todayWeather &&
-          /rain|shower|thunder/i.test(todayWeather.condition) &&
-          !rainDismissed && (
-            <div className="rain-hint">
-              <Icon name="rain" />
-              <span>Bring an umbrella if you’re heading out.</span>
-              <button
-                className="text-button"
-                onClick={() => setRainDismissed(true)}
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
         {profile.canManage && todayReminders.length > 0 && (
           <section className="routine-starters">
             <div className="section-heading">

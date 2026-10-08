@@ -121,7 +121,7 @@ test("sleep preserves exact sample figures and offers one wind-down action", asy
   ).toHaveLength(1);
 });
 
-test("weather retains loading, error and retry around a collapsed strip", async ({
+test("weather keeps the full card visible with loading, error and retry", async ({
   page,
 }) => {
   await prepare(page);
@@ -139,18 +139,18 @@ test("weather retains loading, error and retry around a collapsed strip", async 
     } else await route.fulfill({ json: { weather } });
   });
   await page.goto("/today");
-  const strip = page.getByRole("region", { name: "Singapore weather" });
-  await expect(strip).toHaveAttribute("aria-busy", "true");
+  const card = page.getByRole("region", { name: "Singapore weather" });
+  await expect(card).toHaveAttribute("aria-busy", "true");
   release();
-  await expect(strip.getByRole("alert")).toContainText("unavailable");
+  await expect(card.getByRole("alert")).toContainText("unavailable");
   fail = false;
   const beforeRetry = requests;
-  await strip.getByRole("button", { name: "Retry weather" }).click();
-  await expect(strip.locator("summary")).toContainText("29°C · Cloudy");
-  await expect(strip.locator("details")).not.toHaveAttribute("open", "");
-  await strip.locator("summary").click();
-  await expect(strip).toContainText("Test weather provider");
-  await expect(strip).toContainText("24 · Good");
+  await card.getByRole("button", { name: "Retry weather" }).click();
+  await expect(card.getByText("29°C", { exact: true })).toBeVisible();
+  await expect(card.getByText("Cloudy", { exact: true })).toBeVisible();
+  await expect(card.getByText("73%", { exact: true })).toBeVisible();
+  await expect(card.getByText("24 · Good", { exact: true })).toBeVisible();
+  await expect(card.getByText(/Test weather provider/)).toBeVisible();
   expect(requests).toBeGreaterThan(beforeRetry);
 });
 
@@ -208,7 +208,10 @@ test("Today puts next action beside timeline on desktop and keeps review visible
   const weatherBox = await page
     .getByRole("region", { name: "Singapore weather" })
     .boundingBox();
-  expect(weatherBox!.y).toBeGreaterThan(focus!.y);
+  const greetingBox = await page.locator(".today-heading").boundingBox();
+  expect(weatherBox!.y + weatherBox!.height).toBeLessThanOrEqual(
+    greetingBox!.y,
+  );
   await page.setViewportSize({ width: 390, height: 640 });
   await page
     .getByRole("button", { name: "Add reminder", exact: true })
