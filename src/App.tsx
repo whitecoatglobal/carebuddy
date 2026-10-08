@@ -3257,10 +3257,21 @@ export default function App() {
         }
       >
         <div className="wordmark">
-          <span className="brand-icon">
-            <Icon name="leaf" />
-          </span>
-          <strong>{APP_NAME}</strong>
+          <img
+            className="brand-symbol"
+            src="/branding/carebuddy-symbol-v1.png"
+            width="256"
+            height="249"
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            className="brand-wordmark"
+            src="/branding/carebuddy-wordmark-v1.png"
+            width="640"
+            height="140"
+            alt={APP_NAME}
+          />
         </div>
 
         <div className="header-actions">

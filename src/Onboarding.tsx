@@ -20,7 +20,12 @@ export function Onboarding({
           <Icon name="moon" />
         </span>
         <span className="art-center">
-          <Icon name="leaf" />
+          <img
+            src="/branding/carebuddy-symbol-v1.png"
+            width="256"
+            height="249"
+            alt=""
+          />
         </span>
         <span className="art-orbit art-heart">
           <Icon name="heart" />
