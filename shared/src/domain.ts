@@ -22,8 +22,22 @@ export const categories: Category[] = [
 export const uid = (): string =>
   globalThis.crypto?.randomUUID?.() ??
   `id-${Math.random().toString(36).slice(2)}`;
-import { day, addDays, localDateTime, isoAt, formatTime, formatDate, validTimeZone, LocalTimeSchedulingError } from "./dates.js";
-export { day, addDays, localDateTime, isoAt, formatTime, formatDate, validTimeZone } from "./dates.js";
+const day = (iso: string) =>
+  new Date(new Date(iso).getTime() + 8 * 3600000).toISOString().slice(0, 10);
+export const isoAt = (date: string, time: string) => `${date}T${time}:00+08:00`;
+export const formatTime = (iso: string) =>
+  new Intl.DateTimeFormat("en-SG", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Singapore",
+  }).format(new Date(iso));
+export const formatDate = (iso: string) =>
+  new Intl.DateTimeFormat("en-SG", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Asia/Singapore",
+  }).format(new Date(iso));
 export const notificationTime = (r: Reminder) =>
   r.notificationSnoozedUntil || r.scheduledAt;
 export const statusLabel = (r: Reminder) =>
@@ -67,12 +81,10 @@ export function ensureSyntheticRecords(_s: State): void {
 }
 
 export function materialize(s: State): State {
-  const { timeZone } = s;
-  if (timeZone !== undefined || s.schedulingWarnings !== undefined) s.schedulingWarnings = [];
   // Occurrences are generated independently of their reported outcomes.
   const dates = [
-    day(s.now, timeZone),
-    addDays(day(s.now, timeZone), 1),
+    day(s.now),
+    day(new Date(new Date(s.now).getTime() + 86400000).toISOString()),
   ];
   const groups = new Set(
     s.reminders
@@ -99,18 +111,10 @@ export function materialize(s: State): State {
         )
         .at(-1);
       if (!prior) continue;
-      let scheduledAt: string;
-      try {
-        scheduledAt = isoAt(date, localDateTime(prior.scheduledAt, timeZone).time, timeZone);
-      } catch (cause) {
-        if (!(cause instanceof LocalTimeSchedulingError)) throw cause;
-        (s.schedulingWarnings ??= []).push(`Reminder "${prior.title}" (series ${seriesId}) on ${date}: ${cause.message} No occurrence was created. Review this schedule.`);
-        continue;
-      }
       s.reminders.push({
         ...prior,
         id: `${seriesId}:${date}`,
-        scheduledAt,
+        scheduledAt: isoAt(date, prior.scheduledAt.slice(11, 16)),
         occurrenceDate: date,
         notificationSnoozedUntil: null,
         outcome: null,
@@ -142,9 +146,7 @@ export function validateState(v: unknown): v is State {
     v.version !== 1 ||
     typeof v.started !== "boolean" ||
     !validIso(v.now) ||
-    typeof v.selectedProfileId !== "string" ||
-    (v.timeZone !== undefined && !validTimeZone(v.timeZone)) ||
-    (v.schedulingWarnings !== undefined && (!Array.isArray(v.schedulingWarnings) || !v.schedulingWarnings.every(warning => typeof warning === "string")))
+    typeof v.selectedProfileId !== "string"
   )
     return false;
   for (const key of [
@@ -230,7 +232,6 @@ export function validateState(v: unknown): v is State {
         Array.isArray(a.checklist) &&
         a.checklist.length === 3 &&
         a.checklist.every((b) => typeof b === "boolean") &&
-        (a.checklistItems === undefined || (Array.isArray(a.checklistItems) && a.checklistItems.length <= 20 && a.checklistItems.every((item) => isRecord(item) && typeof item.id === "string" && !!item.id && typeof item.label === "string" && item.label.trim().length > 0 && item.label.length <= 160 && typeof item.completed === "boolean") && new Set(a.checklistItems.map(item => (item as Record<string, unknown>).id)).size === a.checklistItems.length)) &&
         ["demo", "user-saved"].includes(a.recordOrigin as string) &&
         a.providerConfirmed === false &&
         hist(a.provenanceHistory),
@@ -337,11 +338,9 @@ export function execute(
   c: Command,
   actionId: string = uid(),
   expectedProfileId?: string,
-  actorId = "p-me",
 ): State {
   if (state.appliedActions.includes(actionId)) return state;
   const s: State = structuredClone(state);
-  const { timeZone } = s;
   if (expectedProfileId && expectedProfileId !== s.selectedProfileId)
     throw new Error(
       "This action belongs to a different profile. No changes made.",
@@ -363,7 +362,7 @@ export function execute(
   const event = (subject: string, text: string): Activity => ({
     id: uid(),
     subject,
-    actor: actorId,
+    actor: "p-me",
     text,
     at: s.now,
   });
@@ -397,7 +396,6 @@ export function execute(
     case "reset": {
       const fresh = emptyState();
       fresh.started = true;
-      fresh.timeZone = s.timeZone;
       return fresh;
     }
     case "selectProfile": {
@@ -409,7 +407,6 @@ export function execute(
     case "createReminder": {
       inputCheck(c.input);
       const i = c.input;
-      if (s.reminders.some(r => !r.deletedAt && r.profileId === i.profileId && r.category === i.category && r.title.trim().toLowerCase() === i.title.trim().toLowerCase() && Date.parse(r.scheduledAt) === Date.parse(i.scheduledAt) && r.recurrence === i.recurrence && r.appointmentId === (i.appointmentId || null))) throw new Error("This reminder already exists. Review the existing reminder instead.");
       if (
         i.appointmentId &&
         s.reminders.some(
@@ -433,7 +430,7 @@ export function execute(
         notificationSnoozedUntil: null,
         recurrence: i.recurrence,
         seriesId: i.recurrence === "Daily" ? id : null,
-        occurrenceDate: day(i.scheduledAt, timeZone),
+        occurrenceDate: day(i.scheduledAt),
         instructions: i.instructions,
         appointmentId: i.appointmentId || null,
         outcome: null,
@@ -448,24 +445,23 @@ export function execute(
     }
     case "editReminder": {
       const r = reminder(c.id);
-      const appointmentId = c.input.appointmentId === undefined ? r.appointmentId : c.input.appointmentId;
-      inputCheck({ ...c.input, appointmentId });
+      inputCheck(c.input);
       if (c.input.profileId !== r.profileId)
         throw new Error("Cannot move a reminder to another person");
       if (
         r.seriesId &&
-        day(c.input.scheduledAt, timeZone) !== r.occurrenceDate &&
+        day(c.input.scheduledAt) !== r.occurrenceDate &&
         s.reminders.some(
           (t) =>
             t.id !== r.id &&
             t.seriesId === r.seriesId &&
-            t.occurrenceDate === day(c.input.scheduledAt, timeZone),
+            t.occurrenceDate === day(c.input.scheduledAt),
         )
       )
         throw new Error(
           "An occurrence already exists for this series on that date. Edit that occurrence instead.",
         );
-      const old = `${r.title}, ${formatTime(r.scheduledAt, timeZone)}`;
+      const old = `${r.title}, ${formatTime(r.scheduledAt)}`;
       const input = c.input;
       const targets =
         c.scope === "future" && r.seriesId
@@ -477,13 +473,12 @@ export function execute(
             )
           : [r];
       for (const t of targets) {
-        const date = t === r ? day(input.scheduledAt, timeZone) : t.occurrenceDate;
+        const date = t === r ? day(input.scheduledAt) : t.occurrenceDate;
         Object.assign(t, {
           category: input.category,
           title: input.title.trim(),
-          scheduledAt: isoAt(date, localDateTime(input.scheduledAt, timeZone).time, timeZone),
+          scheduledAt: isoAt(date, input.scheduledAt.slice(11, 16)),
           instructions: input.instructions,
-          appointmentId,
           recurrence: input.recurrence,
           notificationSnoozedUntil: null,
           occurrenceDate: date,
@@ -492,7 +487,7 @@ export function execute(
         t.history.push(
           event(
             t.profileId,
-            `Updated from ${old} to ${t.title}, ${formatTime(t.scheduledAt, timeZone)}${c.scope === "occurrence" ? " · This occurrence only" : ""}`,
+            `Updated from ${old} to ${t.title}, ${formatTime(t.scheduledAt)}${c.scope === "occurrence" ? " · This occurrence only" : ""}`,
           ),
         );
       }
@@ -517,7 +512,7 @@ export function execute(
       r.outcome = c.outcome;
       r.completedAt = c.outcome === "skipped" ? null : s.now;
       r.recordedAt = s.now;
-      r.recordedBy = actorId;
+      r.recordedBy = "p-me";
       const name = profile(r.profileId).displayName;
       r.history.push(
         event(
@@ -545,7 +540,7 @@ export function execute(
       r.history.push(
         event(
           r.profileId,
-          `Notification postponed to ${formatTime(c.until, timeZone)}. Schedule unchanged.`,
+          `Notification postponed to ${formatTime(c.until)}. Schedule unchanged.`,
         ),
       );
       break;
@@ -566,7 +561,7 @@ export function execute(
     }
     case "addDependent": {
       if (!c.acknowledged)
-        throw new Error("Review the new family profile before adding it");
+        throw new Error("Confirm this is a fictional demo name");
       if (c.displayName.trim().length < 2 || c.displayName.trim().length > 40)
         throw new Error("Enter a name with 2 to 40 characters");
       if (!["Parent", "Child", "Partner", "Other"].includes(c.relationship))
@@ -583,7 +578,7 @@ export function execute(
       s.activity.push(
         event(
           id,
-          "Profile added with view access. No invitation sent.",
+          "Fictional profile added with view access. No invitation sent.",
         ),
       );
       break;
@@ -620,7 +615,7 @@ export function execute(
         p.canManage = patch.canManage;
       }
       if (changes.length) {
-        s.activity.push(event(c.id, `Profile ${changes.join("; ")}`));
+        s.activity.push(event(c.id, `Fictional profile ${changes.join("; ")}`));
       }
       break;
     }
@@ -643,7 +638,7 @@ export function execute(
         else s.selectedProfileId = "";
       }
       s.activity.push(
-        event(c.id, "Family profile removed from care records"),
+        event(c.id, "Fictional profile removed from this browser"),
       );
       break;
     }
@@ -651,39 +646,9 @@ export function execute(
       const a = s.appointments.find((a) => a.id === c.id);
       if (!a) throw new Error("This appointment is no longer available");
       profile(a.profileId);
-      const count = a.checklistItems ? a.checklistItems.length : a.checklist.length;
-      if (!Number.isInteger(c.index) || c.index < 0 || c.index >= count)
+      if (!Number.isInteger(c.index) || c.index < 0 || c.index > 2)
         throw new Error("Invalid checklist item");
-      if (a.checklistItems) a.checklistItems[c.index].completed = !a.checklistItems[c.index].completed;
-      else a.checklist[c.index] = !a.checklist[c.index];
-      break;
-    }
-    case "updateChecklist": {
-      const a = s.appointments.find(a => a.id === c.id);
-      if (!a) throw new Error("This appointment is no longer available");
-      profile(a.profileId);
-      if (!Array.isArray(c.items) || c.items.length < 1 || c.items.length > 20 || new Set(c.items.map(item => item.id)).size !== c.items.length || c.items.some(item => typeof item.id !== "string" || !item.id || item.id.length > 80 || typeof item.label !== "string" || !item.label.trim() || item.label.length > 160 || typeof item.completed !== "boolean")) throw new Error("Invalid checklist items");
-      a.checklistItems = c.items.map(item => ({...item, label: item.label.trim()}));
-      s.activity.push(event(a.profileId, `Updated checklist for ${a.title}`));
-      break;
-    }
-    case "createAppointment": {
-      const i = c.input;
-      profile(i.profileId);
-      if (typeof i.title !== "string" || i.title.trim().length < 3 || i.title.trim().length > 80 || typeof i.category !== "string" || !i.category.trim() || i.category.length > 80 || typeof i.locationLabel !== "string" || i.locationLabel.length > 80 || !validIso(i.startsAt) || Date.parse(i.startsAt) <= Date.parse(s.now)) throw new Error("Enter valid appointment details and a future date/time");
-      if (s.appointments.some(a => a.profileId === i.profileId && a.title.trim().toLowerCase() === i.title.trim().toLowerCase() && Date.parse(a.startsAt) === Date.parse(i.startsAt))) throw new Error("This appointment record already exists");
-      const created = event(i.profileId, "Appointment record created; clinic confirmation pending");
-      s.appointments.push({ ...i, title: i.title.trim(), category: i.category.trim(), locationLabel: i.locationLabel.trim(), id: uid(), checklist: [false,false,false], recordOrigin: "user-saved", providerConfirmed: false, provenanceHistory: [created] });
-      s.activity.push(created);
-      break;
-    }
-    case "updateBenefitNote": {
-      const b = s.benefits.find(b => b.id === c.id);
-      if (!b) throw new Error("This benefit note is no longer available");
-      profile(b.profileId);
-      if (typeof c.notes !== "string" || c.notes.length > 500) throw new Error("Keep notes within 500 characters");
-      b.notes = c.notes.trim();
-      s.activity.push(event(b.profileId, `Updated note for ${b.category}`));
+      a.checklist[c.index] = !a.checklist[c.index];
       break;
     }
     case "editAppointment": {
@@ -695,11 +660,11 @@ export function execute(
       if (!validIso(c.startsAt) || Date.parse(c.startsAt) <= Date.parse(s.now))
         throw new Error("Choose a time after the current reference time");
       if (c.locationLabel.length > 80)
-        throw new Error("Keep the location within 80 characters");
+        throw new Error("Keep fictional location within 80 characters");
       a.provenanceHistory.push(
         event(
           a.profileId,
-          `Updated from ${a.title} at ${a.startsAt}. Review linked preparation reminders.`,
+          `Local update from ${a.title} at ${a.startsAt}; original demo provenance retained. Review linked preparation reminders.`,
         ),
       );
       a.title = c.title.trim();
@@ -722,7 +687,7 @@ export function execute(
         status: "Needs confirmation",
         conditions:
           c.notes || "Confirm current terms with your benefits administrator.",
-        source: "User-entered note",
+        source: "User-entered demo note",
         policyDate: null,
       });
       break;
@@ -730,8 +695,6 @@ export function execute(
     case "markNotificationRead": {
       const n = s.notifications.find((n) => n.id === c.id);
       if (!n) throw new Error("This item is no longer available");
-      if (n.profileId !== s.selectedProfileId) throw new Error("This notification belongs to a different profile");
-      profile(n.profileId, false);
       n.readAt = s.now;
       break;
     }
@@ -754,7 +717,7 @@ export function execute(
       s.preferences[c.key] = c.value;
       break;
     case "advanceClock":
-      s.now = timeZone ? new Date(Date.parse(s.now) + 900000).toISOString() :
+      s.now =
         new Date(Date.parse(s.now) + 900000 + 8 * 3600000)
           .toISOString()
           .slice(0, 19) + "+08:00";
@@ -838,22 +801,16 @@ export function parseTime(text: string): {
   return {};
 }
 export function preparationTime(s: State, startsAt: string): string | null {
-  const { timeZone } = s;
   const now = Date.parse(s.now),
     start = Date.parse(startsAt);
   if (!Number.isFinite(start) || start - now < 120000) return null;
-  const previousDay = addDays(day(startsAt, timeZone), -1);
-  const evening = isoAt(previousDay, "19:00", timeZone);
+  const previousDay = day(new Date(start - 86400000).toISOString());
+  const evening = isoAt(previousDay, "19:00");
   const candidate =
     Date.parse(evening) > now ? Date.parse(evening) : start - 3600000;
   const at = candidate > now ? candidate : now + Math.floor((start - now) / 2);
-  // An elapsed-time candidate already identifies an unambiguous instant.
-  const instant = new Date(Math.floor(at / 60000) * 60000).toISOString();
-  if (timeZone === undefined) {
-    const local = localDateTime(instant);
-    return isoAt(local.date, local.time);
-  }
-  return instant;
+  const local = new Date(at + 8 * 3600000).toISOString();
+  return isoAt(local.slice(0, 10), local.slice(11, 16));
 }
 export function buildChatAction(
   s: State,
@@ -861,7 +818,6 @@ export function buildChatAction(
   contextId?: string,
   scope?: "occurrence" | "future",
 ): { text: string; action?: Action; needsScope?: boolean; sourceId?: string } {
-  const { timeZone } = s;
   const p = s.profiles.find((p) => p.id === s.selectedProfileId)!;
   const t = text.toLowerCase();
   const action = (
@@ -917,7 +873,7 @@ export function buildChatAction(
     return {
       sourceId: b?.id,
       text: b
-        ? `${b.status.replace("Listed in sample plan", "Listed in plan").replace("Not listed in sample data", "Not listed in available terms")}. ${b.conditions} Source: ${b.source}. ${b.policyDate ? formatDate(b.policyDate, timeZone) : "Date not supplied"}. For: ${p.displayName}. Eligibility not verified. Confirm the current terms with your benefits administrator.`
+        ? `${b.status.replace("Listed in sample plan", "Listed in plan").replace("Not listed in sample data", "Not listed in available terms")}. ${b.conditions} Source: ${b.source}. ${b.policyDate ? formatDate(b.policyDate) : "Date not supplied"}. For: ${p.displayName}. Eligibility not verified. Confirm the current terms with your benefits administrator.`
         : "Needs confirmation. No matching policy source for this person. Eligibility not verified.",
     };
   }
@@ -938,7 +894,7 @@ export function buildChatAction(
       (r) =>
         r.profileId === p.id &&
         r.category === "Bedtime" &&
-        r.occurrenceDate === day(s.now, timeZone) &&
+        r.occurrenceDate === day(s.now) &&
         !r.deletedAt,
     );
     if (r && !scope)
@@ -946,7 +902,7 @@ export function buildChatAction(
         text: "Tonight only, or your regular schedule?",
         needsScope: true,
       };
-    const scheduledAt = isoAt(day(s.now, timeZone), parsed.time, timeZone);
+    const scheduledAt = isoAt(day(s.now), parsed.time);
     const input: ReminderInput = {
       profileId: p.id,
       category: "Bedtime",
@@ -966,8 +922,8 @@ export function buildChatAction(
       : { type: "createReminder", input };
     return {
       text: r
-        ? `Review ${p.displayName}'s bedtime change: ${formatTime(r.scheduledAt, timeZone)} → ${formatTime(scheduledAt, timeZone)}. ${scope === "future" ? "Regular schedule: this and future occurrences." : "Tonight only. Other days: Unchanged."}`
-        : `Review a new bedtime reminder for ${p.displayName} at ${formatTime(scheduledAt, timeZone)}. Repeat: None.`,
+        ? `Review ${p.displayName}'s bedtime change: ${formatTime(r.scheduledAt)} → ${formatTime(scheduledAt)}. ${scope === "future" ? "Regular schedule: this and future occurrences." : "Tonight only. Other days: Unchanged."}`
+        : `Review a new bedtime reminder for ${p.displayName} at ${formatTime(scheduledAt)}. Repeat: None.`,
       action: action(
         command,
         r ? "Confirm change" : "Confirm reminder",
@@ -1004,16 +960,16 @@ export function buildChatAction(
         !r.deletedAt &&
         !r.outcome,
     );
-    const checklist = a.checklistItems ? a.checklistItems.map(item => item.label) : [
+    const checklist = [
       "review provider instructions",
       "bring requested documents",
       "confirm transport plans",
     ];
-    const remaining = checklist.filter((_, i) => a.checklistItems ? !a.checklistItems[i].completed : !a.checklist[i]);
+    const remaining = checklist.filter((_, i) => !a.checklist[i]);
     if (existing)
       return {
         sourceId: existing.id,
-        text: `For ${p.displayName}: ${a.title}, ${formatDate(a.startsAt, timeZone)} at ${formatTime(a.startsAt, timeZone)}. ${remaining.length ? `Still to prepare: ${remaining.join("; ")}.` : "Your preparation checklist is complete."} Preparation reminder: ${formatDate(existing.scheduledAt, timeZone)} at ${formatTime(existing.scheduledAt, timeZone)}. Ask me to change that reminder if needed.`,
+        text: `For ${p.displayName}: ${a.title}, ${formatDate(a.startsAt)} at ${formatTime(a.startsAt)}. ${remaining.length ? `Still to prepare: ${remaining.join("; ")}.` : "Your preparation checklist is complete."} Preparation reminder: ${formatDate(existing.scheduledAt)} at ${formatTime(existing.scheduledAt)}. Ask me to change that reminder if needed.`,
       };
     const defaultTime = preparationTime(s, a.startsAt);
     if (!defaultTime)
@@ -1021,7 +977,7 @@ export function buildChatAction(
         text: "There is too little time to schedule preparation before this appointment. Review its current details directly.",
       };
     return {
-      text: `For ${p.displayName}: ${remaining.length ? `Still to prepare: ${remaining.join("; ")}.` : "Your preparation checklist is complete."} Contact the provider for medical preparation instructions. Preview a preparation reminder on ${formatDate(defaultTime, timeZone)} at ${formatTime(defaultTime, timeZone)}, before ${a.title}.`,
+      text: `For ${p.displayName}: ${remaining.length ? `Still to prepare: ${remaining.join("; ")}.` : "Your preparation checklist is complete."} Contact the provider for medical preparation instructions. Preview a preparation reminder on ${formatDate(defaultTime)} at ${formatTime(defaultTime)}, before ${a.title}.`,
       action: action(
         {
           type: "createReminder",
@@ -1045,12 +1001,12 @@ export function buildChatAction(
   const active = s.reminders.filter(
     (r: Reminder) => r.profileId === p.id && !r.deletedAt,
   );
-  const current = active.filter((r: Reminder) => r.occurrenceDate === day(s.now, timeZone));
+  const current = active.filter((r: Reminder) => r.occurrenceDate === day(s.now));
   const attached = contextId
     ? active.find((r: Reminder) => r.id === contextId)
     : undefined;
   const named = active.filter(
-    (r: Reminder) => t.includes(r.title.toLowerCase()) && r.occurrenceDate === day(s.now, timeZone),
+    (r: Reminder) => t.includes(r.title.toLowerCase()) && r.occurrenceDate === day(s.now),
   );
   const matched = attached || (named.length === 1 ? named[0] : undefined);
   if (
@@ -1094,14 +1050,14 @@ export function buildChatAction(
       const until = minutes
         ? new Date(Date.parse(s.now) + Number(minutes[1]) * 60000).toISOString()
         : parsed.time
-          ? isoAt(day(s.now, timeZone), parsed.time, timeZone)
+          ? isoAt(day(s.now), parsed.time)
           : null;
       if (!until || Date.parse(until) <= Date.parse(s.now))
         return {
           text: "When should I remind you? Enter a future time or ‘in 15 minutes’.",
         };
       return {
-        text: `Review: remind ${p.displayName} about ${matched.title} at ${formatTime(until, timeZone)}. The original schedule stays unchanged.`,
+        text: `Review: remind ${p.displayName} about ${matched.title} at ${formatTime(until)}. The original schedule stays unchanged.`,
         action: action(
           { type: "snoozeReminder", id: matched.id, until },
           "Confirm snooze",
@@ -1119,13 +1075,13 @@ export function buildChatAction(
         needsScope: true,
       };
     const date = /tomorrow/.test(t)
-      ? addDays(day(s.now, timeZone), 1)
+      ? day(new Date(Date.parse(s.now) + 86400000).toISOString())
       : matched.occurrenceDate;
-    const scheduledAt = isoAt(date, parsed.time, timeZone);
+    const scheduledAt = isoAt(date, parsed.time);
     if (Date.parse(scheduledAt) <= Date.parse(s.now))
       return { text: "Choose a time after the current reference time." };
     return {
-      text: `Review ${matched.title} for ${p.displayName}: ${formatTime(matched.scheduledAt, timeZone)} → ${formatTime(scheduledAt, timeZone)}. ${scope === "future" ? "This and future occurrences." : "This occurrence only."}`,
+      text: `Review ${matched.title} for ${p.displayName}: ${formatTime(matched.scheduledAt)} → ${formatTime(scheduledAt)}. ${scope === "future" ? "This and future occurrences." : "This occurrence only."}`,
       action: action(
         {
           type: "editReminder",
@@ -1166,15 +1122,15 @@ export function buildChatAction(
         text: "Use Add reminder with your existing instructions for medication. I do not create medication schedules.",
       };
     const date = /tomorrow/.test(t)
-      ? addDays(day(s.now, timeZone), 1)
-      : day(s.now, timeZone);
-    const scheduledAt = isoAt(date, parsed.time, timeZone);
+      ? day(new Date(Date.parse(s.now) + 86400000).toISOString())
+      : day(s.now);
+    const scheduledAt = isoAt(date, parsed.time);
     if (Date.parse(scheduledAt) <= Date.parse(s.now))
       return {
         text: "That time has passed. Specify tomorrow or choose a later time.",
       };
     return {
-      text: `Review: ${title} for ${p.displayName}, ${formatDate(scheduledAt, timeZone)} at ${formatTime(scheduledAt, timeZone)}. Repeat: ${/every day|daily/.test(t) ? "Daily" : "None"}.`,
+      text: `Review: ${title} for ${p.displayName}, ${formatDate(scheduledAt)} at ${formatTime(scheduledAt)}. Repeat: ${/every day|daily/.test(t) ? "Daily" : "None"}.`,
       action: action(
         {
           type: "createReminder",
@@ -1199,11 +1155,11 @@ export function buildChatAction(
     const appts = s.appointments.filter(
       (a: Appointment) =>
         a.profileId === p.id &&
-        day(a.startsAt, timeZone) === day(s.now, timeZone) &&
+        day(a.startsAt) === day(s.now) &&
         Date.parse(a.startsAt) > Date.parse(s.now),
     );
     return {
-      text: `For ${p.displayName}: ${current.filter((r: Reminder) => r.outcome === "taken" || r.outcome === "complete").length} routines recorded, ${pending.length} still to record.\n${pending.length ? pending.map((r: Reminder) => `${formatTime(r.scheduledAt, timeZone)} · ${r.title}${Date.parse(r.scheduledAt) < Date.parse(s.now) ? " · not yet recorded" : ""}`).join("\n") : "No outstanding routines today."}\n${appts.length ? appts.map((a: Appointment) => `${formatTime(a.startsAt, timeZone)} · ${a.title}`).join("\n") : "No upcoming appointments today."}`,
+      text: `For ${p.displayName}: ${current.filter((r: Reminder) => r.outcome === "taken" || r.outcome === "complete").length} routines recorded, ${pending.length} still to record.\n${pending.length ? pending.map((r: Reminder) => `${formatTime(r.scheduledAt)} · ${r.title}${Date.parse(r.scheduledAt) < Date.parse(s.now) ? " · not yet recorded" : ""}`).join("\n") : "No outstanding routines today."}\n${appts.length ? appts.map((a: Appointment) => `${formatTime(a.startsAt)} · ${a.title}`).join("\n") : "No upcoming appointments today."}`,
     };
   }
   if (/medication|medicine/.test(t))

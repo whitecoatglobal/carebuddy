@@ -1,5 +1,7 @@
 # Account-owned Buddy actions
 
+> Historical account implementation. The public deployment removed account login on 8 October 2026. See the repository README for current behavior.
+
 Approved by the user on 7 October 2026: separate signed-in accounts, server-validated AI actions, review before every AI write, transactions, duplicate-request protection, audit history, and reviewed legacy ownership migration.
 
 ## Architecture and API

@@ -53,16 +53,13 @@ For local development, supply these variables to the backend process, build the 
 
 ## Behavior and data flow
 
-- `POST /api/buddy/interpret` requires a signed-in session, allowed Origin and CSRF token. The authenticated session chooses the account; request bodies cannot supply its owner or database state.
-- The server loads that account's snapshot and creates a fresh private MCP client/server pair using the official TypeScript SDK and `InMemoryTransport`. This is an internal MCP service, not a public remote MCP endpoint.
-- MCP `read_selected_care` accepts no arguments and returns only the selected viewable person's reminders, appointments, benefits and last twelve chat messages. Other people and accounts are excluded. Explicit record context must belong to the selected person.
-- TokenHub receives schemas obtained through MCP `tools/list`. Its function calls are dispatched through MCP `tools/call`; they validate commands on a cloned snapshot and return proposals without writing care records.
-- The action allowlist is create/edit/complete/undo/snooze reminder; add/update family details; update checklist; create/edit appointment records; add/update benefit notes; and the two supported reminder preferences. A view-only profile gets no action tools. No SQL, deletion, account administration, permission changes, migration or confirmation tool exists.
-- The server independently validates and stores a pending proposal. Only the authenticated human's Confirm request can execute it, with ownership, profile, expiry, revision and duplicate-request checks. An AI message saying “saved” cannot write records.
-- Driving privacy checks run before opening MCP or calling TokenHub. The system prompt is in `backend/src/buddyPrompt.ts`; credentials remain server-only.
-- Missing configuration returns HTTP 503. Provider failures return 502 and timeouts 504, without exposing provider response bodies or credentials. Errors do not silently switch to another model or account.
-
-Official MCP references checked 7 October 2026: [tools](https://modelcontextprotocol.io/specification/2025-11-25/server/tools), [TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk).
+- Only the selected viewable profile's reminders, appointments, benefits and last twelve chat messages are sent to TokenHub. Other profiles and their chats are excluded. An explicitly supplied record context must belong to the selected profile.
+- Existing action proposals still come from the validated shared domain engine. TokenHub cannot alter their commands, scope, source IDs or confirmation wording. No action runs simply because AI says it has saved something.
+- The existing parked/driving privacy restriction runs before any provider request.
+- The system prompt lives in `backend/src/buddyPrompt.ts`. It defines record grounding, selected-person scope, reference-clock handling, missing-data behavior, action confirmation, medical/benefit boundaries, and concise responses in the user's language.
+- Missing configuration returns HTTP 503 with `AI_NOT_CONFIGURED`. Provider failures return 502; timeouts return 504. Provider response bodies and credentials are not returned to the browser.
+- The frontend shows these errors and clears its loading state. It does not switch silently to a canned local response. Other existing browser persistence behavior is unchanged.
+- Account authentication and the proposed server CRUD migration are separate work. This adapter does not add authentication to the existing public API; that route retains its current access model.
 
 ## Verification
 
@@ -84,9 +81,3 @@ Tests stub the external provider boundary to verify payloads, selected-profile i
 - All 31 unit tests, frontend/backend builds, and diff checks passed.
 - The running application and SQLite database were backed up to `/home/ubuntu/care-buddy-backups/tokenhub-20261007-084010` before activation.
 - Live testing used an isolated fictional profile; its persisted state was removed after verification.
-
-## MCP verification — 7 October 2026
-
-105 tests passed, including real MCP initialization/list/call, simultaneous account snapshot isolation, selected-profile read filtering, unknown-tool rejection, denied owner/permission overrides, read-only permissions, and proposals without care-record writes. Production dependency audit reported zero advisories. Frontend/backend builds passed.
-
-The private MCP bridge was deployed to `https://carebuddy.life`. A real TokenHub completion produced a pending proposal; two temporary signed-in accounts verified read isolation and denied cross-account confirmation. Confirm saved once, repeated Confirm created no duplicate, and no care record was written before confirmation. Both test accounts were removed, legacy snapshots remained byte-for-byte unchanged, and SQLite integrity was `ok`. Rollback backup: `/home/ubuntu/care-buddy-backups/mcp-20261007-114131`.

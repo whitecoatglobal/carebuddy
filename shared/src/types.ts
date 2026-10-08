@@ -47,7 +47,6 @@ export interface Appointment {
   startsAt: string;
   locationLabel: string;
   checklist: boolean[];
-  checklistItems?: { id: string; label: string; completed: boolean }[];
   recordOrigin: "demo" | "user-saved";
   providerConfirmed: false;
   provenanceHistory: Activity[];
@@ -130,8 +129,6 @@ export interface Notification {
   timestamp: string;
 }
 export interface State {
-  timeZone?: string;
-  schedulingWarnings?: string[];
   version: 1;
   started: boolean;
   now: string;
@@ -192,9 +189,6 @@ export type Command =
     }
   | { type: "removeDependent"; id: string }
   | { type: "toggleChecklist"; id: string; index: number }
-  | { type: "updateChecklist"; id: string; items: { id: string; label: string; completed: boolean }[] }
-  | { type: "createAppointment"; input: { profileId: string; category: string; title: string; startsAt: string; locationLabel: string } }
-  | { type: "updateBenefitNote"; id: string; notes: string }
   | {
       type: "editAppointment";
       id: string;
@@ -223,8 +217,4 @@ export interface Action {
   label: string;
   expectedClock?: string;
   expectedSources?: (Reminder | Appointment)[];
-  proposalId?: string;
-  revision?: number;
-  expiresAt?: string;
-  preview?: { before?: unknown; after?: unknown };
 }

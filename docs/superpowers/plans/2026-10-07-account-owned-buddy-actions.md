@@ -1,5 +1,7 @@
 # Account-owned Buddy Actions Implementation Plan
 
+> Historical account implementation. The public deployment removed account login on 8 October 2026. See the repository README for current behavior.
+
 **Goal:** Let Buddy safely create and update account-owned care records after review and confirmation.
 
 **Architecture:** Authenticated SQLite state, typed tools, stored proposals and transactional server commands. Existing domain rules run on the server; browser snapshot uploads are removed.

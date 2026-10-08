@@ -6,35 +6,30 @@ import {
   type FormEvent,
 } from "react";
 import { usePwa } from "./pwa";
+import { publicBootstrapState } from "./publicDemo";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { WeatherBanner, psiLabel } from "./WeatherBanner";
 import { SleepDetails } from "./SleepDetails";
 import { SAMPLE_SLEEP_NIGHT } from "./sleepData";
 import { APP_NAME } from "./config";
 import {
-  formatTime as formatTimeInZone,
-  formatDate as formatDateInZone,
-  isoAt as isoAtInZone,
-  localDateTime,
-  day,
+  loadState,
+  saveState,
+  execute,
+  formatTime,
+  formatDate,
+  isoAt,
   notificationTime,
   statusLabel,
   preparationTime,
   assertFreshAction,
   importSkillProposal,
+  validateState,
+  materialize,
 } from "./domain";
 import { interpretBuddyMessage, isBackendEnabled } from "./buddyClient";
-import {
-  fetchHealthSnapshot,
-  fetchWeather,
-  type HealthSnapshot,
-} from "./healthClient";
-import {
-  AccountClient,
-  AccountApiError,
-  type AccountBootstrap,
-  type AccountSnapshot,
-} from "./syncClient";
+import { fetchHealthSnapshot, fetchWeather, type HealthSnapshot } from "./healthClient";
+import { getClientId, isSyncEnabled, pullState, pushState } from "./syncClient";
 import type {
   State,
   Command,
@@ -233,201 +228,60 @@ function Sheet({
   );
 }
 function ReceiptView({ receipt, state }: { receipt: Receipt; state: State }) {
-  const sources = receipt.sourceIds.map((id) => {
-    const record = [
-      ...state.reminders,
-      ...state.appointments,
-      ...state.benefits,
-      ...state.profiles,
-    ].find((item) => item.id === id);
-    return record
-      ? "title" in record
-        ? record.title
-        : "displayName" in record
-          ? record.displayName
-          : record.category
-      : "Care record";
-  });
   return (
     <details className="receipt">
       <summary>Action details · {receipt.outcome}</summary>
       <dl>
         <dt>Source</dt>
-        <dd>Care Buddy account action</dd>
+        <dd>Care Buddy local action</dd>
         <dt>Information used</dt>
-        <dd>{sources.join(", ") || "User-entered input"}</dd>
+        <dd>{receipt.sourceIds.join(", ") || "User-entered input"}</dd>
         <dt>Person</dt>
         <dd>
           {state.profiles.find((p) => p.id === receipt.profileId)
             ?.displayName || "Removed profile"}
         </dd>
         <dt>Actor</dt>
-        <dd>{"Account owner"}</dd>
+        <dd>{receipt.actor === "p-me" ? "Me" : receipt.actor}</dd>
         <dt>Operation</dt>
         <dd>{receipt.operation}</dd>
         <dt>User confirmation</dt>
         <dd>{receipt.confirmation ? "Confirmed" : "Not confirmed"}</dd>
-        <dt>Account save outcome</dt>
+        <dt>Local save outcome</dt>
         <dd>{receipt.outcome}</dd>
         <dt>Recorded at</dt>
-        <dd>{`${formatDateInZone(receipt.timestamp, state.timeZone)} · ${formatTimeInZone(receipt.timestamp, state.timeZone)}`}</dd>
+        <dd>{receipt.timestamp}</dd>
       </dl>
     </details>
   );
 }
-function ProposalPreview({
-  preview,
-  state,
-}: {
-  preview: { before?: unknown; after?: unknown };
-  state: State;
-}) {
-  const fields: Record<string, string> = {
-    displayName: "Name",
-    relationship: "Relationship",
-    title: "Title",
-    category: "Category",
-    scheduledAt: "Scheduled date and time",
-    startsAt: "Appointment date and time",
-    locationLabel: "Location",
-    recurrence: "Repeat",
-    instructions: "Instructions",
-    appointmentId: "Linked appointment",
-    policyDate: "Policy date",
-    source: "Source",
-    notes: "Notes",
-    conditions: "Conditions",
-    status: "Status",
-    notificationSnoozedUntil: "Notification time",
-    outcome: "Outcome",
-    deletedAt: "Deleted at",
-    completedAt: "Completed at",
-    occurrenceDate: "Occurrence date",
-    occurrenceOverride: "Changed occurrence",
-    genericReminders: "Generic reminders",
-    spokenReminders: "Spoken reminders",
-    carMode: "Car mode",
-    checklist: "Preparation checklist",
-    checklistItems: "Preparation checklist",
-    canManage: "Manage access",
-    canView: "View access",
-  };
-  const value = (key: string, item: unknown): ReactNode => {
-    if (item === null || item === undefined || item === "") return "None";
-    if (key === "appointmentId")
-      return (
-        state.appointments.find((appointment) => appointment.id === item)
-          ?.title || "Linked appointment record"
-      );
-    if (key === "checklistItems" && Array.isArray(item))
-      return (
-        <ul>
-          {item.map((entry, index) => (
-            <li key={index}>
-              {entry.label} · {entry.completed ? "Complete" : "Incomplete"}
-            </li>
-          ))}
-        </ul>
-      );
-    if (Array.isArray(item))
-      return item
-        .map(
-          (entry, index) =>
-            `Item ${index + 1}: ${entry ? "Complete" : "Incomplete"}`,
-        )
-        .join("; ");
-    if (typeof item === "boolean") return item ? "Yes" : "No";
-    if (typeof item === "string" && /^\d{4}-\d{2}-\d{2}T/.test(item))
-      return `${new Intl.DateTimeFormat("en-SG", { year:"numeric",month:"short",day:"numeric",timeZone:state.timeZone }).format(new Date(item))} · ${formatTimeInZone(item, state.timeZone)}${state.timeZone ? ` (${state.timeZone})` : ""}`;
-    return String(item);
-  };
-  const record = (item: unknown): ReactNode => {
-    if (!item) return <p>No record</p>;
-    if (Array.isArray(item))
-      return item.map((entry, index) => <div key={index}>{record(entry)}</div>);
-    if (typeof item !== "object") return <p>{String(item)}</p>;
-    const entries = Object.entries(item as Record<string, unknown>).filter(
-      ([key]) => fields[key],
-    );
-    return (
-      <dl>
-        {entries.map(([key, entry]) => (
-          <div key={key}>
-            <dt>{fields[key]}</dt>
-            <dd>{value(key, entry)}</dd>
-          </div>
-        ))}
-      </dl>
-    );
-  };
-  return (
-    <div className="proposal-preview">
-      <section>
-        <h3>Before</h3>
-        {record(preview.before)}
-      </section>
-      <section>
-        <h3>After</h3>
-        {record(preview.after)}
-      </section>
-    </div>
-  );
-}
-export function applyBuddyReplyForSelection<T extends AccountSnapshot>(
-  requestGeneration: number,
-  currentGeneration: () => number,
-  reply: T,
-  applySnapshot: (snapshot: AccountSnapshot) => void,
-  applyUi: (reply: T) => void,
-) {
-  applySnapshot(reply);
-  if (requestGeneration === currentGeneration()) applyUi(reply);
-}
-
-export default function App({
-  bootstrap,
-  onExpired,
-  onSignOut,
-}: {
-  bootstrap: AccountBootstrap;
-  onExpired: () => void;
-  onSignOut: () => void;
-}) {
+export default function App() {
   const pwa = usePwa();
-  const [state, setState] = useState(bootstrap.state);
-  const [schedulingWarning, setSchedulingWarning] = useState(bootstrap.schedulingWarning || "");
-  const timeZone = state.timeZone ?? bootstrap.user.timeZone;
-  const formatTime = (iso: string) => formatTimeInZone(iso, timeZone);
-  const formatDate = (iso: string) => formatDateInZone(iso, timeZone);
-  const isoAt = (date: string, time: string) => isoAtInZone(date, time, timeZone);
-  const local = (iso: string) => localDateTime(iso, timeZone);
+  const initial = useRef(loadState());
+  const [state, setState] = useState(initial.current.state);
   const stateRef = useRef(state);
-  const clientRef = useRef<AccountClient | null>(null);
-  if (!clientRef.current)
-    clientRef.current = new AccountClient(bootstrap, onExpired);
-  const mounted = useRef(true);
-  useEffect(() => {
-    // StrictMode mounts effects twice; replace a disposed queue on the next setup.
-    mounted.current = true;
-    clientRef.current = new AccountClient(bootstrap, onExpired);
-    return () => {
-      mounted.current = false;
-      clientRef.current?.dispose();
-    };
-  }, []);
+  const clientId = useRef(getClientId());
   const [route, setRoute] = useState(location.pathname + location.search);
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState(initial.current.notice);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState<(() => void) | null>(null);
-  const [confirming, setConfirming] = useState(false);
-  const confirmBusy = useRef(false);
-  const [stale, setStale] = useState(false);
-  const applySnapshot = (snapshot: AccountSnapshot) => {
-    if (!mounted.current) return;
-    stateRef.current = snapshot.state;
-    setState(snapshot.state);
-    setSchedulingWarning(snapshot.schedulingWarning || "");
-  };
+  const failNext = useRef(false);
+  const syncedOnce = useRef(false);
+  useEffect(() => {
+    if (!isSyncEnabled() || syncedOnce.current) return;
+    syncedOnce.current = true;
+    pullState(clientId.current).then((remote) => {
+      if (remote && validateState(remote)) {
+        const next = materialize(publicBootstrapState(stateRef.current, remote));
+        saveState(next);
+        stateRef.current = next;
+        setState(next);
+        if (!remote.profiles.length && next.profiles.length) pushState(clientId.current, next);
+      } else if (remote) {
+        pushState(clientId.current, stateRef.current);
+      }
+    });
+  }, []);
   const [modal, setModal] = useState<{
     title: string;
     content: ReactNode;
@@ -457,7 +311,6 @@ export default function App({
   const [loading, setLoading] = useState(false);
   const [buddyThinking, setBuddyThinking] = useState(false);
   const buddyRequestPending = useRef(false);
-  const selectionGeneration = useRef(0);
   const [health, setHealth] = useState<HealthSnapshot | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthError, setHealthError] = useState("");
@@ -476,25 +329,21 @@ export default function App({
   useEffect(() => {
     if (!state.started) return;
     const controller = new AbortController();
-    let active = true;
     setWeatherLoading(true);
     setWeatherError("");
     fetchWeather(controller.signal)
       .then((weather) => {
-        if (active && mounted.current && !controller.signal.aborted) setTodayWeather(weather);
+        if (!controller.signal.aborted) setTodayWeather(weather);
       })
       .catch((error: unknown) => {
-        if (!active || !mounted.current || controller.signal.aborted) return;
+        if (controller.signal.aborted) return;
         setTodayWeather(null);
         setWeatherError(error instanceof Error ? error.message : "Weather is unavailable.");
       })
       .finally(() => {
-        if (active && mounted.current && !controller.signal.aborted) setWeatherLoading(false);
+        if (!controller.signal.aborted) setWeatherLoading(false);
       });
-    return () => {
-      active = false;
-      controller.abort();
-    };
+    return () => controller.abort();
   }, [state.started, weatherRequest]);
   useEffect(() => {
     if (!state.started) return;
@@ -506,9 +355,7 @@ export default function App({
     const timer = setTimeout(() => setToast(""), 5000);
     return () => clearTimeout(timer);
   }, [toast]);
-  const profile = state.profiles.find(
-    (p) => p.id === state.selectedProfileId,
-  ) ||
+  const profile = state.profiles.find((p) => p.id === state.selectedProfileId) ||
     state.profiles[0] || {
       id: "",
       displayName: "No family member",
@@ -555,47 +402,54 @@ export default function App({
       expected?: string;
       success?: string;
       done?: () => void;
-      saved?: (snapshot: AccountSnapshot) => void;
+      chatReceipt?: Receipt;
     } = {},
   ) => {
-    const id = options.id || uid();
-    const profileId =
-      options.expected ||
-      (command.type === "markNotificationRead"
-        ? stateRef.current.notifications.find(
-            (notification) => notification.id === command.id,
-          )?.profileId
-        : undefined) ||
-      stateRef.current.selectedProfileId;
-    const perform = async () => {
+    const perform = () => {
       try {
-        const result = await clientRef.current!.command(command, profileId, id);
-        if (!mounted.current) return;
-        applySnapshot(result);
+        let next = execute(
+          stateRef.current,
+          command,
+          options.id || uid(),
+          options.expected,
+        );
+        if (options.chatReceipt)
+          next = execute(
+            next,
+            {
+              type: "chatMessage",
+              message: {
+                id: options.chatReceipt.actionId + "-receipt",
+                profileId: options.chatReceipt.profileId,
+                role: "assistant",
+                text: "Saved. View your updated day.",
+                contextId: context,
+                timestamp: next.now,
+                actionReceipt: options.chatReceipt,
+              },
+            },
+            options.chatReceipt.actionId + "-receipt",
+          );
+        if (failNext.current) {
+          failNext.current = false;
+          throw new Error("Could not save on this device");
+        }
+        saveState(next);
+        stateRef.current = next;
+        setState(next);
         setError("");
         setRetry(null);
         if (options.success) setToast(options.success);
-        options.saved?.(result);
         options.done?.();
+        if (isSyncEnabled()) pushState(clientId.current, next);
       } catch (e) {
-        if (!mounted.current) return;
-        if (e instanceof AccountApiError && e.status === 409) {
-          applySnapshot(clientRef.current!.snapshot);
-          setStale(true);
-          setError(
-            "Care records changed. Review the latest records and your input before confirming again.",
-          );
-          setRetry(null);
-        } else {
-          setError((e as Error).message);
-          setRetry(() => perform);
-        }
+        setError((e as Error).message);
+        setRetry(() => perform);
       }
     };
-    void perform();
+    perform();
   };
   const select = (id: string) => {
-    const intentGeneration = ++selectionGeneration.current;
     setPending(null);
     setReceipt(null);
     setContext(null);
@@ -606,7 +460,6 @@ export default function App({
       { type: "selectProfile", profileId: id },
       {
         done: () => {
-          if (intentGeneration !== selectionGeneration.current) return;
           if (
             /\/appointments\/|\/family\/|\/benefits\//.test(route) ||
             route.includes("?")
@@ -622,79 +475,102 @@ export default function App({
     sourceIds: string[] = [],
     done?: () => void,
   ) => {
-    const profileId =
-      "input" in command
-        ? command.input.profileId
-        : form?.values.profileId || stateRef.current.selectedProfileId;
-    const reviewedAction: Action = {
-      id: uid(),
-      profileId,
-      command,
-      sourceIds,
-      label,
-    };
-    const changingProfile = profileId !== stateRef.current.selectedProfileId;
-    if (changingProfile) selectionGeneration.current++;
-    const intentGeneration = selectionGeneration.current;
-    const showReview = () => {
-      if (intentGeneration !== selectionGeneration.current) return;
-      setReceipt(null);
-      setStale(false);
-      setError("");
-      setPending({ action: reviewedAction, onDone: done });
-    };
-    if (changingProfile) {
-      commit({ type: "selectProfile", profileId }, { done: showReview });
+    if (
+      "input" in command &&
+      command.input.profileId !== stateRef.current.selectedProfileId
+    ) {
+      commit({ type: "selectProfile", profileId: command.input.profileId });
       setContext(null);
       setScopePrompt(null);
-    } else showReview();
-  };
-  const confirm = async () => {
-    if (!pending || confirmBusy.current || stale) return;
-    const p = pending;
-    confirmBusy.current = true;
-    setConfirming(true);
-    try {
-      if (!p.action.proposalId) assertFreshAction(stateRef.current, p.action);
-      const result = p.action.proposalId
-        ? await clientRef.current!.confirm(
-            p.action.proposalId,
-            p.action.profileId,
-          )
-        : await clientRef.current!.command(
-            p.action.command,
-            p.action.profileId,
-            p.action.id,
-          );
-      if (!mounted.current) return;
-      applySnapshot(result);
-      setError("");
-      setRetry(null);
-      setReceipt(result.receipt || null);
-      setToast("Saved to your account");
-      setPending(null);
-      p.onDone?.();
-    } catch (e) {
-      if (!mounted.current) return;
-      if (e instanceof AccountApiError && e.status === 409) {
-        applySnapshot(clientRef.current!.snapshot);
-        setStale(true);
-        setError(
-          "Care records changed. Review the latest records and your input before confirming again.",
-        );
-      } else setError((e as Error).message);
-      setRetry(null);
-    } finally {
-      confirmBusy.current = false;
-      if (mounted.current) setConfirming(false);
     }
+    setReceipt(null);
+    setPending({
+      action: {
+        id: uid(),
+        profileId:
+          "input" in command
+            ? command.input.profileId
+            : stateRef.current.selectedProfileId,
+        command,
+        sourceIds,
+        label,
+      },
+      onDone: done,
+    });
   };
+  const confirm = () => {
+    if (!pending || stateRef.current.appliedActions.includes(pending.action.id))
+      return;
+    const p = pending;
+    try {
+      assertFreshAction(stateRef.current, p.action);
+    } catch (e) {
+      setError((e as Error).message);
+      setRetry(null);
+      return;
+    }
+    const saved: Receipt = {
+      actionId: p.action.id,
+      sourceIds: p.action.sourceIds,
+      profileId: p.action.profileId,
+      actor: "Me",
+      operation: p.action.label,
+      confirmation: true,
+      outcome: "Saved",
+      timestamp: state.now,
+    };
+    commit(p.action.command, {
+      id: p.action.id,
+      expected: p.action.profileId,
+      success: "Saved on this device",
+      chatReceipt: p.message ? saved : undefined,
+      done: () => {
+        setReceipt(saved);
+        setPending(null);
+        p.onDone?.();
+      },
+    });
+  };
+  useEffect(() => {
+    if (error && pending)
+      setReceipt({
+        actionId: pending.action.id,
+        sourceIds: pending.action.sourceIds,
+        profileId: pending.action.profileId,
+        actor: "Me",
+        operation: pending.action.label,
+        confirmation: true,
+        outcome: "Save failed",
+        timestamp: state.now,
+      });
+  }, [error]);
   const cancelPending = () => {
-    if (confirmBusy.current) return;
+    if (pending?.message) {
+      const r: Receipt = {
+        actionId: pending.action.id,
+        sourceIds: pending.action.sourceIds,
+        profileId: pending.action.profileId,
+        actor: "Me",
+        operation: pending.action.label,
+        confirmation: false,
+        outcome: "Cancelled",
+        timestamp: state.now,
+      };
+      commit({
+        type: "chatMessage",
+        message: {
+          id: uid(),
+          profileId: pending.action.profileId,
+          role: "assistant",
+          text: "No changes made",
+          contextId: context,
+          timestamp: state.now,
+          actionReceipt: r,
+        },
+      });
+    }
     setPending(null);
     setReceipt(null);
-    setError("");
-    setStale(false);
     setToast("No changes made");
   };
   const openForm = (
@@ -704,17 +580,7 @@ export default function App({
     scope?: "occurrence" | "future",
   ) => {
     setFormErrors({});
-    const ownedValues = {
-      profileId: stateRef.current.selectedProfileId,
-      ...values,
-    };
-    setForm({
-      kind,
-      values: ownedValues,
-      original: JSON.stringify(ownedValues),
-      id,
-      scope,
-    });
+    setForm({ kind, values, original: JSON.stringify(values), id, scope });
   };
   const closeForm = () => {
     if (form && JSON.stringify(form.values) !== form.original) {
@@ -745,18 +611,19 @@ export default function App({
       return;
     }
     const after = new Date(Date.parse(state.now) + 60 * 60000);
+    const localAfter = new Date(after.getTime() + 8 * 3600000).toISOString();
     const time =
       r?.scheduledAt ||
       (a && preparationTime(state, a.startsAt)) ||
-      after.toISOString();
+      isoAt(localAfter.slice(0, 10), localAfter.slice(11, 16));
     openForm(
       "reminder",
       {
         profileId: r?.profileId || a?.profileId || state.selectedProfileId,
         category: r?.category || (a ? "Appointment preparation" : "Other"),
         title: r?.title || (a ? a.title + " preparation" : ""),
-        date: local(time).date,
-        time: local(time).time,
+        date: time.slice(0, 10),
+        time: time.slice(11, 16),
         recurrence: r?.recurrence || "None",
         instructions: r?.instructions || "",
         appointmentId: r?.appointmentId || appointmentId || "",
@@ -772,7 +639,7 @@ export default function App({
     (r) => r.profileId === profile.id && !r.deletedAt,
   );
   const todayReminders = reminders
-    .filter((r) => r.occurrenceDate === day(state.now, timeZone))
+    .filter((r) => r.occurrenceDate === state.now.slice(0, 10))
     .sort(
       (a, b) =>
         Date.parse(notificationTime(a)) - Date.parse(notificationTime(b)),
@@ -863,15 +730,13 @@ export default function App({
       title: "About Care Buddy",
       content: (
         <>
+          <p>Fictional data only. Not a medical or insurance service.</p>
           <p>
-            Your care records are saved to your account. Not a medical or
-            insurance service.
-          </p>
-          <p>
-            Buddy uses your account records to help organize care. It is not
-            connected to WorkBuddy directly. Buddy AI uses your account records.
-            Benefits and appointment records require provider confirmation.
-            Changes are saved to your account.
+            This is a prototype with fictional records and a reference clock.
+            Buddy uses local rules and current records; it is not connected to
+            WorkBuddy or a live AI model. Benefits, appointment requests, alerts
+            and car connection are illustrative. All changes stay on this
+            device.
           </p>
           <p>
             Care Buddy helps organise routine care. It does not assess symptoms,
@@ -897,13 +762,13 @@ export default function App({
       minute: "2-digit",
       second: "2-digit",
       hour12: false,
-      timeZone,
+      timeZone: "Asia/Singapore",
     });
     const weatherBanner = (
       <WeatherBanner weather={todayWeather} loading={weatherLoading} error={weatherError}
         onRetry={() => setWeatherRequest((request) => request + 1)} />
     );
-    const sleepReviewKey = `${profile.id}:${day(state.now, timeZone)}`;
+    const sleepReviewKey = `${profile.id}:${state.now.slice(0, 10)}`;
     if (!profile.id) {
       return (
         <>
@@ -912,7 +777,7 @@ export default function App({
               weekday: "long",
               day: "numeric",
               month: "long",
-              timeZone,
+              timeZone: "Asia/Singapore",
             }).format(new Date(state.now))}
           </div>
           <h1>Welcome to Care Buddy</h1>
@@ -924,11 +789,14 @@ export default function App({
             <h2>Get started</h2>
             <p>
               Care Buddy helps you track care for the people you support —
-              routines, appointments, benefits, and health context. Use care
-              records in your account.
+              routines, appointments, benefits, and health context. Use
+              fictional names only.
             </p>
             <div className="actions">
-              <button className="primary" onClick={() => go("/family")}>
+              <button
+                className="primary"
+                onClick={() => go("/family")}
+              >
                 <Icon name="plus" /> Add a family member
               </button>
             </div>
@@ -944,12 +812,13 @@ export default function App({
               weekday: "long",
               day: "numeric",
               month: "long",
-              timeZone,
+              timeZone: "Asia/Singapore",
             }).format(new Date(state.now))}
           </div>
           <div className="live-clock">{fmtClock.format(liveTime)}</div>
         </div>
         {weatherBanner}
+        {state.scenario === "public-demo" && <p className="helper">Sample care space · Medication and routines are fictional.</p>}
         {!profile.canManage && (
           <div className="notice">
             You can view reminders, but cannot update this profile.
@@ -1075,7 +944,7 @@ export default function App({
             </button>
           </div>
         )}
-        {!dismissedSleepReviews.includes(sleepReviewKey) && (
+        {(
           <div className="today-notifications">
             <div className="notif-card notif-sleep">
               <div className="notif-icon" aria-hidden="true">🌙</div>
@@ -1086,12 +955,6 @@ export default function App({
               <div className="notif-actions">
                 <button className="btn-green" onClick={() => go("/health/sleep")}>
                   <Icon name="search" /> Review Sleep
-                </button>
-                <button
-                  className="btn-remind-later"
-                  onClick={() => setDismissedSleepReviews((reviews) => [...reviews, sleepReviewKey])}
-                >
-                  Dismiss
                 </button>
               </div>
             </div>
@@ -1143,7 +1006,7 @@ export default function App({
           )}
           {appointments.filter(
             (a) =>
-              local(a.startsAt).date === day(state.now, timeZone) &&
+              a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
               Date.parse(a.startsAt) >= Date.parse(state.now),
           ).length > 0 && (
             <section className="timeline-group">
@@ -1151,7 +1014,7 @@ export default function App({
               {appointments
                 .filter(
                   (a) =>
-                    local(a.startsAt).date === day(state.now, timeZone) &&
+                    a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
                     Date.parse(a.startsAt) >= Date.parse(state.now),
                 )
                 .map((a) => (
@@ -1230,12 +1093,14 @@ export default function App({
                   },
                   member.canManage
                     ? `Change ${member.displayName} to view only? You will no longer be able to record outcomes or edit reminders for them.`
-                    : `Grant manage access for ${member.displayName}? You will be able to add reminders, record outcomes, and edit benefits for them in your account.`,
+                    : `Grant manage access for ${member.displayName}? You will be able to add reminders, record outcomes, and edit benefits for them on this device.`,
                   [member.id],
                 )
               }
             >
-              {member.canManage ? "Change to view only" : "Grant manage access"}
+              {member.canManage
+                ? "Change to view only"
+                : "Grant manage access"}
             </button>
           )}
           {!member.canManage && member.id !== "p-me" && (
@@ -1263,7 +1128,7 @@ export default function App({
               (r) =>
                 r.profileId === member.id &&
                 !r.deletedAt &&
-                r.occurrenceDate === day(state.now, timeZone),
+                r.occurrenceDate === state.now.slice(0, 10),
             )
             .map(reminderRow)}
           <h2>Upcoming appointments</h2>
@@ -1293,7 +1158,7 @@ export default function App({
                 onClick={() =>
                   action(
                     { type: "removeDependent", id: member.id },
-                    `Remove ${member.displayName}? This removes their care records from your account.`,
+                    `Remove ${member.displayName}? This only removes fictional data from this browser.`,
                     [member.id],
                     () => go("/family"),
                   )
@@ -1340,7 +1205,7 @@ export default function App({
                 onClick={() =>
                   action(
                     { type: "removeDependent", id: p.id },
-                    `Remove ${p.displayName}? This removes their care records from your account.`,
+                    `Remove ${p.displayName}? This only removes fictional data from this browser.`,
                     [p.id],
                     () => go("/family"),
                   )
@@ -1366,8 +1231,8 @@ export default function App({
           Add dependent
         </button>
         <p className="helper">
-          Profiles and permissions are managed by you in your account, not
-          production security.
+          Use fictional names. Permissions in this prototype are local fixtures,
+          not production security.
         </p>
       </>
     );
@@ -1391,13 +1256,12 @@ export default function App({
           <p>{a.locationLabel}</p>
           <p className="helper">Confirm the location with the provider.</p>
           <div className="notice">
-            Appointment record in your account. Provider confirmation: Not
-            confirmed.
+            Local appointment record. Provider confirmation: Not confirmed.
           </div>
           <p className="helper">
             Record origin:{" "}
             {a.recordOrigin === "user-saved"
-              ? "User-saved account record"
+              ? "User-saved local record"
               : "Initial care record"}
           </p>
         </div>
@@ -1405,21 +1269,15 @@ export default function App({
         <p className="helper">
           Contact the provider for medical preparation instructions.
         </p>
-        {(
-          a.checklistItems?.map((item) => item.label) ?? [
-            "Review instructions from the provider",
-            "Bring documents requested by the provider",
-            "Confirm transport plans",
-          ]
-        ).map((label, i) => (
+        {[
+          "Review instructions from the provider",
+          "Bring documents requested by the provider",
+          "Confirm transport plans",
+        ].map((label, i) => (
           <label className="check-row" key={label}>
             <input
               type="checkbox"
-              checked={
-                a.checklistItems
-                  ? a.checklistItems[i].completed
-                  : a.checklist[i]
-              }
+              checked={a.checklist[i]}
               disabled={!profile.canManage}
               onChange={() =>
                 commit(
@@ -1471,8 +1329,8 @@ export default function App({
                 "appointment",
                 {
                   title: a.title,
-                  date: local(a.startsAt).date,
-                  time: local(a.startsAt).time,
+                  date: a.startsAt.slice(0, 10),
+                  time: a.startsAt.slice(11, 16),
                   location: a.locationLabel,
                 },
                 a.id,
@@ -1624,6 +1482,28 @@ export default function App({
       </>
     );
   }
+  const applyReply = (
+    reply: { text: string; sourceId?: string; needsScope?: boolean; action?: Action },
+    sentText: string,
+  ) => {
+    commit({
+      type: "chatMessage",
+      message: {
+        id: uid(),
+        profileId: profile.id,
+        role: "assistant",
+        text: reply.text,
+        contextId: reply.sourceId || context,
+        timestamp: stateRef.current.now,
+      },
+    });
+    setDraft("");
+    if (reply.needsScope) setScopePrompt(sentText);
+    if (reply.action) {
+      setReceipt(null);
+      setPending({ action: reply.action, message: sentText });
+    }
+  };
   const send = async (text: string, scope?: "occurrence" | "future") => {
     text = text.trim();
     if (!text || buddyRequestPending.current) return;
@@ -1631,33 +1511,39 @@ export default function App({
     setBuddyThinking(true);
     setError("");
     const requestProfileId = profile.id;
-    const requestGeneration = selectionGeneration.current;
+    const sentText = text;
+    commit({
+      type: "chatMessage",
+      message: {
+        id: uid(),
+        profileId: profile.id,
+        role: "user",
+        text: sentText,
+        contextId: context,
+        timestamp: stateRef.current.now,
+      },
+    });
     try {
-      const reply = await interpretBuddyMessage(
-        clientRef.current!,
-        text,
-        requestProfileId,
+      const backendReply = await interpretBuddyMessage(
+        stateRef.current,
+        sentText,
         context,
         scope,
       );
-      if (!mounted.current) return;
-      applyBuddyReplyForSelection(requestGeneration, () => selectionGeneration.current, reply, applySnapshot, currentReply => {
-        setDraft("");
-        setScopePrompt(currentReply.needsScope ? text : null);
-        if (currentReply.action) {
-          setReceipt(null);
-          setStale(false);
-          setPending({ action: currentReply.action, message: text });
-        }
-      });
-    } catch (e) {
-      if (!mounted.current) return;
-      if (e instanceof AccountApiError && e.status === 409)
-        applySnapshot(clientRef.current!.snapshot);
-      if (requestGeneration === selectionGeneration.current) setError((e as Error).message);
+      if (stateRef.current.selectedProfileId === requestProfileId) {
+        applyReply(backendReply, sentText);
+      }
+    } catch (error) {
+      if (stateRef.current.selectedProfileId === requestProfileId) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Buddy could not complete the request.",
+        );
+      }
     } finally {
       buddyRequestPending.current = false;
-      if (mounted.current) setBuddyThinking(false);
+      setBuddyThinking(false);
     }
   };
   function renderBuddy() {
@@ -1735,12 +1621,7 @@ export default function App({
                           Care Buddy explanation · For: {profile.displayName} ·
                           Actor: Me
                         </p>
-                        <p>
-                          Information used:{" "}
-                          {state.benefits.find(
-                            (benefit) => benefit.id === m.contextId,
-                          )?.category || "Selected care record"}
-                        </p>
+                        <p>Information used: {m.contextId}</p>
                         <p>No changes saved. Eligibility not verified.</p>
                         <p>Recorded at: {m.timestamp}</p>
                       </details>
@@ -1756,6 +1637,7 @@ export default function App({
               <button
                 onClick={() => {
                   send(scopePrompt, "occurrence");
+                  setScopePrompt(null);
                 }}
               >
                 Tonight only
@@ -1763,6 +1645,7 @@ export default function App({
               <button
                 onClick={() => {
                   send(scopePrompt, "future");
+                  setScopePrompt(null);
                 }}
               >
                 Regular schedule
@@ -1819,9 +1702,7 @@ export default function App({
             {buddyThinking ? "Sending…" : "Send"}
           </button>
         </form>
-        <p className="helper">
-          Messages and actions are linked to the selected person.
-        </p>
+        <p className="helper">Messages and actions are linked to the selected person.</p>
       </>
     );
   }
@@ -1831,7 +1712,7 @@ export default function App({
         <h1>Settings</h1>
         <div className="notice">
           {pwa.offline
-            ? "Offline · reconnect to save account records"
+            ? "Offline · using saved records"
             : pwa.ready
               ? "Offline app ready"
               : "Offline app preparing"}
@@ -1840,11 +1721,32 @@ export default function App({
           )}
         </div>
         <div className="detail-panel">
-          <h2>Account</h2>
+          <h2>Reference clock</h2>
           <p>
-            {bootstrap.user.displayName} · {bootstrap.user.username}
+            Reference clock: {formatDate(state.now)}, {formatTime(state.now)}
           </p>
-          <button onClick={onSignOut}>Sign out</button>
+          <div className="actions">
+            <button
+              onClick={() =>
+                commit(
+                  { type: "advanceClock" },
+                  { success: "Reference clock advanced 15 minutes" },
+                )
+              }
+            >
+              Advance 15 minutes
+            </button>
+            <button
+              onClick={() =>
+                commit(
+                  { type: "restoreClock" },
+                  { success: "Reference clock restored" },
+                )
+              }
+            >
+              Restore clock
+            </button>
+          </div>
         </div>
         <div className="settings-list">
           <button onClick={about}>
@@ -1860,7 +1762,7 @@ export default function App({
         <details className="detail-panel skill-handoff">
           <summary>WorkBuddy handoff</summary>
           <p className="helper">
-            Export care context, run an installed skill in WorkBuddy, then
+            Export fictional context, run an installed skill in WorkBuddy, then
             import its JSON proposal. Review and confirm here to save. A live
             WorkBuddy connection is not configured.
           </p>
@@ -1899,27 +1801,18 @@ export default function App({
                 try {
                   if (file.size > 2000000)
                     throw new Error("Choose a proposal under 2 MB.");
-                  const contents = await file.text();
-                  if (!mounted.current) return;
                   const proposal = importSkillProposal(
                     stateRef.current,
-                    JSON.parse(contents),
+                    JSON.parse(await file.text()),
                   );
                   setError("");
                   setRetry(null);
                   setReceipt(null);
-                  setStale(false);
                   setPending({
-                    action: {
-                      ...proposal,
-                      id: uid(),
-                      proposalId: undefined,
-                      revision: undefined,
-                      preview: undefined,
-                    },
+                    action: proposal,
+                    message: "WorkBuddy package proposal import",
                   });
                 } catch (error) {
-                  if (!mounted.current) return;
                   setError((error as Error).message);
                   setRetry(null);
                 }
@@ -1932,7 +1825,7 @@ export default function App({
           onClick={() =>
             action(
               { type: "reset" },
-              "Reset account records? All care records in your account will be removed.",
+              "Reset local records? All changes on this device will be removed.",
               [],
               () => {
                 setContext(null);
@@ -1941,11 +1834,11 @@ export default function App({
             )
           }
         >
-          Reset account records
+          Reset local records
         </button>
         <p className="helper">
-          Profile access is managed in your account. Insurer verification,
-          provider bookings and vehicle connections are not connected.
+          No real permissions, patient data, insurer checks, bookings or vehicle
+          connections.
         </p>
       </>
     );
@@ -1954,41 +1847,21 @@ export default function App({
     if (!profile.id) return;
     setHealthLoading(true);
     setHealthError("");
-    const requestedProfileId = profile.id;
-    fetchHealthSnapshot(clientRef.current!, profile.id)
+    fetchHealthSnapshot(stateRef.current, profile.id)
       .then((snap) => {
-        if (
-          !mounted.current ||
-          stateRef.current.selectedProfileId !== requestedProfileId
-        )
-          return;
         if (snap) {
           setHealth(snap);
         } else {
-          setHealthError(
-            "Live stats unavailable. Reconnect a wearable or retry.",
-          );
+          setHealthError("Live stats unavailable. Reconnect a wearable or retry.");
         }
       })
-      .catch(
-        () =>
-          mounted.current &&
-          stateRef.current.selectedProfileId === requestedProfileId &&
-          setHealthError(
-            "Live stats unavailable. Reconnect a wearable or retry.",
-          ),
+      .catch(() =>
+        setHealthError("Live stats unavailable. Reconnect a wearable or retry."),
       )
-      .finally(() => {
-        if (
-          mounted.current &&
-          stateRef.current.selectedProfileId === requestedProfileId
-        )
-          setHealthLoading(false);
-      });
+      .finally(() => setHealthLoading(false));
   }
   useEffect(() => {
     if (path !== "/health") return;
-    let active = true;
     setHealth(null);
     setHealthError("");
     if (!profile.id) {
@@ -1996,41 +1869,15 @@ export default function App({
       return;
     }
     setHealthLoading(true);
-    const requestedProfileId = profile.id;
-    fetchHealthSnapshot(clientRef.current!, profile.id)
+    fetchHealthSnapshot(stateRef.current, profile.id)
       .then((snap) => {
-        if (
-          !active ||
-          !mounted.current ||
-          stateRef.current.selectedProfileId !== requestedProfileId
-        )
-          return;
         if (snap) setHealth(snap);
-        else
-          setHealthError(
-            "Live stats unavailable. Reconnect a wearable or retry.",
-          );
+        else setHealthError("Live stats unavailable. Reconnect a wearable or retry.");
       })
-      .catch(
-        () =>
-          active &&
-          mounted.current &&
-          stateRef.current.selectedProfileId === requestedProfileId &&
-          setHealthError(
-            "Live stats unavailable. Reconnect a wearable or retry.",
-          ),
+      .catch(() =>
+        setHealthError("Live stats unavailable. Reconnect a wearable or retry."),
       )
-      .finally(() => {
-        if (
-          active &&
-          mounted.current &&
-          stateRef.current.selectedProfileId === requestedProfileId
-        )
-          setHealthLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+      .finally(() => setHealthLoading(false));
   }, [path, profile.id, state.now]);
   function renderHealth() {
     const reading = health?.reading;
@@ -2124,15 +1971,11 @@ export default function App({
                 <div className="stat-card">
                   <span className="stat-label">Sleep</span>
                   <span className="stat-value">{reading.sleepHours}</span>
-                  <span className="stat-unit">
-                    hours · {reading.sleepQuality}
-                  </span>
+                  <span className="stat-unit">hours · {reading.sleepQuality}</span>
                 </div>
                 <div className="stat-card">
                   <span className="stat-label">Steps</span>
-                  <span className="stat-value">
-                    {reading.steps.toLocaleString()}
-                  </span>
+                  <span className="stat-value">{reading.steps.toLocaleString()}</span>
                   <span className="stat-unit">today</span>
                 </div>
               </div>
@@ -2340,7 +2183,7 @@ export default function App({
           <button
             className="primary"
             onClick={() =>
-              openForm("gp", local(new Date(Date.parse(state.now) + 60 * 60000).toISOString()))
+              openForm("gp", { date: "2026-10-01", time: "10:00" })
             }
           >
             Preview appointment request
@@ -2363,10 +2206,8 @@ export default function App({
         stateRef.current.profiles.some((p) => p.id === id && p.canView) &&
         stateRef.current.selectedProfileId !== id
       ) {
-        selectionGeneration.current++;
         setPending(null);
         setContext(null);
-        setScopePrompt(null);
         commit({ type: "selectProfile", profileId: id });
       }
     }
@@ -2387,21 +2228,14 @@ export default function App({
     const timeCheck = () => {
       if (!v.date) errors.date = "Choose a date";
       if (!v.time) errors.time = "Choose a time";
-      if (v.date && v.time) {
-        try {
-          if (Date.parse(isoAt(v.date, v.time)) <= Date.parse(state.now))
-            errors.time = "Choose a time in the future";
-        } catch (cause) {
-          errors.time = cause instanceof Error ? cause.message : "Choose a valid date and time";
-        }
-      }
+      if (v.date && v.time && isoAt(v.date, v.time) <= state.now)
+        errors.time = "Choose a time after the current reference time";
     };
     let command: Command | undefined;
     let label = "";
     if (form.kind === "reminder") {
       titleCheck();
       timeCheck();
-      if (errors.date || errors.time) { setFormErrors(errors); return; }
       if (v.instructions.length > 500)
         errors.instructions = "Keep instructions within 500 characters";
       const input: ReminderInput = {
@@ -2431,73 +2265,46 @@ export default function App({
       if (v.displayName.trim().length < 2 || v.displayName.trim().length > 40)
         errors.displayName = "Enter a display name with 2 to 40 characters";
       if (v.acknowledged !== "yes")
-        errors.acknowledged =
-          "Confirm you are adding this person to your care records";
+        errors.acknowledged = "Confirm this is fictional data";
       command = {
         type: "addDependent",
         displayName: v.displayName.trim(),
         relationship: v.relationship,
         acknowledged: v.acknowledged === "yes",
       };
-      label = "Add dependent " + v.displayName + " with view access?";
+      label = "Add fictional dependent " + v.displayName + " with view access?";
     }
     if (form.kind === "appointment") {
       titleCheck();
       timeCheck();
-      if (errors.date || errors.time) { setFormErrors(errors); return; }
-      command = form.id
-        ? {
-            type: "editAppointment",
-            id: form.id,
-            title: v.title.trim(),
-            startsAt: isoAt(v.date, v.time),
-            locationLabel: v.location.trim(),
-          }
-        : {
-            type: "createAppointment",
-            input: {
-              profileId: v.profileId,
-              category: v.category || "other",
-              title: v.title.trim(),
-              startsAt: isoAt(v.date, v.time),
-              locationLabel: v.location.trim(),
-            },
-          };
+      command = {
+        type: "editAppointment",
+        id: form.id!,
+        title: v.title.trim(),
+        startsAt: isoAt(v.date, v.time),
+        locationLabel: v.location.trim(),
+      };
       label =
         "Update in Care Buddy for " +
         profile.displayName +
-        "? This updates your account record. No provider has been contacted.";
+        "? This updates your record on this device only. No provider has been contacted.";
     }
     if (form.kind === "benefitNote") {
       if (!v.category.trim()) errors.category = "Enter a category";
       if (v.notes.length > 500)
         errors.notes = "Keep notes within 500 characters";
-      command = form.id
-        ? { type: "updateBenefitNote", id: form.id, notes: v.notes.trim() }
-        : {
-            type: "addBenefitNote",
-            category: v.category.trim(),
-            notes: v.notes.trim(),
-          };
+      command = {
+        type: "addBenefitNote",
+        category: v.category.trim(),
+        notes: v.notes.trim(),
+      };
       label =
         "Add benefit note for " +
         profile.displayName +
         "? Eligibility remains unverified.";
     }
-    if (form.kind === "checklist") {
-      const items = Array.from({ length: Number(v.count) }, (_, index) => ({
-        id: v["itemId" + index],
-        label: v["itemLabel" + index].trim(),
-        completed: v["itemDone" + index] === "yes",
-      }));
-      if (items.some((item) => !item.label))
-        errors.items = "Enter a label for every checklist item";
-      command = { type: "updateChecklist", id: form.id!, items };
-      label = "Update preparation checklist for " + person(v.profileId) + "?";
-    }
     if (form.kind === "gp") {
       timeCheck();
-      if (errors.date || errors.time) { setFormErrors(errors); return; }
       if (!Object.keys(errors).length) {
         setForm(null);
         setModal({
@@ -2525,7 +2332,6 @@ export default function App({
       setForm(null);
       setLoading(true);
       setTimeout(() => {
-        if (!mounted.current) return;
         setLoading(false);
         b
           ? go("/benefits/" + b.id)
@@ -2599,9 +2405,7 @@ export default function App({
                 ? "Preview appointment request"
                 : form.kind === "benefitNote"
                   ? "Add benefit note"
-                  : form.kind === "checklist"
-                    ? "Edit preparation checklist"
-                    : "Check benefits"
+                  : "Check benefits"
       }
       onClose={closeForm}
     >
@@ -2617,8 +2421,8 @@ export default function App({
               <div className="notice">
                 <strong>No family member to add a reminder for.</strong>
                 <p>
-                  Add a family member first, then grant manage access so you can
-                  record outcomes and edit their care.
+                  Add a family member first, then grant manage access so you
+                  can record outcomes and edit their care.
                 </p>
                 <div className="actions">
                   <button
@@ -2704,7 +2508,9 @@ export default function App({
                 ))}
               </select>
             </label>
-            <p className="helper">Add a person to your care records.</p>
+            <p className="helper">
+              Use a fictional name. Do not enter real health information.
+            </p>
             <label className="check-row">
               <input
                 type="checkbox"
@@ -2713,34 +2519,11 @@ export default function App({
                   change("acknowledged", e.target.checked ? "yes" : "")
                 }
               />
-              I am adding this person to my care records
+              This is fictional data
             </label>
             {formErrors.acknowledged && (
               <p className="field-error">{formErrors.acknowledged}</p>
             )}
-          </>
-        )}
-        {form.kind === "checklist" && (
-          <>
-            <p>For: {person(form.values.profileId)}</p>
-            {Array.from({ length: Number(form.values.count) }, (_, index) => (
-              <div key={index}>
-                {field("itemLabel" + index, "Checklist item " + (index + 1))}
-                <label className="check-row">
-                  <input
-                    type="checkbox"
-                    checked={form.values["itemDone" + index] === "yes"}
-                    onChange={(event) =>
-                      change(
-                        "itemDone" + index,
-                        event.target.checked ? "yes" : "",
-                      )
-                    }
-                  />
-                  Complete
-                </label>
-              </div>
-            ))}
           </>
         )}
         {form.kind === "appointment" && (
@@ -2751,7 +2534,7 @@ export default function App({
               {field("date", "Date", "date")}
               {field("time", "Time", "time")}
             </div>
-            {field("location", "Location label")}
+            {field("location", "Fictional location label")}
             <p className="helper">
               No provider has been contacted. Review linked preparation
               reminders; their times will not move automatically.
@@ -2929,8 +2712,7 @@ export default function App({
           About Care Buddy
         </button>
         <p className="helper">
-          Your care records are saved to your account. Not a medical or
-          insurance service.
+          Fictional data only. Not a medical or insurance service.
         </p>
         {modal && (
           <Sheet title={modal.title} onClose={() => setModal(null)}>
@@ -3065,11 +2847,6 @@ export default function App({
                 </span>
               </>
             )}
-          </div>
-        )}
-        {(schedulingWarning || state.schedulingWarnings?.length) && (
-          <div className="notice" role="alert">
-            {schedulingWarning || state.schedulingWarnings?.join(" ")}
           </div>
         )}
         {error && !pending && (
@@ -3395,7 +3172,10 @@ export default function App({
                 key={n}
                 onClick={() => {
                   const d = new Date(new Date(state.now).getTime() + n * 60000);
-                  const until = d.toISOString();
+                  const local = new Date(d.getTime() + 8 * 3600000)
+                    .toISOString()
+                    .slice(0, 16);
+                  const until = local + ":00+08:00";
                   action(
                     { type: "snoozeReminder", id: snooze.id, until },
                     "Notify " +
@@ -3421,13 +3201,12 @@ export default function App({
             />
           </label>
           <button
-            onClick={() => {
-              try {
-                action(
+            onClick={() =>
+              action(
                 {
                   type: "snoozeReminder",
                   id: snooze.id,
-                  until: isoAt(day(state.now, timeZone), snoozeTime),
+                  until: isoAt(state.now.slice(0, 10), snoozeTime),
                 },
                 "Notify " +
                   profile.displayName +
@@ -3436,11 +3215,8 @@ export default function App({
                   "?",
                 [snooze.id],
                 () => setSnooze(null),
-              );
-              } catch (cause) {
-                setError(cause instanceof Error ? cause.message : "Choose a valid time");
-              }
-            }}
+              )
+            }
           >
             Review chosen time
           </button>
@@ -3451,8 +3227,8 @@ export default function App({
           <p>
             For:{" "}
             {pending.action.command.type === "addDependent"
-              ? (pending.action.command as { displayName: string })
-                  .displayName + " (new)"
+              ? (pending.action.command as { displayName: string }).displayName +
+                " (new)"
               : person(pending.action.profileId)}{" "}
             · Actor: Me
           </p>
@@ -3501,8 +3277,7 @@ export default function App({
               </p>
             </div>
           )}
-          {(pending.action.command.type === "createReminder" ||
-            pending.action.command.type === "editReminder") && (
+          {"input" in pending.action.command && (
             <>
               <h3>{pending.action.command.input.title}</h3>
               <p>
@@ -3510,10 +3285,6 @@ export default function App({
                 {formatTime(pending.action.command.input.scheduledAt)}
               </p>
               <p>Repeat: {pending.action.command.input.recurrence}</p>
-              <p>
-                Instructions:{" "}
-                {pending.action.command.input.instructions || "None"}
-              </p>
               {pending.action.command.type === "editReminder" && (
                 <>
                   <p>
@@ -3542,82 +3313,16 @@ export default function App({
               )}
             </>
           )}
-          {pending.action.preview ? (
-            <ProposalPreview state={state} preview={pending.action.preview} />
-          ) : pending.action.command.type === "createAppointment" ? (
-            <ProposalPreview
-              state={state}
-              preview={{ before: null, after: pending.action.command.input }}
-            />
-          ) : pending.action.command.type === "editAppointment" ||
-            pending.action.command.type === "updateChecklist" ||
-            pending.action.command.type === "updateBenefitNote" ? (
-            <ProposalPreview
-              state={state}
-              preview={{
-                before: [...state.appointments, ...state.benefits].find(
-                  (item) =>
-                    item.id === (pending.action.command as { id: string }).id,
-                ),
-                after:
-                  pending.action.command.type === "updateChecklist"
-                    ? { checklistItems: pending.action.command.items }
-                    : pending.action.command,
-              }}
-            />
-          ) : pending.action.command.type === "addBenefitNote" ? (
-            <ProposalPreview
-              state={state}
-              preview={{ before: null, after: pending.action.command }}
-            />
-          ) : null}
           {receipt && <ReceiptView receipt={receipt} state={state} />}
-          {stale &&
-            (pending.action.proposalId ? (
-              <p className="helper">
-                Cancel this proposal and ask Buddy again using the latest
-                records.
-              </p>
-            ) : (
-              <button
-                onClick={() => {
-                  setPending((p) =>
-                    p
-                      ? {
-                          ...p,
-                          action: {
-                            ...p.action,
-                            id: uid(),
-                            expectedClock: undefined,
-                            expectedSources: undefined,
-                          },
-                        }
-                      : null,
-                  );
-                  setStale(false);
-                  setError("");
-                }}
-              >
-                I have reviewed the latest records and this change
-              </button>
-            ))}
           <div className="actions">
-            <button
-              className="primary"
-              onClick={confirm}
-              disabled={confirming || stale}
-            >
-              {confirming ? "Saving…" : error ? "Retry" : "Confirm"}
+            <button className="primary" onClick={confirm}>
+              {error ? "Retry" : "Confirm"}
             </button>
-            {(pending.action.command.type === "createReminder" ||
-              pending.action.command.type === "editReminder") && (
+            {"input" in pending.action.command && (
               <button
                 onClick={() => {
                   const c = pending.action.command;
-                  if (
-                    c.type === "createReminder" ||
-                    c.type === "editReminder"
-                  ) {
+                  if ("input" in c) {
                     const r =
                       c.type === "editReminder"
                         ? state.reminders.find((r) => r.id === c.id)
@@ -3635,8 +3340,8 @@ export default function App({
                               ...f.values,
                               ...c.input,
                               appointmentId: c.input.appointmentId || "",
-                              date: local(c.input.scheduledAt).date,
-                              time: local(c.input.scheduledAt).time,
+                              date: c.input.scheduledAt.slice(0, 10),
+                              time: c.input.scheduledAt.slice(11, 16),
                             },
                           }
                         : f,
@@ -3647,80 +3352,7 @@ export default function App({
                 Edit
               </button>
             )}
-            {[
-              "createAppointment",
-              "editAppointment",
-              "updateChecklist",
-              "addBenefitNote",
-              "updateBenefitNote",
-            ].includes(pending.action.command.type) && (
-              <button
-                disabled={confirming}
-                onClick={() => {
-                  const c = pending.action.command;
-                  const owner = pending.action.profileId;
-                  setPending(null);
-                  setError("");
-                  setStale(false);
-                  if (c.type === "createAppointment")
-                    openForm("appointment", {
-                      profileId: owner,
-                      category: c.input.category,
-                      title: c.input.title,
-                      date: local(c.input.startsAt).date,
-                      time: local(c.input.startsAt).time,
-                      location: c.input.locationLabel,
-                    });
-                  if (c.type === "editAppointment")
-                    openForm(
-                      "appointment",
-                      {
-                        profileId: owner,
-                        title: c.title,
-                        date: local(c.startsAt).date,
-                        time: local(c.startsAt).time,
-                        location: c.locationLabel,
-                      },
-                      c.id,
-                    );
-                  if (c.type === "addBenefitNote")
-                    openForm("benefitNote", {
-                      profileId: owner,
-                      category: c.category,
-                      notes: c.notes,
-                    });
-                  if (c.type === "updateBenefitNote")
-                    openForm(
-                      "benefitNote",
-                      {
-                        profileId: owner,
-                        category:
-                          state.benefits.find((b) => b.id === c.id)?.category ||
-                          "other",
-                        notes: c.notes,
-                      },
-                      c.id,
-                    );
-                  if (c.type === "updateChecklist") {
-                    const values: Record<string, string> = {
-                      profileId: owner,
-                      count: String(c.items.length),
-                    };
-                    c.items.forEach((item, index) => {
-                      values["itemId" + index] = item.id;
-                      values["itemLabel" + index] = item.label;
-                      values["itemDone" + index] = item.completed ? "yes" : "";
-                    });
-                    openForm("checklist", values, c.id);
-                  }
-                }}
-              >
-                Edit
-              </button>
-            )}
-            <button onClick={cancelPending} disabled={confirming}>
-              Cancel
-            </button>
+            <button onClick={cancelPending}>Cancel</button>
           </div>
         </Sheet>
       )}
