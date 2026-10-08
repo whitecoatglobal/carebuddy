@@ -156,6 +156,7 @@ export interface ReminderInput {
 }
 export type Command =
   | { type: "start" }
+  | { type: "createSelfProfile"; displayName: string; acknowledged: boolean }
   | { type: "reset" }
   | { type: "selectProfile"; profileId: string }
   | { type: "createReminder"; input: ReminderInput }
@@ -185,7 +186,9 @@ export type Command =
   | {
       type: "updateDependent";
       id: string;
-      patch: Partial<Pick<Profile, "displayName" | "relationship" | "canManage">>;
+      patch: Partial<
+        Pick<Profile, "displayName" | "relationship" | "canManage">
+      >;
     }
   | { type: "removeDependent"; id: string }
   | { type: "toggleChecklist"; id: string; index: number }

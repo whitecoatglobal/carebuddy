@@ -559,6 +559,27 @@ export function execute(
       r.history.push(event(r.profileId, "Deletion undone"));
       break;
     }
+    case "createSelfProfile": {
+      if (!c.acknowledged) throw new Error("Confirm this is fictional data");
+      const name = c.displayName.trim();
+      if (name.length < 2 || name.length > 40)
+        throw new Error("Enter a name with 2 to 40 characters");
+      if (s.profiles.some((p) => p.id === "p-me" || p.relationship === "Self"))
+        throw new Error("Your own care profile is already set up");
+      s.profiles.unshift({
+        id: "p-me",
+        displayName: name,
+        relationship: "Self",
+        canView: true,
+        canManage: true,
+      });
+      s.selectedProfileId = "p-me";
+      s.started = true;
+      s.activity.push(
+        event("p-me", "Own care profile created with a fictional display name"),
+      );
+      break;
+    }
     case "addDependent": {
       if (!c.acknowledged)
         throw new Error("Confirm this is a fictional demo name");
@@ -599,7 +620,10 @@ export function execute(
       )
         throw new Error("Choose a relationship");
       const changes: string[] = [];
-      if (patch.displayName !== undefined && patch.displayName.trim() !== p.displayName) {
+      if (
+        patch.displayName !== undefined &&
+        patch.displayName.trim() !== p.displayName
+      ) {
         changes.push(`renamed to ${patch.displayName.trim()}`);
         p.displayName = patch.displayName.trim();
       }
@@ -611,7 +635,9 @@ export function execute(
         p.relationship = patch.relationship;
       }
       if (patch.canManage !== undefined && patch.canManage !== p.canManage) {
-        changes.push(patch.canManage ? "granted manage access" : "changed to view only");
+        changes.push(
+          patch.canManage ? "granted manage access" : "changed to view only",
+        );
         p.canManage = patch.canManage;
       }
       if (changes.length) {
@@ -939,13 +965,17 @@ export function buildChatAction(
     )
   ) {
     const a =
-      s.appointments.find((a: Appointment) => a.id === contextId && a.profileId === p.id) ||
+      s.appointments.find(
+        (a: Appointment) => a.id === contextId && a.profileId === p.id,
+      ) ||
       s.appointments
         .filter(
           (a: Appointment) =>
             a.profileId === p.id && Date.parse(a.startsAt) > Date.parse(s.now),
         )
-        .sort((a: Appointment, b: Appointment) => a.startsAt.localeCompare(b.startsAt))[0];
+        .sort((a: Appointment, b: Appointment) =>
+          a.startsAt.localeCompare(b.startsAt),
+        )[0];
     if (!a)
       return { text: "No upcoming appointment is available for this person." };
     if (!p.canManage)
@@ -1001,12 +1031,15 @@ export function buildChatAction(
   const active = s.reminders.filter(
     (r: Reminder) => r.profileId === p.id && !r.deletedAt,
   );
-  const current = active.filter((r: Reminder) => r.occurrenceDate === day(s.now));
+  const current = active.filter(
+    (r: Reminder) => r.occurrenceDate === day(s.now),
+  );
   const attached = contextId
     ? active.find((r: Reminder) => r.id === contextId)
     : undefined;
   const named = active.filter(
-    (r: Reminder) => t.includes(r.title.toLowerCase()) && r.occurrenceDate === day(s.now),
+    (r: Reminder) =>
+      t.includes(r.title.toLowerCase()) && r.occurrenceDate === day(s.now),
   );
   const matched = attached || (named.length === 1 ? named[0] : undefined);
   if (
@@ -1151,7 +1184,9 @@ export function buildChatAction(
   if (/today|day|next|schedule|reminders|plan/.test(t)) {
     const pending = current
       .filter((r: Reminder) => !r.outcome)
-      .sort((a: Reminder, b: Reminder) => notificationTime(a).localeCompare(notificationTime(b)));
+      .sort((a: Reminder, b: Reminder) =>
+        notificationTime(a).localeCompare(notificationTime(b)),
+      );
     const appts = s.appointments.filter(
       (a: Appointment) =>
         a.profileId === p.id &&

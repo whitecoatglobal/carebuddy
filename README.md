@@ -12,6 +12,12 @@ Care Buddy is a public self-care prototype built with React, TypeScript, Vite, E
 
 This version is a fictional public prototype. Browser client references separate demo care spaces; they are not account authentication. Appointment requests and benefits are illustrative, and wearable pairing requires a future device integration.
 
+## Refreshed interface
+
+Today keeps the original full weather card at the top, followed by a personal greeting, routine progress, the next reminder, last night's sample sleep, and the daily timeline. Completed routines can be expanded. Starter routines prefill their review forms.
+
+Family and Benefits use clearer cards and access labels. Sleep details explain the stage percentages and recommendations, with a bedtime routine action that reuses an existing routine. New care spaces can create a fictional self profile or add a family member. Forms keep their main fields visible and place optional fields under More options.
+
 ## Run locally
 
 The current build was verified with Node.js 24. Install dependencies and build the shared package:

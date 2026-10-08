@@ -6,11 +6,22 @@ import {
   type FormEvent,
 } from "react";
 import { usePwa } from "./pwa";
-import { publicBootstrapState } from "./publicDemo";
+import { Icon } from "./Icon";
+import { Onboarding } from "./Onboarding";
+import { isPublicDemo, publicBootstrapState } from "./publicDemo";
+import {
+  ROUTINE_TEMPLATES,
+  getBenefitHighlights,
+  greetingFor,
+} from "./uiPresentation";
 import { ChatMarkdown } from "./ChatMarkdown";
-import { WeatherBanner, psiLabel } from "./WeatherBanner";
+import { WeatherBanner } from "./WeatherBanner";
 import { SleepDetails } from "./SleepDetails";
-import { SAMPLE_SLEEP_NIGHT } from "./sleepData";
+import {
+  SAMPLE_SLEEP_NIGHT,
+  formatSleepDuration,
+  getSleepNightLabels,
+} from "./sleepData";
 import { APP_NAME } from "./config";
 import {
   loadState,
@@ -28,7 +39,11 @@ import {
   materialize,
 } from "./domain";
 import { interpretBuddyMessage, isBackendEnabled } from "./buddyClient";
-import { fetchHealthSnapshot, fetchWeather, type HealthSnapshot } from "./healthClient";
+import {
+  fetchHealthSnapshot,
+  fetchWeather,
+  type HealthSnapshot,
+} from "./healthClient";
 import { getClientId, isSyncEnabled, pullState, pushState } from "./syncClient";
 import type {
   State,
@@ -37,9 +52,7 @@ import type {
   Reminder,
   ReminderInput,
   Receipt,
-  HealthReading,
   WeatherData,
-  HealthAdvice,
 } from "./types";
 const uid = () => {
   try {
@@ -71,88 +84,6 @@ const categories = [
   "Appointment preparation",
   "Other",
 ] as const;
-function Icon({ name }: { name: string }) {
-  const paths: Record<string, ReactNode> = {
-    today: (
-      <>
-        <path d="M8 2v4m8-4v4M3 10h18" />
-        <rect x="3" y="4" width="18" height="17" rx="3" />
-        <path d="m8 15 3 3 5-6" />
-      </>
-    ),
-    family: (
-      <>
-        <circle cx="9" cy="7" r="3" />
-        <path d="M2 21v-3a7 7 0 0 1 14 0v3m1-17a3 3 0 0 1 0 6m2 4a6 6 0 0 1 3 5v2" />
-      </>
-    ),
-    benefits: (
-      <>
-        <path d="m12 2 9 4v6c0 5-9 10-9 10S3 17 3 12V6Z" />
-        <path d="m8 12 3 3 5-6" />
-      </>
-    ),
-    buddy: (
-      <>
-        <rect x="3" y="4" width="18" height="14" rx="5" />
-        <path d="m7 18-1 4 5-4M8 10h.01M16 10h.01M8 14h8" />
-      </>
-    ),
-    bell: (
-      <>
-        <path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5Zm5 3h4" />
-      </>
-    ),
-    settings: (
-      <>
-        <circle cx="12" cy="12" r="3" />
-        <path d="m10 3 4 0 1 3 3 1 3 3-1 4-3 1-1 3-3 3-4-1-1-3-3-1-3-3 1-4 3-1Z" />
-      </>
-    ),
-    arrow: <path d="m9 5 7 7-7 7" />,
-    plus: <path d="M12 5v14M5 12h14" />,
-    check: <path d="m5 12 4 4L19 6" />,
-    x: <path d="M6 6l12 12M18 6 6 18" />,
-    car: (
-      <>
-        <path d="m5 8 2-5h10l2 5M3 10h18v9H3Z" />
-        <path d="M6 19v2m12-2v2M6 13h2m8 0h2" />
-      </>
-    ),
-    clock: (
-      <>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3 2" />
-      </>
-    ),
-    pulse: (
-      <>
-        <path d="M3 12h4l2-5 3 10 2-5h7" />
-      </>
-    ),
-    search: (
-      <>
-        <circle cx="11" cy="11" r="7" />
-        <path d="m20 20-3.5-3.5" />
-      </>
-    ),
-  };
-  return (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {paths[name] || paths.clock}
-    </svg>
-  );
-}
 function Sheet({
   title,
   onClose,
@@ -261,6 +192,8 @@ export default function App() {
   const [state, setState] = useState(initial.current.state);
   const stateRef = useRef(state);
   const clientId = useRef(getClientId());
+  const initialPath = useRef(location.pathname);
+  const [syncLoading, setSyncLoading] = useState(isSyncEnabled());
   const [route, setRoute] = useState(location.pathname + location.search);
   const [toast, setToast] = useState(initial.current.notice);
   const [error, setError] = useState("");
@@ -270,17 +203,33 @@ export default function App() {
   useEffect(() => {
     if (!isSyncEnabled() || syncedOnce.current) return;
     syncedOnce.current = true;
-    pullState(clientId.current).then((remote) => {
-      if (remote && validateState(remote)) {
-        const next = materialize(publicBootstrapState(stateRef.current, remote));
-        saveState(next);
-        stateRef.current = next;
-        setState(next);
-        if (!remote.profiles.length && next.profiles.length) pushState(clientId.current, next);
-      } else if (remote) {
-        pushState(clientId.current, stateRef.current);
-      }
-    });
+    pullState(clientId.current)
+      .then((remote) => {
+        if (remote && validateState(remote)) {
+          const next = materialize(
+            isPublicDemo
+              ? publicBootstrapState(stateRef.current, remote)
+              : remote,
+          );
+          saveState(next);
+          stateRef.current = next;
+          setState(next);
+          if (isPublicDemo && !remote.profiles.length && next.profiles.length)
+            pushState(clientId.current, next);
+          if (
+            next.started &&
+            next.profiles.length > 0 &&
+            location.pathname === "/welcome" &&
+            ["/", "/today"].includes(initialPath.current)
+          ) {
+            history.replaceState({}, "", "/today");
+            setRoute("/today");
+          }
+        } else if (remote) {
+          pushState(clientId.current, stateRef.current);
+        }
+      })
+      .finally(() => setSyncLoading(false));
   }, []);
   const [modal, setModal] = useState<{
     title: string;
@@ -320,10 +269,11 @@ export default function App() {
   const [weatherError, setWeatherError] = useState("");
   const [weatherRequest, setWeatherRequest] = useState(0);
   const [rainDismissed, setRainDismissed] = useState(false);
-  const [dismissedSleepReviews, setDismissedSleepReviews] = useState<string[]>([]);
-  const [medicationDismissed, setMedicationDismissed] = useState(false);
+  const [dismissedReminderCards, setDismissedReminderCards] = useState<
+    string[]
+  >([]);
   useEffect(() => {
-    const t = setInterval(() => setLiveTime(new Date()), 1000);
+    const t = setInterval(() => setLiveTime(new Date()), 60_000);
     return () => clearInterval(t);
   }, []);
   useEffect(() => {
@@ -338,7 +288,9 @@ export default function App() {
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         setTodayWeather(null);
-        setWeatherError(error instanceof Error ? error.message : "Weather is unavailable.");
+        setWeatherError(
+          error instanceof Error ? error.message : "Weather is unavailable.",
+        );
       })
       .finally(() => {
         if (!controller.signal.aborted) setWeatherLoading(false);
@@ -347,7 +299,10 @@ export default function App() {
   }, [state.started, weatherRequest]);
   useEffect(() => {
     if (!state.started) return;
-    const timer = setInterval(() => setWeatherRequest((request) => request + 1), 5 * 60_000);
+    const timer = setInterval(
+      () => setWeatherRequest((request) => request + 1),
+      5 * 60_000,
+    );
     return () => clearInterval(timer);
   }, [state.started]);
   useEffect(() => {
@@ -355,7 +310,9 @@ export default function App() {
     const timer = setTimeout(() => setToast(""), 5000);
     return () => clearTimeout(timer);
   }, [toast]);
-  const profile = state.profiles.find((p) => p.id === state.selectedProfileId) ||
+  const profile = state.profiles.find(
+    (p) => p.id === state.selectedProfileId,
+  ) ||
     state.profiles[0] || {
       id: "",
       displayName: "No family member",
@@ -733,10 +690,10 @@ export default function App() {
           <p>Fictional data only. Not a medical or insurance service.</p>
           <p>
             This is a prototype with fictional records and a reference clock.
-            Buddy uses local rules and current records; it is not connected to
-            WorkBuddy or a live AI model. Benefits, appointment requests, alerts
-            and car connection are illustrative. All changes stay on this
-            device.
+            Buddy uses the selected person’s care records and asks for
+            confirmation before changes. Sleep uses frontend sample data;
+            benefits, appointment requests, alerts and car connection are
+            illustrative. A live WorkBuddy connection is not configured.
           </p>
           <p>
             Care Buddy helps organise routine care. It does not assess symptoms,
@@ -756,311 +713,563 @@ export default function App() {
         </>
       ),
     });
-  function renderToday() {
-    const fmtClock = new Intl.DateTimeFormat("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-      timeZone: "Asia/Singapore",
-    });
-    const weatherBanner = (
-      <WeatherBanner weather={todayWeather} loading={weatherLoading} error={weatherError}
-        onRetry={() => setWeatherRequest((request) => request + 1)} />
-    );
-    const sleepReviewKey = `${profile.id}:${state.now.slice(0, 10)}`;
-    if (!profile.id) {
-      return (
-        <>
-          <div className="eyebrow">
-            {new Intl.DateTimeFormat("en-SG", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              timeZone: "Asia/Singapore",
-            }).format(new Date(state.now))}
-          </div>
-          <h1>Welcome to Care Buddy</h1>
-          <p className="lead">
-            Add a family member to see their day, reminders and appointments.
-          </p>
-          {weatherBanner}
-          <div className="empty">
-            <h2>Get started</h2>
-            <p>
-              Care Buddy helps you track care for the people you support —
-              routines, appointments, benefits, and health context. Use
-              fictional names only.
-            </p>
-            <div className="actions">
-              <button
-                className="primary"
-                onClick={() => go("/family")}
-              >
-                <Icon name="plus" /> Add a family member
-              </button>
-            </div>
-          </div>
-        </>
+  const openSleep = (from: "today" | "health") =>
+    go("/health/sleep?from=" + from);
+  const startTemplate = (id: string) => {
+    const template = ROUTINE_TEMPLATES.find((item) => item.id === id);
+    if (!template) return;
+    const current = stateRef.current;
+    const existing =
+      template.id === "wind-down"
+        ? current.reminders.find(
+            (reminder) =>
+              reminder.profileId === current.selectedProfileId &&
+              reminder.category === "Bedtime" &&
+              !reminder.deletedAt &&
+              !reminder.outcome &&
+              Date.parse(reminder.scheduledAt) > Date.parse(current.now),
+          )
+        : undefined;
+    if (existing) {
+      reminderForm(
+        existing,
+        existing.recurrence === "Daily" ? "future" : "occurrence",
+      );
+      return;
+    }
+    const date = getSleepNightLabels(new Date(current.now)).wakeDate;
+    let scheduled = isoAt(date, template.time);
+    if (Date.parse(scheduled) <= Date.parse(current.now)) {
+      scheduled = isoAt(
+        getSleepNightLabels(new Date(Date.parse(current.now) + 86400000))
+          .wakeDate,
+        template.time,
       );
     }
+    openForm("reminder", {
+      profileId: current.selectedProfileId,
+      category: template.category,
+      title: template.title,
+      date: scheduled.slice(0, 10),
+      time: template.time,
+      recurrence: "Daily",
+      instructions: "",
+      appointmentId: "",
+    });
+  };
+  function renderProfilePicker(compact = false) {
     return (
-      <>
-        <div className="today-header-row">
-          <div className="eyebrow today-eyebrow">
-            {new Intl.DateTimeFormat("en-SG", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              timeZone: "Asia/Singapore",
-            }).format(new Date(state.now))}
-          </div>
-          <div className="live-clock">{fmtClock.format(liveTime)}</div>
-        </div>
-        {weatherBanner}
-        {state.scenario === "public-demo" && <p className="helper">Sample care space · Medication and routines are fictional.</p>}
-        {!profile.canManage && (
-          <div className="notice">
-            You can view reminders, but cannot update this profile.
-          </div>
+      <div
+        className={
+          "profile-selector " + (compact ? "profile-selector-compact" : "")
+        }
+      >
+        {state.profiles.length === 0 ? (
+          <button className="profile-empty" onClick={() => go("/welcome")}>
+            <Icon name="leaf" />
+            <span>
+              <strong>Create your care space</strong>
+              <small>For you or someone you care for</small>
+            </span>
+            <Icon name="arrow" />
+          </button>
+        ) : (
+          <>
+            <label htmlFor="profile">Care for</label>
+            <select
+              id="profile"
+              value={profile.id}
+              onChange={(event) => select(event.target.value)}
+            >
+              {state.profiles
+                .filter((person) => person.canView)
+                .map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.displayName}
+                  </option>
+                ))}
+            </select>
+            {!compact && (
+              <span className="profile-access">
+                {profile.id === "p-me"
+                  ? "Your care"
+                  : profile.relationship +
+                    (profile.canManage ? " · Manage access" : " · View only")}
+              </span>
+            )}
+          </>
         )}
-        {todayWeather && /rain|shower|thunder/i.test(todayWeather.condition) && !rainDismissed && (
-          <div className="notif-card notif-rain">
-            <div className="notif-icon">☂️</div>
-            <div className="notif-body">
-              <strong>{todayWeather.condition} forecast</strong>
-              <p>Bring an umbrella if you are heading out{todayWeather.forecastPeriod ? ` · ${todayWeather.forecastPeriod}` : ""}.</p>
-            </div>
-            <div className="notif-actions">
+      </div>
+    );
+  }
+  function renderOnboarding() {
+    return (
+      <Onboarding
+        onSelf={() => {
+          const self = state.profiles.find(
+            (person) => person.id === "p-me" || person.relationship === "Self",
+          );
+          if (self) {
+            select(self.id);
+            go("/today");
+          } else openForm("self", { displayName: "", acknowledged: "" });
+        }}
+        onFamily={() =>
+          openForm("dependent", {
+            displayName: "",
+            relationship: "Parent",
+            acknowledged: "",
+          })
+        }
+        onSleep={() => openSleep("today")}
+      />
+    );
+  }
+  function renderSleepCard(from: "today" | "health") {
+    return (
+      <section
+        className="sleep-review-card"
+        aria-label="Last night's sleep sample"
+      >
+        <div className="sleep-card-heading">
+          <span className="feature-icon lavender-icon">
+            <Icon name="moon" />
+          </span>
+          <span className="eyebrow">LAST NIGHT'S REST</span>
+          <span className="sample-tag">Sample</span>
+        </div>
+        <div className="sleep-card-numbers">
+          <strong>
+            {SAMPLE_SLEEP_NIGHT.score}
+            <small>%</small>
+          </strong>
+          <span>
+            <b>{formatSleepDuration(SAMPLE_SLEEP_NIGHT.sleepMinutes)}</b>
+            <small>Time asleep</small>
+          </span>
+        </div>
+        <p>
+          A little room for better rest. Explore your sleep stages and a calmer
+          evening.
+        </p>
+        <button
+          className="text-button sleep-card-link"
+          onClick={() => openSleep(from)}
+        >
+          Review Sleep <Icon name="arrow" />
+        </button>
+      </section>
+    );
+  }
+  function renderToday() {
+    if (!profile.id) return renderOnboarding();
+    const completed = todayReminders.filter(
+      (reminder) =>
+        reminder.outcome === "taken" || reminder.outcome === "complete",
+    ).length;
+    const progress = todayReminders.length
+      ? Math.round((completed / todayReminders.length) * 100)
+      : 0;
+    const featuredKey = next
+      ? `${profile.id}:${next.id}:${next.occurrenceDate}`
+      : "";
+    const hidden = dismissedReminderCards.includes(featuredKey);
+    return (
+      <div className="today-view">
+        <WeatherBanner
+          weather={todayWeather}
+          loading={weatherLoading}
+          error={weatherError}
+          onRetry={() => setWeatherRequest((request) => request + 1)}
+        />
+        {todayWeather &&
+          /rain|shower|thunder/i.test(todayWeather.condition) &&
+          !rainDismissed && (
+            <div className="rain-hint">
+              <Icon name="rain" />
+              <span>Bring an umbrella if you’re heading out.</span>
               <button
-                className="btn-green"
-                onClick={() => go("/health")}
-              >
-                Check weather
-              </button>
-              <button
-                className="btn-remind-later"
+                className="text-button"
                 onClick={() => setRainDismissed(true)}
               >
                 Dismiss
               </button>
             </div>
+          )}
+        <div className="today-heading">
+          <div>
+            <span className="eyebrow">
+              {new Intl.DateTimeFormat("en-SG", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                timeZone: "Asia/Singapore",
+              }).format(new Date(state.now))}
+            </span>
+            <h1>{greetingFor(state.now, profile.displayName)}</h1>
+            <p>A little care goes a long way.</p>
+          </div>
+          {renderProfilePicker(true)}
+        </div>
+        {todayReminders.length > 0 && (
+          <div className="care-progress">
+            <span className="progress-icon">
+              <Icon name="check" />
+            </span>
+            <div>
+              <strong>
+                {completed} of {todayReminders.length} routines completed
+              </strong>
+              <span>
+                {completed === todayReminders.length
+                  ? "A moment to appreciate the care you've taken."
+                  : "One small step at a time."}
+              </span>
+            </div>
+            <div
+              className="progress-track"
+              role="progressbar"
+              aria-label="Daily routines completed"
+              aria-valuenow={completed}
+              aria-valuemin={0}
+              aria-valuemax={todayReminders.length}
+            >
+              <span style={{ width: `${progress}%` }} />
+            </div>
           </div>
         )}
-        <section className="next-card">
-          <div className="section-kicker">
-            <Icon name="clock" /> NEXT UP
-            {next && (
-              <span className="status amber">{statusLabel(next)}</span>
-            )}
+        {!profile.canManage && (
+          <div className="notice view-only-notice">
+            <span>You’re viewing {profile.displayName}’s care.</span>
+            <button
+              className="text-button"
+              onClick={() => go("/family/" + profile.id)}
+            >
+              View access <Icon name="arrow" />
+            </button>
           </div>
-          {next ? (
-            <>
-              <div className="next-heading">
-                <h2>{next.title}</h2>
-              </div>
-              <p>
-                For: {profile.displayName} · Due at{" "}
-                {formatTime(next.scheduledAt)}
-              </p>
-              {next.notificationSnoozedUntil && (
-                <p>
-                  Notification at{" "}
-                  {formatTime(next.notificationSnoozedUntil)}
-                </p>
-              )}
-              <p className="helper">
-                {next.category === "Medication"
-                  ? "Follow your existing medication instructions."
-                  : "Your personal routine, at your chosen time."}
-              </p>
-              <div className="notif-actions">
+        )}
+        <div className="day-layout">
+          <div className="day-focus">
+            {hidden ? (
+              <div className="dismissed-feature">
+                <Icon name="clock" />
+                <span>Your reminder is still on your timeline.</span>
                 <button
-                  className="btn-green"
-                  disabled={!profile.canManage}
+                  className="text-button"
                   onClick={() =>
-                    complete(
-                      next,
-                      next.category === "Medication" ? "taken" : "complete",
+                    setDismissedReminderCards((cards) =>
+                      cards.filter((key) => key !== featuredKey),
                     )
                   }
                 >
-                  <Icon name="check" />
-                  {next.category === "Medication"
-                    ? "Mark as taken"
-                    : "Mark complete"}
-                </button>
-                <button
-                  className="btn-remind-later"
-                  disabled={!profile.canManage}
-                  onClick={() => setMedicationDismissed(true)}
-                >
-                  Dismiss
+                  Show next up
                 </button>
               </div>
-            </>
-          ) : nextAppointment ? (
-            <>
-              <h2>{nextAppointment.title}</h2>
-              <p>
-                {formatDate(nextAppointment.startsAt)} ·{" "}
-                {formatTime(nextAppointment.startsAt)}
-              </p>
-              <button
-                onClick={() => go("/appointments/" + nextAppointment.id)}
-              >
-                View appointment
-              </button>
-            </>
-          ) : (
-            <>
-              <h2>Nothing else scheduled</h2>
-              <p>Enjoy a little breathing room.</p>
-              <button
-                onClick={() => reminderForm()}
-                disabled={!profile.canManage}
-              >
-                Add reminder
-              </button>
-            </>
-          )}
-        </section>
-        {nextAppointment && (
-          <div className="appointment-strip">
-            <Icon name="today" />
-            <div>
-              <small>NEXT APPOINTMENT</small>
-              <strong>{nextAppointment.title}</strong>
-              <span>
-                {formatDate(nextAppointment.startsAt)} ·{" "}
-                {formatTime(nextAppointment.startsAt)}
-              </span>
-            </div>
-            <button
-              className="text-button"
-              onClick={() => go("/appointments/" + nextAppointment.id)}
-            >
-              View appointment <Icon name="arrow" />
-            </button>
-          </div>
-        )}
-        {(
-          <div className="today-notifications">
-            <div className="notif-card notif-sleep">
-              <div className="notif-icon" aria-hidden="true">🌙</div>
-              <div className="notif-body">
-                <strong>Review your sleep</strong>
-                <p>Sleep score: {SAMPLE_SLEEP_NIGHT.score}%</p>
-              </div>
-              <div className="notif-actions">
-                <button className="btn-green" onClick={() => go("/health/sleep")}>
-                  <Icon name="search" /> Review Sleep
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="day-timeline">
-          <div className="section-heading">
-            <h2>Daily timeline</h2>
-            <button
-              className="text-button"
-              disabled={!profile.canManage}
-              onClick={() => reminderForm()}
-            >
-              <Icon name="plus" />
-              Add reminder
-            </button>
-          </div>
-          {["Earlier", "Upcoming", "Completed", "Recorded as skipped"].map(
-            (group) => {
-              const items = todayReminders.filter((r) =>
-                group === "Completed"
-                  ? r.outcome === "taken" || r.outcome === "complete"
-                  : group === "Recorded as skipped"
-                    ? r.outcome === "skipped"
-                    : !r.outcome &&
-                      (group === "Earlier"
-                        ? notificationTime(r) < state.now
-                        : notificationTime(r) >= state.now),
-              );
-              if (group === "Completed")
-                return (
-                  <details className="timeline-group" key={group}>
-                    <summary>Completed ({items.length})</summary>
-                    {items.map(reminderRow)}
-                    {items.length === 0 && (
+            ) : (
+              <section className="next-card">
+                <div className="section-kicker">
+                  <Icon name="clock" /> NEXT UP{" "}
+                  {next && (
+                    <span
+                      className={
+                        "status " +
+                        (Date.parse(notificationTime(next)) <
+                        Date.parse(state.now)
+                          ? "amber"
+                          : "")
+                      }
+                    >
+                      {Date.parse(notificationTime(next)) <
+                      Date.parse(state.now)
+                        ? "Earlier"
+                        : "Upcoming"}
+                    </span>
+                  )}
+                </div>
+                {next ? (
+                  <>
+                    <h2>{next.title}</h2>
+                    <p className="next-time">
+                      <Icon name="clock" /> {formatTime(next.scheduledAt)}
+                      {next.notificationSnoozedUntil && (
+                        <small>
+                          {" "}
+                          · Notify {formatTime(next.notificationSnoozedUntil)}
+                        </small>
+                      )}
+                    </p>
+                    {next.category === "Medication" && (
                       <p className="helper">
-                        Reported completions will appear here.
+                        Follow your existing medication instructions.
                       </p>
                     )}
-                  </details>
-                );
-              return items.length > 0 ? (
-                <section className="timeline-group" key={group}>
-                  <h3>{group}</h3>
-                  {items.map(reminderRow)}
+                    <div className="card-actions">
+                      <button
+                        className="primary"
+                        disabled={!profile.canManage}
+                        onClick={() =>
+                          complete(
+                            next,
+                            next.category === "Medication"
+                              ? "taken"
+                              : "complete",
+                          )
+                        }
+                      >
+                        <Icon name="check" />
+                        {next.category === "Medication"
+                          ? "Mark as taken"
+                          : "Mark complete"}
+                      </button>
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          setDismissedReminderCards((cards) => [
+                            ...cards,
+                            featuredKey,
+                          ]);
+                          setToast(
+                            "Card dismissed. The reminder remains on your timeline.",
+                          );
+                        }}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </>
+                ) : nextAppointment ? (
+                  <>
+                    <h2>{nextAppointment.title}</h2>
+                    <p>
+                      {formatDate(nextAppointment.startsAt)} ·{" "}
+                      {formatTime(nextAppointment.startsAt)}
+                    </p>
+                    <button
+                      className="primary"
+                      onClick={() => go("/appointments/" + nextAppointment.id)}
+                    >
+                      View appointment <Icon name="arrow" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <h2>
+                      {todayReminders.length
+                        ? "A little breathing room"
+                        : "Start with one small routine"}
+                    </h2>
+                    <p>
+                      {todayReminders.length
+                        ? "Nothing else scheduled. Take a moment for yourself."
+                        : "Make space for something that helps you feel good."}
+                    </p>
+                    <button
+                      className="primary"
+                      disabled={!profile.canManage}
+                      onClick={() => reminderForm()}
+                    >
+                      <Icon name="plus" />
+                      Add a routine
+                    </button>
+                  </>
+                )}
+              </section>
+            )}
+            {nextAppointment && next && (
+              <button
+                className="appointment-strip appointment-card"
+                onClick={() => go("/appointments/" + nextAppointment.id)}
+              >
+                <span className="feature-icon">
+                  <Icon name="today" />
+                </span>
+                <span>
+                  <small>NEXT APPOINTMENT</small>
+                  <strong>{nextAppointment.title}</strong>
+                  <span>
+                    {formatDate(nextAppointment.startsAt)} ·{" "}
+                    {formatTime(nextAppointment.startsAt)}
+                  </span>
+                </span>
+                <Icon name="arrow" />
+              </button>
+            )}
+            {renderSleepCard("today")}
+          </div>
+          {todayReminders.length > 0 ? (
+            <div className="day-timeline">
+              <div className="section-heading">
+                <h2>Your day</h2>
+                <button
+                  className="text-button"
+                  disabled={!profile.canManage}
+                  onClick={() => reminderForm()}
+                >
+                  <Icon name="plus" />
+                  Add reminder
+                </button>
+              </div>
+              {["Earlier", "Upcoming", "Completed", "Recorded as skipped"].map(
+                (group) => {
+                  const items = todayReminders.filter((r) =>
+                    group === "Completed"
+                      ? r.outcome === "taken" || r.outcome === "complete"
+                      : group === "Recorded as skipped"
+                        ? r.outcome === "skipped"
+                        : !r.outcome &&
+                          (group === "Earlier"
+                            ? notificationTime(r) < state.now
+                            : notificationTime(r) >= state.now),
+                  );
+                  if (group === "Completed" && items.length === 0) return null;
+                  if (group === "Completed")
+                    return (
+                      <details className="timeline-group" key={group}>
+                        <summary>Completed ({items.length})</summary>
+                        {items.map(reminderRow)}
+                        {items.length === 0 && (
+                          <p className="helper">
+                            Reported completions will appear here.
+                          </p>
+                        )}
+                      </details>
+                    );
+                  return items.length > 0 ? (
+                    <section className="timeline-group" key={group}>
+                      <h3>{group}</h3>
+                      {items.map(reminderRow)}
+                    </section>
+                  ) : null;
+                },
+              )}
+              {appointments.filter(
+                (a) =>
+                  a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
+                  Date.parse(a.startsAt) >= Date.parse(state.now),
+              ).length > 0 && (
+                <section className="timeline-group">
+                  <h3>Upcoming appointments</h3>
+                  {appointments
+                    .filter(
+                      (a) =>
+                        a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
+                        Date.parse(a.startsAt) >= Date.parse(state.now),
+                    )
+                    .map((a) => (
+                      <button
+                        className="timeline-row"
+                        key={a.id}
+                        onClick={() => go("/appointments/" + a.id)}
+                      >
+                        <span className="type-icon">
+                          <Icon name="today" />
+                        </span>
+                        <span className="row-copy">
+                          <strong>{a.title}</strong>
+                          <span>
+                            {formatTime(a.startsAt)} · {profile.displayName}
+                          </span>
+                        </span>
+                        <span className="status">Appointment</span>
+                        <Icon name="arrow" />
+                      </button>
+                    ))}
                 </section>
-              ) : null;
-            },
-          )}
-          {appointments.filter(
-            (a) =>
-              a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
-              Date.parse(a.startsAt) >= Date.parse(state.now),
-          ).length > 0 && (
-            <section className="timeline-group">
-              <h3>Upcoming appointments</h3>
-              {appointments
-                .filter(
-                  (a) =>
-                    a.startsAt.slice(0, 10) === state.now.slice(0, 10) &&
-                    Date.parse(a.startsAt) >= Date.parse(state.now),
-                )
-                .map((a) => (
+              )}
+              {todayReminders.length === 0 && (
+                <div className="empty">
+                  <h3>No reminders today</h3>
+                  <p>Add a routine to help organise your day.</p>
                   <button
-                    className="timeline-row"
-                    key={a.id}
-                    onClick={() => go("/appointments/" + a.id)}
+                    onClick={() => reminderForm()}
+                    disabled={!profile.canManage}
                   >
-                    <span className="type-icon">
-                      <Icon name="today" />
-                    </span>
-                    <span className="row-copy">
-                      <strong>{a.title}</strong>
-                      <span>
-                        {formatTime(a.startsAt)} · {profile.displayName}
-                      </span>
-                    </span>
-                    <span className="status">Appointment</span>
-                    <Icon name="arrow" />
+                    Add a routine
                   </button>
-                ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <section className="day-timeline first-routines">
+              <span className="eyebrow">YOUR FIRST STEPS</span>
+              <h2>
+                {profile.canManage
+                  ? "Find your daily rhythm"
+                  : "Their day, at a glance"}
+              </h2>
+              <p>
+                {profile.canManage
+                  ? "Pick a small routine to make your own."
+                  : "Their shared routines will appear here when they’re added."}
+              </p>
+              {profile.canManage && (
+                <div className="routine-grid">
+                  {ROUTINE_TEMPLATES.map((template) => (
+                    <button
+                      className="routine-template"
+                      key={template.id}
+                      onClick={() => startTemplate(template.id)}
+                    >
+                      <span className="feature-icon">
+                        <Icon name={template.icon} />
+                      </span>
+                      <span>
+                        <strong>{template.title}</strong>
+                        <small>{template.description}</small>
+                      </span>
+                      <Icon name="plus" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </section>
           )}
-          {todayReminders.length === 0 && (
-            <div className="empty">
-              <h3>No reminders today</h3>
-              <p>Add a routine to help organise your day.</p>
-              <button
-                onClick={() => reminderForm()}
-                disabled={!profile.canManage}
-              >
-                Add reminder
+        </div>
+        {profile.canManage && todayReminders.length > 0 && (
+          <section className="routine-starters">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">MAKE IT YOUR OWN</span>
+                <h2>
+                  {todayReminders.length
+                    ? "A little more care"
+                    : "Try a starter routine"}
+                </h2>
+              </div>
+              <button className="text-button" onClick={() => reminderForm()}>
+                Create your own <Icon name="plus" />
               </button>
             </div>
-          )}
-        </div>
+            <div className="routine-grid">
+              {ROUTINE_TEMPLATES.map((template) => (
+                <button
+                  className="routine-template"
+                  key={template.id}
+                  onClick={() => startTemplate(template.id)}
+                >
+                  <span className="feature-icon">
+                    <Icon name={template.icon} />
+                  </span>
+                  <span>
+                    <strong>{template.title}</strong>
+                    <small>{template.description}</small>
+                  </span>
+                  <Icon name="plus" />
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
         <div className="quiet-actions">
           <button className="text-button" onClick={() => go("/care/gp")}>
-            Find GP care <Icon name="arrow" />
+            Explore GP care <Icon name="arrow" />
           </button>
-          <button className="text-button" onClick={() => go("/car")}>
-            <Icon name="car" />
-            Car mode
+          <button className="text-button" onClick={() => ask()}>
+            Plan with Buddy <Icon name="buddy" />
           </button>
         </div>
-      </>
+      </div>
     );
   }
   function renderFamily() {
@@ -1098,9 +1307,7 @@ export default function App() {
                 )
               }
             >
-              {member.canManage
-                ? "Change to view only"
-                : "Grant manage access"}
+              {member.canManage ? "Change to view only" : "Grant manage access"}
             </button>
           )}
           {!member.canManage && member.id !== "p-me" && (
@@ -1174,65 +1381,102 @@ export default function App() {
     return (
       <>
         <h1>Family</h1>
-        <p className="lead">Keep track of care for the people you support.</p>
+        <p className="lead">
+          A little care for you and the people close to you.
+        </p>
         <div className="family-list">
-          {state.profiles.map((p) => (
-            <div className="profile-row" key={p.id}>
+          {state.profiles.map((person, index) => (
+            <div className="profile-row" key={person.id}>
               <button
                 className="profile-row-main"
                 onClick={() => {
-                  select(p.id);
-                  go("/family/" + p.id);
+                  select(person.id);
+                  go("/family/" + person.id);
                 }}
-                aria-label={`Open ${p.displayName}`}
+                aria-label={`Open ${person.displayName}`}
               >
-                <span className="avatar">{p.displayName.slice(0, 1)}</span>
+                <span className={`avatar avatar-tone-${index % 3}`}>
+                  {person.displayName.slice(0, 1)}
+                </span>
                 <span className="row-copy">
-                  <strong>{p.displayName}</strong>
+                  <strong>{person.displayName}</strong>
                   <span>
-                    {p.relationship} ·{" "}
-                    {p.canManage
-                      ? "Can manage reminders"
-                      : "Can view reminders"}
+                    {person.relationship === "Self"
+                      ? "Your care"
+                      : person.relationship}
                   </span>
-                  <small>{summary(p)}</small>
+                  <small>{summary(person)}</small>
                 </span>
                 <Icon name="arrow" />
               </button>
-              <button
-                className="profile-row-remove"
-                aria-label={`Remove ${p.displayName}`}
-                onClick={() =>
-                  action(
-                    { type: "removeDependent", id: p.id },
-                    `Remove ${p.displayName}? This only removes fictional data from this browser.`,
-                    [p.id],
-                    () => go("/family"),
-                  )
-                }
-              >
-                <Icon name="x" />
-                <span>Remove</span>
-              </button>
+              <div className="profile-card-footer">
+                <span
+                  className={
+                    "access-pill " +
+                    (person.canManage ? "can-manage" : "view-only")
+                  }
+                >
+                  <Icon name={person.canManage ? "check" : "family"} />
+                  {person.canManage ? "Manage access" : "View only"}
+                </span>
+                {person.id !== "p-me" && (
+                  <details className="profile-menu">
+                    <summary
+                      aria-label={`More options for ${person.displayName}`}
+                    >
+                      <Icon name="more" />
+                    </summary>
+                    <div>
+                      <button
+                        className="danger-text"
+                        onClick={() =>
+                          action(
+                            { type: "removeDependent", id: person.id },
+                            `Remove ${person.displayName} and their care records from this device?`,
+                            [person.id],
+                            () => go("/family"),
+                          )
+                        }
+                      >
+                        <Icon name="x" />
+                        Remove family member
+                      </button>
+                    </div>
+                  </details>
+                )}
+              </div>
             </div>
           ))}
         </div>
-        <button
-          className="primary"
-          onClick={() =>
-            openForm("dependent", {
-              displayName: "",
-              relationship: "Parent",
-              acknowledged: "",
-            })
-          }
-        >
-          <Icon name="plus" />
-          Add dependent
-        </button>
+        <div className="actions family-actions">
+          <button
+            className="primary"
+            onClick={() =>
+              openForm("dependent", {
+                displayName: "",
+                relationship: "Parent",
+                acknowledged: "",
+              })
+            }
+          >
+            <Icon name="plus" />
+            Add family member
+          </button>
+          {!state.profiles.some(
+            (person) => person.id === "p-me" || person.relationship === "Self",
+          ) && (
+            <button
+              onClick={() =>
+                openForm("self", { displayName: "", acknowledged: "" })
+              }
+            >
+              <Icon name="leaf" />
+              Add my own care space
+            </button>
+          )}
+        </div>
         <p className="helper">
-          Use fictional names. Permissions in this prototype are local fixtures,
-          not production security.
+          Use fictional names. Access settings apply to this local care space.
         </p>
       </>
     );
@@ -1250,21 +1494,34 @@ export default function App() {
         <span className="eyebrow">APPOINTMENT</span>
         <h1>{a.title}</h1>
         <p className="lead">For: {profile.displayName}</p>
-        <div className="detail-panel">
-          <h2>{formatDate(a.startsAt)}</h2>
-          <p>{formatTime(a.startsAt)} · Time in your care record</p>
-          <p>{a.locationLabel}</p>
-          <p className="helper">Confirm the location with the provider.</p>
-          <div className="notice">
-            Local appointment record. Provider confirmation: Not confirmed.
+        <section className="appointment-details-card">
+          <div className="appointment-date">
+            <span className="feature-icon">
+              <Icon name="today" />
+            </span>
+            <div>
+              <strong>{formatDate(a.startsAt)}</strong>
+              <span>{formatTime(a.startsAt)}</span>
+            </div>
+            <span className="status amber">Not confirmed</span>
           </div>
-          <p className="helper">
-            Record origin:{" "}
-            {a.recordOrigin === "user-saved"
-              ? "User-saved local record"
-              : "Initial care record"}
+          <p className="appointment-location">
+            <Icon name="location" />
+            {a.locationLabel}
           </p>
-        </div>
+          <details className="record-details">
+            <summary>About this appointment record</summary>
+            <p className="helper">
+              Confirm the date, location, and medical preparation instructions
+              with the provider. This record does not confirm a booking.
+            </p>
+            <p className="helper">
+              {a.recordOrigin === "user-saved"
+                ? "Saved by you in Care Buddy."
+                : "Initial care record."}
+            </p>
+          </details>
+        </section>
         <h2>Preparation checklist</h2>
         <p className="helper">
           Contact the provider for medical preparation instructions.
@@ -1360,12 +1617,12 @@ export default function App() {
         <>
           <h1>Benefits</h1>
           <p className="lead">
-            Add a family member to check their cover with your insurer or
-            benefits administrator.
+            Set up your care space to keep benefit notes and check recorded
+            terms with your insurer or benefits administrator.
           </p>
           <div className="actions">
-            <button className="primary" onClick={() => go("/family")}>
-              Go to Family
+            <button className="primary" onClick={() => go("/welcome")}>
+              Set up your care space
             </button>
           </div>
         </>
@@ -1397,24 +1654,35 @@ export default function App() {
             <h2>Documented terms</h2>
             <p>{b.conditions}</p>
             {b.notes && <p>{b.notes}</p>}
-            <dl>
-              <dt>Source</dt>
-              <dd>{b.source}</dd>
-              <dt>Policy date</dt>
-              <dd>
-                {b.policyDate ? formatDate(b.policyDate) : "Date not supplied"}
-              </dd>
-              <dt>Person on this record</dt>
-              <dd>{profile.displayName}</dd>
-              <dt>Provider eligibility</dt>
-              <dd>Eligibility not verified</dd>
-              <dt>Used amount / remaining allowance</dt>
-              <dd>Not available</dd>
-            </dl>
+            <div className="benefit-highlights">
+              {getBenefitHighlights(b.conditions).map((highlight) => (
+                <span key={highlight}>{highlight}</span>
+              ))}
+            </div>
+            <details className="record-details">
+              <summary>Source, policy & eligibility</summary>
+              <dl>
+                <dt>Source</dt>
+                <dd>{b.source}</dd>
+                <dt>Policy date</dt>
+                <dd>
+                  {b.policyDate
+                    ? formatDate(b.policyDate)
+                    : "Date not supplied"}
+                </dd>
+                <dt>Person on this record</dt>
+                <dd>{profile.displayName}</dd>
+                <dt>Provider eligibility</dt>
+                <dd>Eligibility not verified</dd>
+                <dt>Used amount / remaining allowance</dt>
+                <dd>Not available</dd>
+              </dl>
+            </details>
             <p>Confirm the current terms with your benefits administrator.</p>
           </div>
           <div className="actions">
             <button
+              className="primary"
               onClick={() => openForm("benefitCheck", { category: b.category })}
             >
               Check an appointment
@@ -1436,32 +1704,74 @@ export default function App() {
           <Icon name="benefits" />
           <div>
             <strong>Care plan</strong>
-            <span>{profile.displayName} · Policy date: 30 Sep 2026</span>
+            <span>
+              {profile.displayName} ·{" "}
+              {state.benefits.some(
+                (benefit) =>
+                  benefit.profileId === profile.id && benefit.policyDate,
+              )
+                ? "Recorded policy terms"
+                : "Policy details not added"}
+            </span>
           </div>
         </div>
-        {state.benefits
-          .filter((b) => b.profileId === profile.id)
-          .sort((a, b) => {
-            const rank = (c: string) =>
-              ({ gp: 0, screening: 1, "health-check": 1, dental: 2, other: 3 })[
-                c
-              ] ?? 4;
-            return rank(a.category) - rank(b.category);
-          })
-          .map((b) => (
-            <button
-              className="benefit-row"
-              key={b.id}
-              onClick={() => go("/benefits/" + b.id)}
-            >
-              <span className="row-copy">
-                <strong>{benefitName(b.category)}</strong>
-                <span>{b.conditions}</span>
-                <small>{b.status}</small>
-              </span>
-              <Icon name="arrow" />
-            </button>
-          ))}
+        <div className="benefit-grid">
+          {state.benefits
+            .filter((b) => b.profileId === profile.id)
+            .sort((a, b) => {
+              const rank = (c: string) =>
+                ({
+                  gp: 0,
+                  screening: 1,
+                  "health-check": 1,
+                  dental: 2,
+                  other: 3,
+                })[c] ?? 4;
+              return rank(a.category) - rank(b.category);
+            })
+            .map((b) => (
+              <button
+                className="benefit-row"
+                key={b.id}
+                onClick={() => go("/benefits/" + b.id)}
+              >
+                <span className="benefit-card-heading">
+                  <span className="feature-icon">
+                    <Icon name={b.category === "gp" ? "heart" : "benefits"} />
+                  </span>
+                  <span
+                    className={
+                      "status " +
+                      (/confirmation|Conditions/.test(b.status) ? "amber" : "")
+                    }
+                  >
+                    {benefitStatus(b.status)}
+                  </span>
+                </span>
+                <span className="row-copy">
+                  <strong>{benefitName(b.category)}</strong>
+                  <span className="benefit-highlights">
+                    {getBenefitHighlights(b.conditions).map((highlight) => (
+                      <b key={highlight}>{highlight}</b>
+                    ))}
+                  </span>
+                  <span className="benefit-excerpt">{b.conditions}</span>
+                </span>
+                <Icon name="arrow" />
+              </button>
+            ))}
+        </div>
+        {state.benefits.filter((benefit) => benefit.profileId === profile.id)
+          .length === 0 && (
+          <div className="empty benefits-empty">
+            <Icon name="benefits" />
+            <h2>Your benefits, a little clearer</h2>
+            <p>
+              Add a note from your plan to keep important terms close.
+              Eligibility and remaining allowances still need confirmation.
+            </p>
+          </div>
+        )}
         <div className="actions">
           <button
             onClick={() =>
@@ -1483,7 +1793,12 @@ export default function App() {
     );
   }
   const applyReply = (
-    reply: { text: string; sourceId?: string; needsScope?: boolean; action?: Action },
+    reply: {
+      text: string;
+      sourceId?: string;
+      needsScope?: boolean;
+      action?: Action;
+    },
     sentText: string,
   ) => {
     commit({
@@ -1558,11 +1873,11 @@ export default function App() {
           <div className="eyebrow">YOUR CARE ASSISTANT</div>
           <h1>Buddy</h1>
           <p className="lead">
-            Add a family member to ask Buddy about their care.
+            Set up your care space to plan routines and appointments with Buddy.
           </p>
           <div className="actions">
-            <button className="primary" onClick={() => go("/family")}>
-              Go to Family
+            <button className="primary" onClick={() => go("/welcome")}>
+              Set up your care space
             </button>
           </div>
         </>
@@ -1573,11 +1888,21 @@ export default function App() {
         <div className="eyebrow">YOUR CARE ASSISTANT</div>
         <h1>Buddy</h1>
         <p className="lead">For: {profile.displayName}</p>
-        <div className="buddy-intro">
-          <Icon name="buddy" />
+        <div
+          className={
+            "buddy-intro " +
+            (state.chats.some((message) => message.profileId === profile.id)
+              ? "buddy-intro-compact"
+              : "")
+          }
+        >
+          <span className="buddy-avatar">
+            <Icon name="buddy" />
+          </span>
           <p>
-            Your day, appointments and benefits — in one conversation. I’ll ask
-            you to confirm before changing a record.
+            {state.chats.some((message) => message.profileId === profile.id)
+              ? "Here to help you make a little more room for care."
+              : "Routines, appointments, and the small things on your mind. Let’s work through them together. I’ll ask before changing a care record."}
           </p>
         </div>
         {source && (
@@ -1661,18 +1986,20 @@ export default function App() {
             </div>
           </div>
         )}
-        <div className="prompts">
-          {[
-            "Prepare for my appointment",
-            "Create a bedtime reminder",
-            "Explain my benefits",
-            "What’s next today?",
-          ].map((t) => (
-            <button key={t} onClick={() => send(t)} disabled={buddyThinking}>
-              {t}
-            </button>
-          ))}
-        </div>
+        {!state.chats.some((message) => message.profileId === profile.id) && (
+          <div className="prompts">
+            {[
+              "Prepare for my appointment",
+              "Create a bedtime reminder",
+              "Explain my benefits",
+              "What’s next today?",
+            ].map((t) => (
+              <button key={t} onClick={() => send(t)} disabled={buddyThinking}>
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
         {buddyThinking && (
           <p className="helper" aria-live="polite">
             Buddy is preparing a response…
@@ -1693,8 +2020,8 @@ export default function App() {
             maxLength={500}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Ask about your reminders…"
-            rows={2}
+            placeholder="What’s on your mind?"
+            rows={1}
             disabled={buddyThinking}
             aria-busy={buddyThinking}
           />
@@ -1702,7 +2029,10 @@ export default function App() {
             {buddyThinking ? "Sending…" : "Send"}
           </button>
         </form>
-        <p className="helper">Messages and actions are linked to the selected person.</p>
+        <p className="helper composer-note">
+          For {profile.displayName} · Care changes always need your
+          confirmation.
+        </p>
       </>
     );
   }
@@ -1720,122 +2050,158 @@ export default function App() {
             <button onClick={pwa.refresh}>Update app</button>
           )}
         </div>
-        <div className="detail-panel">
-          <h2>Reference clock</h2>
-          <p>
-            Reference clock: {formatDate(state.now)}, {formatTime(state.now)}
-          </p>
-          <div className="actions">
-            <button
-              onClick={() =>
-                commit(
-                  { type: "advanceClock" },
-                  { success: "Reference clock advanced 15 minutes" },
-                )
-              }
-            >
-              Advance 15 minutes
+        <div className="settings-section">
+          <span className="eyebrow">YOUR CARE SPACE</span>
+          <div className="settings-list">
+            <button onClick={() => go("/family")}>
+              <span>
+                <Icon name="family" />
+                People & care access
+              </span>
+              <Icon name="arrow" />
             </button>
-            <button
-              onClick={() =>
-                commit(
-                  { type: "restoreClock" },
-                  { success: "Reference clock restored" },
-                )
-              }
-            >
-              Restore clock
+            <button onClick={() => go("/today")}>
+              <span>
+                <Icon name="today" />
+                Daily routines
+              </span>
+              <Icon name="arrow" />
             </button>
           </div>
         </div>
-        <div className="settings-list">
-          <button onClick={about}>
-            About Care Buddy <Icon name="arrow" />
-          </button>
-          <button onClick={() => go("/welcome")}>
-            Reopen welcome <Icon name="arrow" />
-          </button>
-          <button onClick={() => go("/car")}>
-            Simulated car connection <Icon name="arrow" />
-          </button>
+        <div className="settings-section">
+          <span className="eyebrow">APP & SUPPORT</span>
+          <div className="settings-list">
+            <button onClick={about}>
+              <span>
+                <Icon name="leaf" />
+                About Care Buddy & installation
+              </span>
+              <Icon name="arrow" />
+            </button>
+            <button onClick={() => go("/welcome")}>
+              <span>
+                <Icon name="heart" />
+                Revisit your welcome
+              </span>
+              <Icon name="arrow" />
+            </button>
+          </div>
         </div>
-        <details className="detail-panel skill-handoff">
-          <summary>WorkBuddy handoff</summary>
-          <p className="helper">
-            Export fictional context, run an installed skill in WorkBuddy, then
-            import its JSON proposal. Review and confirm here to save. A live
-            WorkBuddy connection is not configured.
-          </p>
-          <button
-            onClick={() => {
-              const current = stateRef.current;
-              const data = {
-                state: current,
-                profileId: current.selectedProfileId,
-                expectedClock: current.now,
-                actionId: uid(),
-              };
-              const url = URL.createObjectURL(
-                new Blob([JSON.stringify(data, null, 2)], {
-                  type: "application/json",
-                }),
-              );
-              const link = document.createElement("a");
-              link.href = url;
-              link.download = "care-buddy-context.json";
-              link.click();
-              setTimeout(() => URL.revokeObjectURL(url), 1000);
-            }}
-          >
-            Export skill context
-          </button>
-          <label className="field">
-            Import reminder proposal
-            <input
-              type="file"
-              accept="application/json,.json"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (!file) return;
-                try {
-                  if (file.size > 2000000)
-                    throw new Error("Choose a proposal under 2 MB.");
-                  const proposal = importSkillProposal(
-                    stateRef.current,
-                    JSON.parse(await file.text()),
-                  );
-                  setError("");
-                  setRetry(null);
-                  setReceipt(null);
-                  setPending({
-                    action: proposal,
-                    message: "WorkBuddy package proposal import",
-                  });
-                } catch (error) {
-                  setError((error as Error).message);
-                  setRetry(null);
+        <details className="advanced-settings">
+          <summary>
+            Advanced / Demo tools <Icon name="settings" />
+          </summary>
+          <div className="detail-panel">
+            <h2>Reference clock</h2>
+            <p>
+              Reference clock: {formatDate(state.now)}, {formatTime(state.now)}
+            </p>
+            <div className="actions">
+              <button
+                onClick={() =>
+                  commit(
+                    { type: "advanceClock" },
+                    { success: "Reference clock advanced 15 minutes" },
+                  )
                 }
+              >
+                Advance 15 minutes
+              </button>
+              <button
+                onClick={() =>
+                  commit(
+                    { type: "restoreClock" },
+                    { success: "Reference clock restored" },
+                  )
+                }
+              >
+                Restore clock
+              </button>
+            </div>
+          </div>
+          <button onClick={() => go("/car")}>
+            <Icon name="car" />
+            Simulated car connection
+          </button>
+          <details className="detail-panel skill-handoff">
+            <summary>WorkBuddy handoff</summary>
+            <p className="helper">
+              Export fictional context, run an installed skill in WorkBuddy,
+              then import its JSON proposal. Review and confirm here to save. A
+              live WorkBuddy connection is not configured.
+            </p>
+            <button
+              onClick={() => {
+                const current = stateRef.current;
+                const data = {
+                  state: current,
+                  profileId: current.selectedProfileId,
+                  expectedClock: current.now,
+                  actionId: uid(),
+                };
+                const url = URL.createObjectURL(
+                  new Blob([JSON.stringify(data, null, 2)], {
+                    type: "application/json",
+                  }),
+                );
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = "care-buddy-context.json";
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
               }}
-            />
-          </label>
+            >
+              Export skill context
+            </button>
+            <label className="field">
+              Import reminder proposal
+              <input
+                type="file"
+                accept="application/json,.json"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  try {
+                    if (file.size > 2000000)
+                      throw new Error("Choose a proposal under 2 MB.");
+                    const proposal = importSkillProposal(
+                      stateRef.current,
+                      JSON.parse(await file.text()),
+                    );
+                    setError("");
+                    setRetry(null);
+                    setReceipt(null);
+                    setPending({
+                      action: proposal,
+                      message: "WorkBuddy package proposal import",
+                    });
+                  } catch (error) {
+                    setError((error as Error).message);
+                    setRetry(null);
+                  }
+                }}
+              />
+            </label>
+          </details>
+          <button
+            className="danger-text"
+            onClick={() =>
+              action(
+                { type: "reset" },
+                "Reset local records? All changes on this device will be removed.",
+                [],
+                () => {
+                  setContext(null);
+                  go("/today");
+                },
+              )
+            }
+          >
+            Reset local records
+          </button>
         </details>
-        <button
-          className="danger-text"
-          onClick={() =>
-            action(
-              { type: "reset" },
-              "Reset local records? All changes on this device will be removed.",
-              [],
-              () => {
-                setContext(null);
-                go("/today");
-              },
-            )
-          }
-        >
-          Reset local records
-        </button>
         <p className="helper">
           No real permissions, patient data, insurer checks, bookings or vehicle
           connections.
@@ -1852,11 +2218,15 @@ export default function App() {
         if (snap) {
           setHealth(snap);
         } else {
-          setHealthError("Live stats unavailable. Reconnect a wearable or retry.");
+          setHealthError(
+            "Live stats unavailable. Reconnect a wearable or retry.",
+          );
         }
       })
       .catch(() =>
-        setHealthError("Live stats unavailable. Reconnect a wearable or retry."),
+        setHealthError(
+          "Live stats unavailable. Reconnect a wearable or retry.",
+        ),
       )
       .finally(() => setHealthLoading(false));
   }
@@ -1872,167 +2242,131 @@ export default function App() {
     fetchHealthSnapshot(stateRef.current, profile.id)
       .then((snap) => {
         if (snap) setHealth(snap);
-        else setHealthError("Live stats unavailable. Reconnect a wearable or retry.");
+        else
+          setHealthError(
+            "Live stats unavailable. Reconnect a wearable or retry.",
+          );
       })
       .catch(() =>
-        setHealthError("Live stats unavailable. Reconnect a wearable or retry."),
+        setHealthError(
+          "Live stats unavailable. Reconnect a wearable or retry.",
+        ),
       )
       .finally(() => setHealthLoading(false));
   }, [path, profile.id, state.now]);
   function renderHealth() {
     const reading = health?.reading;
-    const weather = todayWeather;
-    const advice = health?.advice ?? [];
-    if (!profile.id) {
+    if (!profile.id)
       return (
         <>
-          <span className="eyebrow">WEARABLE PAIRING</span>
           <h1>Health</h1>
-          <p className="lead">
-            Add a family member to see their wearable vitals here.
-          </p>
-          <div className="notice">
-            Care Buddy shows live stats for the person you are caring for.
-          </div>
+          <p className="lead">A space for rest and your daily wellbeing.</p>
           <div className="actions">
-            <button className="primary" onClick={() => go("/family")}>
-              Go to Family
+            <button className="primary" onClick={() => go("/welcome")}>
+              <Icon name="leaf" />
+              Set up your care space
+            </button>
+            <button onClick={() => openSleep("health")}>
+              Explore sample sleep
             </button>
           </div>
         </>
       );
-    }
     return (
-      <>
-        <span className="eyebrow">WEARABLE PAIRING</span>
-        <h1>Health</h1>
+      <div className="health-view">
+        <span className="eyebrow">A LITTLE MORE BALANCE</span>
+        <h1>Your health, at a glance</h1>
         <p className="lead">
-          Live stats for {profile.displayName}. Pair a wearable to share heart
-          rate, blood pressure, breathing and rest with Care Buddy.
+          Rest, routines, and the bigger picture for {profile.displayName}.
         </p>
-        <section className="detail-panel" aria-labelledby="sleep-review-title">
-          <span className="eyebrow">SLEEP</span>
-          <h2 id="sleep-review-title">Sleep review</h2>
-          <p className="lead">Sleep score: {SAMPLE_SLEEP_NIGHT.score}%</p>
-          <p className="helper">See last night's sleep stages and recommendations.</p>
-          <button className="primary" onClick={() => go("/health/sleep")}>
-            Review Sleep
-          </button>
-        </section>
-        <div className="detail-panel wearable-status">
-          <div className="pairing-row">
+        <div className="health-overview">
+          {renderSleepCard("health")}
+          <section className="wearable-card">
+            <span className="feature-icon">
+              <Icon name="pulse" />
+            </span>
             <div>
-              <strong>{reading ? "Wearable readings" : "No wearable connected"}</strong>
-              <p className="helper">
-                {reading ? "Latest available readings" : "Connect a wearable to see your live vitals."}
+              <h2>
+                {reading ? "Wearable readings" : "Your wearable, here soon"}
+              </h2>
+              <p>
+                {reading
+                  ? "Your latest available readings."
+                  : "Wearable pairing is coming soon. Your live vitals will appear here when a device is connected."}
               </p>
             </div>
-            <button
-              className="primary"
-              onClick={refreshHealth}
-              disabled={healthLoading}
-              aria-busy={healthLoading}
-            >
-              {healthLoading ? "Refreshing…" : "Refresh"}
-            </button>
-          </div>
-          {healthError && (
-            <div role="alert" className="error">
-              {healthError}
-            </div>
-          )}
-          {healthLoading && !reading && (
-            <div className="loading" role="status">
-              <div />
-              <div />
-              <div />
-            </div>
-          )}
-          {reading && (
-            <>
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <span className="stat-label">Heart rate</span>
-                  <span className="stat-value">{reading.heartRate}</span>
-                  <span className="stat-unit">bpm</span>
-                </div>
-                <div className="stat-card">
-                  <span className="stat-label">Blood pressure</span>
-                  <span className="stat-value">
-                    {reading.systolic}/{reading.diastolic}
-                  </span>
-                  <span className="stat-unit">mmHg</span>
-                </div>
-                <div className="stat-card">
-                  <span className="stat-label">Breathing</span>
-                  <span className="stat-value">{reading.breathingRate}</span>
-                  <span className="stat-unit">breaths/min</span>
-                </div>
-                <div className="stat-card">
-                  <span className="stat-label">Sleep</span>
-                  <span className="stat-value">{reading.sleepHours}</span>
-                  <span className="stat-unit">hours · {reading.sleepQuality}</span>
-                </div>
-                <div className="stat-card">
-                  <span className="stat-label">Steps</span>
-                  <span className="stat-value">{reading.steps.toLocaleString()}</span>
-                  <span className="stat-unit">today</span>
-                </div>
+            {reading ? (
+              <button
+                className="text-button"
+                onClick={refreshHealth}
+                disabled={healthLoading}
+              >
+                {healthLoading ? "Refreshing…" : "Refresh readings"}
+              </button>
+            ) : (
+              <span className="coming-soon-tag">Coming soon</span>
+            )}
+            {healthError && reading && (
+              <div role="alert" className="error">
+                {healthError}
               </div>
-              <p className="helper">
-                Last sync {formatTime(reading.updatedAt)} · This is a demo
-                reading, not a medical measurement.
-              </p>
-            </>
-          )}
+            )}
+          </section>
         </div>
-        {weather && (
-          <div className="detail-panel">
-            <span className="eyebrow">CURRENT WEATHER</span>
-            <h2>{weather.location}</h2>
-            <div className="weather-grid">
-              <div className="weather-main">
-                <span className="weather-temp">{weather.temperatureC}°C</span>
-                <span className="weather-cond">{weather.condition}</span>
-                {weather.forecastValidUntil && <span className="helper">2-hour forecast · {weather.forecastPeriod}</span>}
+        {reading && (
+          <div className="stats-grid">
+            {[
+              ["Heart rate", reading.heartRate, "bpm"],
+              [
+                "Blood pressure",
+                `${reading.systolic}/${reading.diastolic}`,
+                "mmHg",
+              ],
+              ["Breathing", reading.breathingRate, "breaths/min"],
+              ["Sleep", reading.sleepHours, `hours · ${reading.sleepQuality}`],
+              ["Steps", reading.steps.toLocaleString(), "today"],
+            ].map(([label, value, unit]) => (
+              <div className="stat-card" key={label}>
+                <span className="stat-label">{label}</span>
+                <span className="stat-value">{value}</span>
+                <span className="stat-unit">{unit}</span>
               </div>
-              <dl className="weather-detail">
-                {weather.humidity !== null && <div>
-                  <dt>Humidity</dt>
-                  <dd>{Math.round(weather.humidity)}%</dd>
-                </div>}
-                {weather.psi !== null && <div>
-                  <dt>24-hour PSI · Central</dt>
-                  <dd>{weather.psi} · {psiLabel(weather.psi)}</dd>
-                </div>}
-              </dl>
-            </div>
-            <p className="helper">
-              Updated {formatTime(weather.updatedAt)} · {weather.stationName} · {weather.source}
-            </p>
+            ))}
           </div>
         )}
-        {!weather && <WeatherBanner weather={null} loading={weatherLoading} error={weatherError}
-          onRetry={() => setWeatherRequest((request) => request + 1)} />}
-        {advice.length > 0 && (
-          <div className="detail-panel">
-            <span className="eyebrow">ADVICE &amp; RECOMMENDATIONS</span>
+        <div className="section-heading health-weather-heading">
+          <h2>Before you head out</h2>
+        </div>
+        <WeatherBanner
+          weather={todayWeather}
+          loading={weatherLoading}
+          error={weatherError}
+          onRetry={() => setWeatherRequest((request) => request + 1)}
+        />
+        {(health?.advice.length ?? 0) > 0 && (
+          <section className="detail-panel">
             <h2>What to do today</h2>
             <ul className="advice-list">
-              {advice.map((a) => (
-                <li key={a.id} className={"advice-" + a.tone}>
-                  <span className="advice-category">{a.category}</span>
-                  <span className="advice-text">{a.text}</span>
+              {health?.advice.map((advice) => (
+                <li key={advice.id} className={"advice-" + advice.tone}>
+                  <span className="advice-category">{advice.category}</span>
+                  <span>{advice.text}</span>
                 </li>
               ))}
             </ul>
-            <p className="helper">
-              Recommendations are generated from the demo vitals and weather.
-              They are not a diagnosis.
-            </p>
-          </div>
+          </section>
         )}
-      </>
+        <div className="care-insight">
+          <Icon name="buddy" />
+          <div>
+            <strong>Make a plan that fits your day</strong>
+            <p>Buddy can help organise your routines and appointments.</p>
+          </div>
+          <button className="text-button" onClick={() => ask()}>
+            Ask Buddy <Icon name="arrow" />
+          </button>
+        </div>
+      </div>
     );
   }
   function renderCar() {
@@ -2154,41 +2488,65 @@ export default function App() {
     return (
       <>
         <span className="eyebrow">ROUTINE CARE ACCESS</span>
-        <h1>Find GP care</h1>
+        <h1>Plan GP care</h1>
         <p className="lead">
           Explore a routine care-access option. Care Buddy does not assess
           symptoms or book care.
         </p>
-        <div className="actions">
-          <button
-            onClick={() => {
-              const b = state.benefits.find(
-                (b) => b.profileId === profile.id && /gp/i.test(b.category),
-              );
-              b
-                ? go("/benefits/" + b.id)
-                : setModal({
-                    title: "Needs confirmation",
-                    content: (
-                      <p>
-                        GP benefit information for this person is not available
-                        in the available policy terms.
-                      </p>
+        <section className="gp-care-card">
+          <span className="feature-icon">
+            <Icon name="heart" />
+          </span>
+          <h2>A little preparation for your next visit</h2>
+          <p>
+            Review the recorded GP benefit, then preview a preferred day and
+            time.
+          </p>
+          <div className="actions">
+            <button
+              onClick={() => {
+                const b = state.benefits.find(
+                  (b) => b.profileId === profile.id && /gp/i.test(b.category),
+                );
+                b
+                  ? go("/benefits/" + b.id)
+                  : setModal({
+                      title: "Needs confirmation",
+                      content: (
+                        <p>
+                          GP benefit information for this person is not
+                          available in the available policy terms.
+                        </p>
+                      ),
+                    });
+              }}
+            >
+              View GP benefit
+            </button>
+            <button
+              className="primary"
+              disabled={!profile.canManage}
+              onClick={() =>
+                openForm("gp", {
+                  date: getSleepNightLabels(
+                    new Date(
+                      Math.max(Date.now(), Date.parse(state.now)) + 86400000,
                     ),
-                  });
-            }}
-          >
-            View GP benefit
-          </button>
-          <button
-            className="primary"
-            onClick={() =>
-              openForm("gp", { date: "2026-10-01", time: "10:00" })
-            }
-          >
-            Preview appointment request
-          </button>
-        </div>
+                  ).wakeDate,
+                  time: "10:00",
+                })
+              }
+            >
+              Preview appointment request
+            </button>
+          </div>
+          {!profile.canManage && (
+            <p className="helper">
+              Choose a profile with manage access to prepare an appointment
+              request.
+            </p>
+          )}
+        </section>
       </>
     );
   }
@@ -2233,6 +2591,30 @@ export default function App() {
     };
     let command: Command | undefined;
     let label = "";
+    if (form.kind === "self") {
+      if (v.displayName.trim().length < 2 || v.displayName.trim().length > 40)
+        errors.displayName = "Enter a display name with 2 to 40 characters";
+      if (v.acknowledged !== "yes")
+        errors.acknowledged = "Confirm you’re using a fictional name";
+      setFormErrors(errors);
+      if (!Object.keys(errors).length)
+        commit(
+          {
+            type: "createSelfProfile",
+            displayName: v.displayName.trim(),
+            acknowledged: true,
+          },
+          {
+            success: "Your care space is ready",
+            done: () => {
+              setForm(null);
+              if (v.nextTemplate) startTemplate(v.nextTemplate);
+              else go("/today");
+            },
+          },
+        );
+      return;
+    }
     if (form.kind === "reminder") {
       titleCheck();
       timeCheck();
@@ -2272,7 +2654,7 @@ export default function App() {
         relationship: v.relationship,
         acknowledged: v.acknowledged === "yes",
       };
-      label = "Add fictional dependent " + v.displayName + " with view access?";
+      label = "Add " + v.displayName + " with view access on this device?";
     }
     if (form.kind === "appointment") {
       titleCheck();
@@ -2358,8 +2740,9 @@ export default function App() {
       action(command, label, form.id ? [form.id] : [], () => {
         setForm(null);
         if (form.kind === "dependent") {
+          commit({ type: "start" }, { done: () => go("/today") });
           setToast(
-            "Profile added with view access. No invitation or consent request was sent.",
+            "Family member added with view access. No invitation was sent.",
           );
         }
       });
@@ -2373,7 +2756,7 @@ export default function App() {
           value={form!.values[key]}
           onChange={(e) => change(key, e.target.value)}
           maxLength={
-            key === "instructions" || key === "notes" ? 600 : undefined
+            key === "instructions" || key === "notes" ? 500 : undefined
           }
           aria-invalid={!!formErrors[key]}
         />
@@ -2381,6 +2764,16 @@ export default function App() {
         <input
           type={type}
           value={form!.values[key]}
+          placeholder={
+            key === "displayName"
+              ? "e.g. Jamie"
+              : key === "title"
+                ? "e.g. Evening stretch"
+                : undefined
+          }
+          maxLength={
+            key === "displayName" ? 40 : key === "title" ? 80 : undefined
+          }
           onChange={(e) => change(key, e.target.value)}
           aria-invalid={!!formErrors[key]}
         />
@@ -2390,26 +2783,45 @@ export default function App() {
       )}
     </label>
   );
-  const formSheet = form && (
+  const formSheet = form && !pending && (
     <Sheet
       title={
         form.kind === "reminder"
           ? form.id
             ? "Edit reminder"
             : "Add reminder"
-          : form.kind === "dependent"
-            ? "Add dependent"
-            : form.kind === "appointment"
-              ? "Update in Care Buddy"
-              : form.kind === "gp"
-                ? "Preview appointment request"
-                : form.kind === "benefitNote"
-                  ? "Add benefit note"
-                  : "Check benefits"
+          : form.kind === "self"
+            ? "Your own care space"
+            : form.kind === "dependent"
+              ? "Add family member"
+              : form.kind === "appointment"
+                ? "Update in Care Buddy"
+                : form.kind === "gp"
+                  ? "Preview appointment request"
+                  : form.kind === "benefitNote"
+                    ? "Add benefit note"
+                    : "Check benefits"
       }
       onClose={closeForm}
+      footer={
+        <div className="actions">
+          <button type="submit" form="care-form" className="primary">
+            {form.kind === "self"
+              ? "Create my space"
+              : form.kind === "gp"
+                ? "Preview request"
+                : form.kind === "benefitCheck"
+                  ? "Check benefits"
+                  : "Review changes"}
+            <Icon name="arrow" />
+          </button>
+          <button type="button" className="text-button" onClick={closeForm}>
+            Cancel
+          </button>
+        </div>
+      }
     >
-      <form onSubmit={submitForm}>
+      <form id="care-form" onSubmit={submitForm}>
         {Object.keys(formErrors).length > 0 && (
           <div role="alert" className="error">
             Check the fields below. {Object.values(formErrors).join(". ")}
@@ -2417,81 +2829,113 @@ export default function App() {
         )}
         {form.kind === "reminder" && (
           <>
-            {state.profiles.length === 0 ? (
-              <div className="notice">
-                <strong>No family member to add a reminder for.</strong>
-                <p>
-                  Add a family member first, then grant manage access so you
-                  can record outcomes and edit their care.
-                </p>
-                <div className="actions">
-                  <button
-                    type="button"
-                    className="primary"
-                    onClick={() => {
-                      closeForm();
-                      go("/family");
-                    }}
-                  >
-                    Go to Family
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <label className="field">
-                Person
-                <select
-                  value={form.values.profileId}
-                  onChange={(e) => change("profileId", e.target.value)}
-                  disabled={!!form.id}
-                >
-                  {state.profiles.map((p) => (
-                    <option key={p.id} value={p.id} disabled={!p.canManage}>
-                      {p.displayName}
-                      {!p.canManage ? " (view only)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label className="field">
-              Category
-              <select
-                value={form.values.category}
-                onChange={(e) => change("category", e.target.value)}
-              >
-                {categories.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-            </label>
-            {field("title", "Title")}
+            <p className="form-person">
+              <Icon name="leaf" />
+              For {person(form.values.profileId)}
+              <span>{form.values.category}</span>
+            </p>
+            {field("title", "What would you like to do?")}
             <div className="field-grid">
-              {field("date", "Date", "date")}
+              {field("date", "Day", "date")}
               {field("time", "Time", "time")}
             </div>
             <label className="field">
               Repeat
               <select
                 value={form.values.recurrence}
-                onChange={(e) => change("recurrence", e.target.value)}
+                onChange={(event) => change("recurrence", event.target.value)}
               >
-                <option>None</option>
-                <option>Daily</option>
+                <option value="None">Just once</option>
+                <option value="Daily">Every day</option>
               </select>
             </label>
-            {field("instructions", "Instructions (optional)", "textarea")}
+            <details
+              className="form-more"
+              open={
+                form.values.category === "Medication" ||
+                !!form.values.instructions ||
+                !!formErrors.instructions
+              }
+            >
+              <summary>
+                More options & instructions <Icon name="plus" />
+              </summary>
+              <label className="field">
+                Category
+                <select
+                  value={form.values.category}
+                  onChange={(event) => change("category", event.target.value)}
+                >
+                  {categories.map((category) => (
+                    <option key={category}>{category}</option>
+                  ))}
+                </select>
+              </label>
+              {state.profiles.length > 1 && (
+                <label className="field">
+                  Person
+                  <select
+                    value={form.values.profileId}
+                    disabled={!!form.id}
+                    onChange={(event) =>
+                      change("profileId", event.target.value)
+                    }
+                  >
+                    {state.profiles.map((person) => (
+                      <option
+                        key={person.id}
+                        value={person.id}
+                        disabled={!person.canManage}
+                      >
+                        {person.displayName}
+                        {!person.canManage ? " (view only)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {field("instructions", "Instructions (optional)", "textarea")}
+            </details>
             {form.values.category === "Medication" && (
               <p className="helper">
-                Use your existing instructions. Buddy does not prescribe
-                medication.
+                Use your existing medication instructions. Buddy does not
+                prescribe medication.
               </p>
             )}
+            {form.id && (
+              <p className="helper">
+                {form.scope === "future"
+                  ? "This and future occurrences"
+                  : "This occurrence only"}
+              </p>
+            )}
+          </>
+        )}
+        {form.kind === "self" && (
+          <>
+            <div className="setup-form-intro">
+              <span className="feature-icon">
+                <Icon name="leaf" />
+              </span>
+              <p>A space for your routines, rest, and a little more balance.</p>
+            </div>
+            {field("displayName", "What should we call you?")}
             <p className="helper">
-              {form.scope === "future"
-                ? "This and future occurrences"
-                : "This occurrence only"}
+              Use a fictional display name while trying the app.
             </p>
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={form.values.acknowledged === "yes"}
+                onChange={(event) =>
+                  change("acknowledged", event.target.checked ? "yes" : "")
+                }
+              />
+              I’m using a fictional name
+            </label>
+            {formErrors.acknowledged && (
+              <p className="field-error">{formErrors.acknowledged}</p>
+            )}
           </>
         )}
         {form.kind === "dependent" && (
@@ -2586,18 +3030,6 @@ export default function App() {
             </div>
           </>
         )}
-        <div className="actions">
-          <button type="submit" className="primary">
-            {form.kind === "gp"
-              ? "Preview request"
-              : form.kind === "benefitCheck"
-                ? "Check benefits"
-                : "Review changes"}
-          </button>
-          <button type="button" onClick={closeForm}>
-            Cancel
-          </button>
-        </div>
       </form>
     </Sheet>
   );
@@ -2674,55 +3106,16 @@ export default function App() {
         )}
       </main>
     );
-  if (path === "/welcome")
-    return (
-      <main className="welcome">
-        {toast && (
-          <div role="status" className="notice">
-            {toast}
-          </div>
-        )}
-        {error && (
-          <div role="alert" className="error">
-            {error}
-            {retry ? (
-              <button onClick={() => retry()}>Retry</button>
-            ) : (
-              <button onClick={() => setError("")}>Dismiss error</button>
-            )}
-          </div>
-        )}
-        <div className="welcome-mark">
-          <Icon name="buddy" />
-        </div>
-        <p className="eyebrow">CARE, MADE SIMPLER</p>
-        <h1>{APP_NAME}</h1>
-        <h2>Your care, and your family's, in one place</h2>
-        <p>Daily routines. Family care. A little less to keep in your head.</p>
-
-        <button
-          className="primary"
-          onClick={() =>
-            commit({ type: "start" }, { done: () => go("/today") })
-          }
-        >
-          Get started <Icon name="arrow" />
-        </button>
-        <button className="text-button" onClick={about}>
-          About Care Buddy
-        </button>
-        <p className="helper">
-          Fictional data only. Not a medical or insurance service.
-        </p>
-        {modal && (
-          <Sheet title={modal.title} onClose={() => setModal(null)}>
-            {modal.content}
-          </Sheet>
-        )}
-      </main>
-    );
   return (
-    <div className={"app " + (path === "/buddy" ? "buddy-view" : "")}>
+    <div
+      className={
+        "app " +
+        (path === "/buddy" ? "buddy-view " : "") +
+        (path === "/welcome" || (path === "/today" && !profile.id)
+          ? "setup-view"
+          : "")
+      }
+    >
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -2740,6 +3133,9 @@ export default function App() {
         }
       >
         <div className="wordmark">
+          <span className="brand-icon">
+            <Icon name="leaf" />
+          </span>
           <strong>{APP_NAME}</strong>
         </div>
 
@@ -2798,6 +3194,34 @@ export default function App() {
           </button>
         ))}
       </nav>
+      {import.meta.env.VITE_UI_PREVIEW === "true" && (
+        <div
+          className="preview-banner"
+          inert={
+            !!(
+              form ||
+              reminderId ||
+              scopeEdit ||
+              snooze ||
+              pending ||
+              modal ||
+              discard
+            )
+          }
+        >
+          <span>Local preview · fictional household</span>
+          <a
+            href={
+              import.meta.env.VITE_UI_COMPARE_URL ||
+              "http://localhost:4319/today"
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Compare previous design <Icon name="arrow" />
+          </a>
+        </div>
+      )}
       <main
         id="main"
         inert={
@@ -2812,43 +3236,11 @@ export default function App() {
           )
         }
       >
-        {path !== "/" && path !== "/today" && (path !== "/health/sleep" || state.profiles.length > 0) && (
-          <div className="profile-selector">
-            {state.profiles.length === 0 ? (
-              <button
-                type="button"
-                className="profile-empty"
-                onClick={() => go("/family")}
-              >
-                <span className="eyebrow">Care for</span>
-                <strong>Add a family member to get started</strong>
-                <span className="helper">Tap to open Family</span>
-              </button>
-            ) : (
-              <>
-                <label htmlFor="profile">Care for</label>
-                <select
-                  id="profile"
-                  value={profile.id}
-                  onChange={(e) => select(e.target.value)}
-                >
-                  {state.profiles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.displayName}
-                    </option>
-                  ))}
-                </select>
-                <span className="profile-access">
-                  {profile.id === "p-me"
-                    ? "Your care"
-                    : profile.relationship +
-                      " · " +
-                      (profile.canManage ? "Manage access" : "View only")}
-                </span>
-              </>
-            )}
-          </div>
-        )}
+        {path !== "/" &&
+          path !== "/today" &&
+          path !== "/welcome" &&
+          (path !== "/health/sleep" || state.profiles.length > 0) &&
+          renderProfilePicker()}
         {error && !pending && (
           <div role="alert" className="error">
             {error}
@@ -2859,13 +3251,15 @@ export default function App() {
             )}
           </div>
         )}
-        {loading ? (
+        {loading || syncLoading ? (
           <div role="status" className="loading">
             <h2>Loading your care…</h2>
             <div />
             <div />
             <div />
           </div>
+        ) : path === "/welcome" ? (
+          renderOnboarding()
         ) : path === "/today" ? (
           renderToday()
         ) : path.startsWith("/family") ? (
@@ -2875,8 +3269,45 @@ export default function App() {
         ) : path.startsWith("/benefits") ? (
           renderBenefits()
         ) : path === "/health/sleep" ? (
-          <SleepDetails profileName={profile.id ? profile.displayName : undefined}
-            now={liveTime} onBack={() => go("/today")} />
+          <SleepDetails
+            profileName={profile.id ? profile.displayName : undefined}
+            now={liveTime}
+            backLabel={
+              new URLSearchParams(route.split("?")[1]).get("from") === "health"
+                ? "Health"
+                : "Today"
+            }
+            onBack={() =>
+              go(
+                new URLSearchParams(route.split("?")[1]).get("from") ===
+                  "health"
+                  ? "/health"
+                  : "/today",
+              )
+            }
+            canManage={!profile.id || profile.canManage}
+            reminderLabel={
+              state.reminders.some(
+                (reminder) =>
+                  reminder.profileId === profile.id &&
+                  reminder.category === "Bedtime" &&
+                  !reminder.deletedAt &&
+                  !reminder.outcome &&
+                  Date.parse(reminder.scheduledAt) > Date.parse(state.now),
+              )
+                ? "Adjust wind-down reminder"
+                : "Create wind-down reminder"
+            }
+            onCreateReminder={() =>
+              profile.id
+                ? startTemplate("wind-down")
+                : openForm("self", {
+                    displayName: "",
+                    acknowledged: "",
+                    nextTemplate: "wind-down",
+                  })
+            }
+          />
         ) : path === "/health" ? (
           renderHealth()
         ) : path === "/buddy" ? (
@@ -3227,8 +3658,8 @@ export default function App() {
           <p>
             For:{" "}
             {pending.action.command.type === "addDependent"
-              ? (pending.action.command as { displayName: string }).displayName +
-                " (new)"
+              ? (pending.action.command as { displayName: string })
+                  .displayName + " (new)"
               : person(pending.action.profileId)}{" "}
             · Actor: Me
           </p>

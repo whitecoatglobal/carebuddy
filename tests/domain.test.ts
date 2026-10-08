@@ -86,7 +86,11 @@ describe("create and manage reminders", () => {
     let s = makeState();
     s = execute(s, { type: "createReminder", input: input() }, "create");
     const id = s.reminders[0].id;
-    s = execute(s, { type: "completeReminder", id, outcome: "complete" }, "confirm-complete");
+    s = execute(
+      s,
+      { type: "completeReminder", id, outcome: "complete" },
+      "confirm-complete",
+    );
     const r = s.reminders.find((x) => x.id === id)!;
     expect(r.outcome).toBe("complete");
     expect(r.recordedBy).toBe("p-me");
@@ -100,12 +104,63 @@ describe("create and manage reminders", () => {
     s.profiles[0].canManage = false;
     const id = s.reminders[0].id;
     expect(() =>
-      execute(s, { type: "completeReminder", id, outcome: "complete" }, "confirm-complete"),
+      execute(
+        s,
+        { type: "completeReminder", id, outcome: "complete" },
+        "confirm-complete",
+      ),
     ).toThrow();
   });
 });
 
 describe("family member CRUD", () => {
+  it("creates a self-care profile that can manage routines without seeding records", () => {
+    let s = execute(
+      emptyState(),
+      { type: "createSelfProfile", displayName: " Jamie ", acknowledged: true },
+      "self-setup",
+    );
+    expect(s.profiles).toEqual([
+      {
+        id: "p-me",
+        displayName: "Jamie",
+        relationship: "Self",
+        canView: true,
+        canManage: true,
+      },
+    ]);
+    expect(s.started).toBe(true);
+    expect(s.selectedProfileId).toBe("p-me");
+    expect(s.reminders).toHaveLength(0);
+    s.now = "2026-09-30T09:00:00+08:00";
+    s = execute(s, { type: "createReminder", input: input() }, "first-routine");
+    expect(s.reminders[0].profileId).toBe("p-me");
+  });
+  it("requires a valid fictional name and does not replace an existing self profile", () => {
+    expect(() =>
+      execute(emptyState(), {
+        type: "createSelfProfile",
+        displayName: "Jamie",
+        acknowledged: false,
+      }),
+    ).toThrow();
+    expect(() =>
+      execute(emptyState(), {
+        type: "createSelfProfile",
+        displayName: "J",
+        acknowledged: true,
+      }),
+    ).toThrow();
+    const existing = makeState();
+    expect(() =>
+      execute(existing, {
+        type: "createSelfProfile",
+        displayName: "Jamie",
+        acknowledged: true,
+      }),
+    ).toThrow("already set up");
+    expect(existing.profiles[0].displayName).toBe("Me");
+  });
   it("adds a dependent", () => {
     let s = emptyState();
     s = execute(
@@ -141,7 +196,11 @@ describe("family member CRUD", () => {
     );
     const momId = s.profiles.find((p) => p.displayName === "Mom (demo)")!.id;
     // create reminder for Mom while p-me is still selected
-    s = execute(s, { type: "createReminder", input: input({ profileId: momId }) }, "create");
+    s = execute(
+      s,
+      { type: "createReminder", input: input({ profileId: momId }) },
+      "create",
+    );
     expect(s.reminders).toHaveLength(1);
     // removeDependent doesn't require manage=true since it's about the profile itself
     s = execute(s, { type: "removeDependent", id: momId }, "remove");
@@ -165,7 +224,11 @@ describe("family member CRUD", () => {
     const momId = s.profiles.find((p) => p.displayName === "Mom (demo)")!.id;
     s = execute(
       s,
-      { type: "updateDependent", id: momId, patch: { displayName: "Dad", canManage: false } },
+      {
+        type: "updateDependent",
+        id: momId,
+        patch: { displayName: "Dad", canManage: false },
+      },
       "update",
     );
     const p = s.profiles.find((x) => x.id === momId)!;

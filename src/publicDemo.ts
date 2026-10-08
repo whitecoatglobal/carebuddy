@@ -14,7 +14,9 @@ export const isPublicDemo = import.meta.env.VITE_PUBLIC_DEMO === "true";
 export function createPublicDemoState(now = new Date()): State {
   const state = emptyState();
   const date = getSleepNightLabels(now).wakeDate;
-  state.now = new Date(now.getTime() + 8 * 3600000).toISOString().replace("Z", "+08:00");
+  state.now = new Date(now.getTime() + 8 * 3600000)
+    .toISOString()
+    .replace("Z", "+08:00");
   state.started = true;
   state.scenario = "public-demo";
   state.selectedProfileId = "p-me";
