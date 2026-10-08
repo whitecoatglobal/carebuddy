@@ -37,17 +37,14 @@ export function HealthDetails({
             {profileName ? ` · For ${profileName}` : ""}
           </p>
         </div>
-        <span className="sleep-sample-badge health-sample-badge">
-          Sample data
-        </span>
       </div>
-      <section className="health-snapshot" aria-label="Morning health sample">
+      <section className="health-snapshot" aria-label="Morning health readings">
         <span className="feature-icon health-feature-icon">
           <Icon name="pulse" />
         </span>
         <div>
           <span className="eyebrow">AVAILABLE INFORMATION</span>
-          <h2>Explore the available samples</h2>
+          <h2>Health at a glance</h2>
           <p>Five illustrative readings and an explanation of each.</p>
         </div>
         <p className="health-snapshot-note">
@@ -60,8 +57,8 @@ export function HealthDetails({
         aria-labelledby="health-readings-heading"
       >
         <div className="sleep-section-heading">
-          <span className="eyebrow">UNDERSTAND THE SAMPLES</span>
-          <h2 id="health-readings-heading">Sample health readings</h2>
+          <span className="eyebrow">UNDERSTAND THE READINGS</span>
+          <h2 id="health-readings-heading">Health readings</h2>
           <p>
             Tap a reading to learn more. References are for adults at rest;
             personal targets, including children's, can differ.

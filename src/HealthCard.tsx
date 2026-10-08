@@ -5,14 +5,13 @@ export function HealthCard({ onReview }: { onReview: () => void }) {
   return (
     <section
       className="health-review-card health-refined-card"
-      aria-label="Daily health sample"
+      aria-label="Daily health readings"
     >
       <div className="health-card-heading">
         <span className="feature-icon health-feature-icon">
           <Icon name="pulse" />
         </span>
         <span className="eyebrow">AVAILABLE INFORMATION</span>
-        <span className="sample-tag">Sample data</span>
       </div>
       <dl className="health-card-readings">
         {HEALTH_METRICS.slice(0, 4).map((metric) => (
@@ -27,9 +26,9 @@ export function HealthCard({ onReview }: { onReview: () => void }) {
           </div>
         ))}
       </dl>
-      <p>Morning sample · {SAMPLE_HEALTH_CHECK.time} · At rest</p>
+      <p>Morning readings · {SAMPLE_HEALTH_CHECK.time} · At rest</p>
       <button className="primary health-card-link" onClick={onReview}>
-        Review sample readings <Icon name="arrow" />
+        Review readings <Icon name="arrow" />
       </button>
     </section>
   );

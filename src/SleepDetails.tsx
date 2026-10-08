@@ -40,7 +40,6 @@ export function SleepDetails({
             {profileName ? ` · For ${profileName}` : ""}
           </p>
         </div>
-        <span className="sleep-sample-badge">Sample data</span>
       </div>
 
       <section
@@ -54,7 +53,7 @@ export function SleepDetails({
           </span>
           <div>
             <span className="eyebrow">SLEEP SCORE</span>
-            <h2>Your sample night at a glance</h2>
+            <h2>Your night at a glance</h2>
             <p>Illustrative sleep data, not a measurement from your device.</p>
           </div>
         </div>
@@ -92,9 +91,9 @@ export function SleepDetails({
           <span className="eyebrow">UNDERSTAND YOUR NIGHT</span>
           <h2 id="sleep-stages-heading">Sleep stages</h2>
           <p>
-            Percentages show the sample’s{" "}
-            {formatSleepDuration(night.sleepMinutes)} asleep. The{" "}
-            {night.awakeMinutes} minutes awake are tracked separately.
+            Percentages cover {formatSleepDuration(night.sleepMinutes)} of
+            sleep. The {night.awakeMinutes} minutes awake are tracked
+            separately.
           </p>
         </div>
         <div className="sleep-stages-layout">

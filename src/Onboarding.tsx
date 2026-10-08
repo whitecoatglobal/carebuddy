@@ -91,12 +91,11 @@ export function Onboarding({
         </button>
       </div>
       <button className="text-button" onClick={onSleep}>
-        <Icon name="moon" /> Explore the sample sleep review{" "}
-        <Icon name="arrow" />
+        <Icon name="moon" /> Explore the sleep review <Icon name="arrow" />
       </button>
       <p className="helper onboarding-note">
         Try Care Buddy with fictional names and records. Your sleep review uses
-        sample data.
+        illustrative data.
       </p>
     </div>
   );

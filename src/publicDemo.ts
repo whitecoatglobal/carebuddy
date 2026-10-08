@@ -41,8 +41,7 @@ export function createPublicDemoState(now = new Date()): State {
       title: "Take medication",
       category: "Medication",
       time: "08:00",
-      instructions:
-        "Follow your existing medication instructions. This reminder is fictional sample data.",
+      instructions: "Follow your existing medication instructions.",
     },
     {
       id: "water",

@@ -73,7 +73,7 @@ test("sleep preserves exact sample figures and offers one wind-down action", asy
   await page.goto("/health");
   await page.getByRole("button", { name: "Review Sleep" }).click();
   const sleep = page.locator(".sleep-details");
-  await expect(sleep.getByText("Sample data", { exact: true })).toBeVisible();
+  await expect(sleep).not.toContainText(/\bsamples?\b/i);
   await expect(sleep.locator(".sleep-score")).toHaveText("63%");
   await expect(sleep.locator(".sleep-summary-stats")).toContainText("6h 40m");
   for (const [name, percentage] of [
@@ -372,7 +372,7 @@ for (const width of [320, 390, 1440]) {
     };
     await check("Welcome");
     await page
-      .getByRole("button", { name: /Explore the sample sleep review/ })
+      .getByRole("button", { name: /Explore the sleep review/ })
       .click();
     await expect(page.locator(".sleep-details")).toBeVisible();
     await check("Sleep");

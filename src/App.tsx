@@ -81,6 +81,14 @@ const benefitStatus = (status: string) =>
   status
     .replace("Listed in sample plan", "Listed in plan")
     .replace("Not listed in sample data", "Not listed in available terms");
+// Older demo records keep their original stored instructions. Hide only the
+// retired label on the unchanged seeded medication reminder.
+const reminderInstructions = (reminder: Reminder) =>
+  reminder.id.startsWith("sample-medication-") &&
+  reminder.instructions ===
+    "Follow your existing medication instructions. This reminder is fictional sample data."
+    ? "Follow your existing medication instructions."
+    : reminder.instructions;
 const benefitName = (category: string) =>
   ({
     gp: "GP visits",
@@ -641,7 +649,7 @@ export default function App() {
         date: time.slice(0, 10),
         time: time.slice(11, 16),
         recurrence: r?.recurrence || "None",
-        instructions: r?.instructions || "",
+        instructions: r ? reminderInstructions(r) : "",
         appointmentId: r?.appointmentId || appointmentId || "",
       },
       r?.id,
@@ -838,7 +846,7 @@ export default function App() {
             This is a prototype with fictional records and a reference clock.
             Buddy uses the selected person’s care records and asks for automatic
             saves for clear Buddy requests. Forms use a review step. Sleep uses
-            frontend sample data; benefits, appointment requests, alerts and car
+            frontend data; benefits, appointment requests, alerts and car
             connection are illustrative. A live WorkBuddy connection is not
             configured.
           </p>
@@ -990,16 +998,12 @@ export default function App() {
   }
   function renderSleepCard(from: "today" | "health") {
     return (
-      <section
-        className="sleep-review-card"
-        aria-label="Last night's sleep sample"
-      >
+      <section className="sleep-review-card" aria-label="Last night's sleep">
         <div className="sleep-card-heading">
           <span className="feature-icon lavender-icon">
             <Icon name="moon" />
           </span>
           <span className="eyebrow">LAST NIGHT'S REST</span>
-          <span className="sample-tag">Sample data</span>
         </div>
         <div className="sleep-card-numbers">
           <strong>
@@ -2463,11 +2467,9 @@ export default function App() {
               <Icon name="leaf" />
               Set up your care space
             </button>
-            <button onClick={() => openSleep("health")}>
-              Explore sample sleep
-            </button>
+            <button onClick={() => openSleep("health")}>Explore sleep</button>
             <button onClick={() => openHealthDetails("health")}>
-              Explore sample health
+              Explore health
             </button>
           </div>
         </>
@@ -3676,7 +3678,7 @@ export default function App() {
             {detail.notificationSnoozedUntil && (
               <p>Notification: {formatTime(detail.notificationSnoozedUntil)}</p>
             )}
-            <p>{detail.instructions || "No instructions entered."}</p>
+            <p>{reminderInstructions(detail) || "No instructions entered."}</p>
             {detail.category === "Medication" && (
               <p className="helper">
                 This is a reported outcome, not clinical verification.
