@@ -54,4 +54,13 @@ The database migration preserves saved JSON and adds `is_visible=0` to all exist
 - Shared, backend and frontend builds passed. A local production browser check verified blocked access, database approval opening the app, and revocation blocking after reload.
 - The column has been added to the live database. All 129 existing snapshots and timestamps stayed unchanged; SQLite integrity was `ok`. Existing rows have `is_visible=0`.
 - Database backup: `/home/ubuntu/care-buddy-backups/visibility-column-20261008-033918`.
-- The access-gate application release has **not** been deployed. Live behavior remains unchanged until the owner supplies or configures the approved IDs. The database column alone does not enforce access in the old application.
+- The owner subsequently requested approval of every existing database row. The gate is now deployed; the current rollout is documented below.
+
+## Live activation — 8 October 2026
+
+- Deployed the access gate from `59e49ec`, retaining SQ's refreshed interface and public-demo build configuration.
+- With the service stopped, backed up the database and set all 129 existing `state_snapshots` rows to `is_visible=1`, as explicitly requested by the owner. Existing snapshot JSON and timestamps were verified unchanged. New browser IDs still default to 0.
+- Backup of the database and previous application: `/home/ubuntu/care-buddy-backups/client-access-20261008-034251`.
+- All 68 tests and shared/backend/frontend production builds passed before deployment. Staged Linux allow/deny checks passed.
+- Live Chrome verification using isolated temporary browser IDs confirmed an approved ID opens the care interface without a login/password screen, a new ID shows the access-blocked screen, another client's record path is denied, and the ID-list endpoint exposes only the requesting ID.
+- Test rows were removed; 129 approved rows remained and SQLite integrity was `ok`. Provider credentials and existing care record content were preserved.

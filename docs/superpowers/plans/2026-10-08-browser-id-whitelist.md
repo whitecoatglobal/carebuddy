@@ -16,4 +16,4 @@
 - [x] Run tests, frontend/backend builds and diff review.
 - [x] Back up live database and add the visibility column without altering snapshot JSON or timestamps.
 - [x] Commit and push changes.
-- [ ] Activate live only after the user provides the IDs to whitelist. Back up code and data; retain provider secrets; test an allowed and a denied browser.
+- [x] Owner authorised all existing IDs on 8 October 2026. Backed up code and data, enabled all 129 existing rows, deployed the gate, retained provider secrets, and verified allowed/blocked browser flows without login.
