@@ -49,11 +49,23 @@ export function greetingFor(now: string, name: string): string {
 
 // Display excerpts from the recorded terms without inferring cover or balances.
 export function getBenefitHighlights(conditions: string): string[] {
-  const amount = conditions.match(
+  const amountMatch = conditions.match(
     /(?:S\$|SGD\s*)\s*[\d,]+(?:\.\d{1,2})?(?:\s*(?:per|\/)\s*(?:visit|year|plan year))?/i,
-  )?.[0];
+  );
+  let amount = amountMatch?.[0];
+  if (amount && amountMatch?.index !== undefined) {
+    const prefix =
+      conditions.slice(0, amountMatch.index).split(/[.!?]/).at(-1) || "";
+    if (
+      /\bannual\b[^.!?]*\ballowance\b/i.test(prefix) &&
+      !/\bper\b|\//i.test(amount)
+    ) {
+      amount = `Annual allowance: ${amount}`;
+    }
+    if (/\bup to\s*$/i.test(prefix)) amount = `Up to ${amount}`;
+  }
   const limit = conditions.match(
-    /(?:up to\s+)?\d+\s+visits?\s+(?:per|a)\s+(?:plan\s+)?year/i,
+    /(?:up to\s+)?(?:\d+|one)\s+visits?\s+(?:per|a)\s+(?:plan\s+)?year/i,
   )?.[0];
   return [amount, limit].filter((value): value is string => Boolean(value));
 }

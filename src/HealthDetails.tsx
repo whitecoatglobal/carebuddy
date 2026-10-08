@@ -24,7 +24,7 @@ export function HealthDetails({
     timeZone: "Asia/Singapore",
   }).format(now);
   return (
-    <div className="health-details">
+    <div className="health-details health-refined">
       <button className="text-button sleep-back" onClick={onBack}>
         <span aria-hidden="true">←</span> Back to {backLabel}
       </button>
@@ -46,9 +46,9 @@ export function HealthDetails({
           <Icon name="pulse" />
         </span>
         <div>
-          <span className="eyebrow">YOUR EVERYDAY SIGNALS</span>
-          <h2>A moment to check in</h2>
-          <p>A quick look at five readings and what they measure.</p>
+          <span className="eyebrow">AVAILABLE INFORMATION</span>
+          <h2>Explore the available samples</h2>
+          <p>Five illustrative readings and an explanation of each.</p>
         </div>
         <p className="health-snapshot-note">
           These are illustrative readings for exploring the app.
@@ -60,8 +60,8 @@ export function HealthDetails({
         aria-labelledby="health-readings-heading"
       >
         <div className="sleep-section-heading">
-          <span className="eyebrow">UNDERSTAND YOUR READINGS</span>
-          <h2 id="health-readings-heading">Your health snapshot</h2>
+          <span className="eyebrow">UNDERSTAND THE SAMPLES</span>
+          <h2 id="health-readings-heading">Sample health readings</h2>
           <p>
             Tap a reading to learn more. References are for adults at rest;
             personal targets, including children's, can differ.
@@ -82,9 +82,7 @@ export function HealthDetails({
                   <Icon name="arrow" />
                 </span>
                 <span className="health-reading-value">
-                  {metric.value}
-                  {" "}
-                  <small>{metric.unit}</small>
+                  {metric.value} <small>{metric.unit}</small>
                 </span>
                 <span className="health-reading-context">{metric.context}</span>
               </summary>

@@ -1,0 +1,72 @@
+.family-detail-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.family-detail-heading h1 {
+  margin: 0;
+}
+.family-detail-menu {
+  position: relative;
+}
+.family-detail-menu > .danger-text {
+  margin-top: 8px;
+}
+.appointment-details-card.appointment-details-compact {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.appointment-details-compact .appointment-date strong {
+  font-size: 17px;
+}
+.appointment-details-compact .appointment-location {
+  margin: 10px 0 6px;
+}
+.appointment-details-compact .record-details {
+  margin-top: 8px;
+}
+.recorded-benefit-summary {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.recorded-benefit-summary li {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--sage-wash, #e6f3ef);
+  font-size: 17px;
+  font-weight: 600;
+}
+.composer:focus-within {
+  border-color: var(--deep-sage, #0f766e);
+  box-shadow: 0 0 0 2px #0f766e22;
+}
+@media (max-width: 480px) {
+  .appointment-details-compact .appointment-date {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+.today-view > .weather-strip {
+  margin: 16px 0;
+}
+.empty-progress {
+  color: var(--muted, #526460);
+  margin: 0 0 14px;
+}
+.wearable-card .error {
+  grid-column: 1 / -1;
+}
+.nav button.active {
+  color: #416b58;
+}
+.sleep-sample-badge {
+  color: #416b58;
+}
+.coming-soon-tag {
+  color: #6b5b3f;
+}

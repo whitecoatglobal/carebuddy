@@ -25,18 +25,9 @@ export function SleepDetails({
 }) {
   const night = SAMPLE_SLEEP_NIGHT;
   const dates = getSleepNightLabels(now);
-  let offset = 0;
-  const segments = night.stages
-    .map((stage) => {
-      const start = offset;
-      offset += stage.percentage;
-      return `${stage.color} ${start}% ${offset}%`;
-    })
-    .join(", ");
-  const chartLabel = `Of ${formatSleepDuration(night.sleepMinutes)} asleep: ${night.stages.map((stage) => `${stage.name} ${stage.percentage}%`).join(", ")}.`;
 
   return (
-    <div className="sleep-details">
+    <div className="sleep-details sleep-refined">
       <button className="text-button sleep-back" onClick={onBack}>
         <span aria-hidden="true">←</span> Back to {backLabel}
       </button>
@@ -63,8 +54,8 @@ export function SleepDetails({
           </span>
           <div>
             <span className="eyebrow">SLEEP SCORE</span>
-            <h2>A little room for better rest</h2>
-            <p>A look at your night, from settling in to waking up.</p>
+            <h2>Your sample night at a glance</h2>
+            <p>Illustrative sleep data, not a measurement from your device.</p>
           </div>
         </div>
         <dl className="sleep-summary-stats">
@@ -99,28 +90,14 @@ export function SleepDetails({
       >
         <div className="sleep-section-heading">
           <span className="eyebrow">UNDERSTAND YOUR NIGHT</span>
-          <h2 id="sleep-stages-heading">Your sleep stages</h2>
+          <h2 id="sleep-stages-heading">Sleep stages</h2>
           <p>
-            Percentages show your {formatSleepDuration(night.sleepMinutes)}{" "}
-            asleep. The {night.awakeMinutes} minutes awake are tracked
-            separately.
+            Percentages show the sample’s{" "}
+            {formatSleepDuration(night.sleepMinutes)} asleep. The{" "}
+            {night.awakeMinutes} minutes awake are tracked separately.
           </p>
         </div>
         <div className="sleep-stages-layout">
-          <div className="sleep-chart-wrap">
-            <div
-              className="sleep-donut"
-              style={{ background: `conic-gradient(${segments})` }}
-              role="img"
-              aria-label={chartLabel}
-            >
-              <div className="sleep-donut-center" aria-hidden="true">
-                <span>{formatSleepDuration(night.sleepMinutes)}</span>
-                <small>ASLEEP</small>
-              </div>
-            </div>
-            <p className="helper">Every stage is part of your sleep cycle.</p>
-          </div>
           <div className="sleep-stage-list">
             {night.stages.map((stage) => (
               <details
@@ -158,13 +135,11 @@ export function SleepDetails({
       >
         <div className="sleep-section-heading">
           <span className="eyebrow">A GENTLER NIGHT AHEAD</span>
-          <h2 id="sleep-recommendations-heading">
-            Recommendations for tonight
-          </h2>
+          <h2 id="sleep-recommendations-heading">One routine for tonight</h2>
           <p>Start with one small change that fits your evening.</p>
         </div>
         <div className="sleep-recommendation-grid">
-          {SLEEP_RECOMMENDATIONS.map((recommendation, index) => (
+          {SLEEP_RECOMMENDATIONS.slice(0, 1).map((recommendation, index) => (
             <article
               className={
                 "sleep-recommendation " +

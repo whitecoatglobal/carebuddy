@@ -106,9 +106,11 @@ function Sheet({
     const focus = () =>
       Array.from(
         node.querySelectorAll<HTMLElement>(
-          'button,input,select,textarea,a[href],[tabindex="0"]',
+          'button,input,select,textarea,summary,a[href],[tabindex="0"]',
         ),
-      ).filter((x) => !x.hasAttribute("disabled"));
+      ).filter(
+        (x) => !x.hasAttribute("disabled") && x.getClientRects().length > 0,
+      );
     focus()[0]?.focus();
     const key = (e: KeyboardEvent) => {
       if (
@@ -265,6 +267,7 @@ export default function App() {
   const [health, setHealth] = useState<HealthSnapshot | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthError, setHealthError] = useState("");
+  const healthRequestId = useRef(0);
   const [liveTime, setLiveTime] = useState(() => new Date());
   const [todayWeather, setTodayWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
@@ -809,14 +812,28 @@ export default function App() {
   function renderOnboarding() {
     return (
       <Onboarding
-        onSelf={() => {
+        onSelf={(starter) => {
+          const nextTemplate =
+            starter === "Bedtime"
+              ? "wind-down"
+              : starter === "Walking"
+                ? "walk"
+                : starter === "Drinking water"
+                  ? "water"
+                  : "";
           const self = state.profiles.find(
             (person) => person.id === "p-me" || person.relationship === "Self",
           );
           if (self) {
             select(self.id);
             go("/today");
-          } else openForm("self", { displayName: "", acknowledged: "" });
+            if (nextTemplate) startTemplate(nextTemplate);
+          } else
+            openForm("self", {
+              displayName: "",
+              acknowledged: "",
+              nextTemplate,
+            });
         }}
         onFamily={() =>
           openForm("dependent", {
@@ -840,7 +857,7 @@ export default function App() {
             <Icon name="moon" />
           </span>
           <span className="eyebrow">LAST NIGHT'S REST</span>
-          <span className="sample-tag">Sample</span>
+          <span className="sample-tag">Sample data</span>
         </div>
         <div className="sleep-card-numbers">
           <strong>
@@ -880,26 +897,6 @@ export default function App() {
     const hidden = dismissedReminderCards.includes(featuredKey);
     return (
       <div className="today-view">
-        <WeatherBanner
-          weather={todayWeather}
-          loading={weatherLoading}
-          error={weatherError}
-          onRetry={() => setWeatherRequest((request) => request + 1)}
-        />
-        {todayWeather &&
-          /rain|shower|thunder/i.test(todayWeather.condition) &&
-          !rainDismissed && (
-            <div className="rain-hint">
-              <Icon name="rain" />
-              <span>Bring an umbrella if you’re heading out.</span>
-              <button
-                className="text-button"
-                onClick={() => setRainDismissed(true)}
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
         <div className="today-heading">
           <div>
             <span className="eyebrow">
@@ -915,6 +912,11 @@ export default function App() {
           </div>
           {renderProfilePicker(true)}
         </div>
+        {todayReminders.length === 0 && (
+          <p className="empty-progress">
+            No routines scheduled today. Start with one below.
+          </p>
+        )}
         {todayReminders.length > 0 && (
           <div className="care-progress">
             <span className="progress-icon">
@@ -1231,6 +1233,26 @@ export default function App() {
             </section>
           )}
         </div>
+        <WeatherBanner
+          weather={todayWeather}
+          loading={weatherLoading}
+          error={weatherError}
+          onRetry={() => setWeatherRequest((request) => request + 1)}
+        />
+        {todayWeather &&
+          /rain|shower|thunder/i.test(todayWeather.condition) &&
+          !rainDismissed && (
+            <div className="rain-hint">
+              <Icon name="rain" />
+              <span>Bring an umbrella if you’re heading out.</span>
+              <button
+                className="text-button"
+                onClick={() => setRainDismissed(true)}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
         {profile.canManage && todayReminders.length > 0 && (
           <section className="routine-starters">
             <div className="section-heading">
@@ -1287,7 +1309,12 @@ export default function App() {
           <button className="text-button" onClick={() => go("/family")}>
             ← Back to Family
           </button>
-          <h1>{member.displayName}</h1>
+          <div className="family-detail-heading">
+            <span className="avatar" aria-hidden="true">
+              {member.displayName.slice(0, 1)}
+            </span>
+            <h1>{member.displayName}</h1>
+          </div>
           <p className="lead">
             {member.relationship} ·{" "}
             {member.canManage ? "Can manage reminders" : "Can view reminders"}
@@ -1365,19 +1392,24 @@ export default function App() {
             </button>
             <button onClick={() => go("/benefits")}>Benefits</button>
             {member.id !== "p-me" && (
-              <button
-                className="danger-text"
-                onClick={() =>
-                  action(
-                    { type: "removeDependent", id: member.id },
-                    `Remove ${member.displayName}? This only removes fictional data from this browser.`,
-                    [member.id],
-                    () => go("/family"),
-                  )
-                }
-              >
-                Remove family member
-              </button>
+              <details className="profile-menu family-detail-menu">
+                <summary aria-label={`More options for ${member.displayName}`}>
+                  <Icon name="more" />
+                </summary>
+                <button
+                  className="danger-text"
+                  onClick={() =>
+                    action(
+                      { type: "removeDependent", id: member.id },
+                      `Remove ${member.displayName}? This only removes fictional data from this browser.`,
+                      [member.id],
+                      () => go("/family"),
+                    )
+                  }
+                >
+                  Remove family member
+                </button>
+              </details>
             )}
           </div>
         </>
@@ -1410,7 +1442,9 @@ export default function App() {
                       ? "Your care"
                       : person.relationship}
                   </span>
-                  <small>{summary(person)}</small>
+                  <small>
+                    <strong>Next:</strong> {summary(person)}
+                  </small>
                 </span>
                 <Icon name="arrow" />
               </button>
@@ -1499,7 +1533,7 @@ export default function App() {
         <span className="eyebrow">APPOINTMENT</span>
         <h1>{a.title}</h1>
         <p className="lead">For: {profile.displayName}</p>
-        <section className="appointment-details-card">
+        <section className="appointment-details-card appointment-details-compact">
           <div className="appointment-date">
             <span className="feature-icon">
               <Icon name="today" />
@@ -1558,6 +1592,7 @@ export default function App() {
         )}
         <div className="actions">
           <button
+            className="primary"
             disabled={!profile.canManage}
             onClick={() => reminderForm(undefined, "occurrence", a.id)}
           >
@@ -1614,6 +1649,7 @@ export default function App() {
     );
   }
   function renderBenefits() {
+    const recordedHighlights = getBenefitHighlights;
     const b = state.benefits.find(
       (x) => x.id === path.split("/")[2] && x.profileId === profile.id,
     );
@@ -1656,23 +1692,35 @@ export default function App() {
           <p className="lead">For: {profile.displayName}</p>
           <div className="detail-panel">
             <span className="status">{benefitStatus(b.status)}</span>
-            <h2>Documented terms</h2>
-            <p>{b.conditions}</p>
+            <h2>Allowance and limits</h2>
+            {recordedHighlights(b.conditions).length > 0 ? (
+              <ul className="recorded-benefit-summary">
+                {recordedHighlights(b.conditions).map((highlight) => (
+                  <li key={highlight}>{highlight}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>See the recorded conditions below for available terms.</p>
+            )}
+            <p className="helper">
+              Used amount / remaining allowance: Not available
+            </p>
             {b.notes && <p>{b.notes}</p>}
-            <div className="benefit-highlights">
-              {getBenefitHighlights(b.conditions).map((highlight) => (
-                <span key={highlight}>{highlight}</span>
-              ))}
-            </div>
             <details className="record-details">
-              <summary>Source, policy & eligibility</summary>
+              <summary>Conditions, source and policy date</summary>
+              <p>{b.conditions}</p>
               <dl>
                 <dt>Source</dt>
                 <dd>{b.source}</dd>
                 <dt>Policy date</dt>
                 <dd>
                   {b.policyDate
-                    ? formatDate(b.policyDate)
+                    ? new Intl.DateTimeFormat("en-SG", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        timeZone: "Asia/Singapore",
+                      }).format(new Date(b.policyDate))
                     : "Date not supplied"}
                 </dd>
                 <dt>Person on this record</dt>
@@ -1756,11 +1804,13 @@ export default function App() {
                 <span className="row-copy">
                   <strong>{benefitName(b.category)}</strong>
                   <span className="benefit-highlights">
-                    {getBenefitHighlights(b.conditions).map((highlight) => (
+                    {recordedHighlights(b.conditions).map((highlight) => (
                       <b key={highlight}>{highlight}</b>
                     ))}
                   </span>
-                  <span className="benefit-excerpt">{b.conditions}</span>
+                  <span className="benefit-excerpt">
+                    View conditions, source and policy date
+                  </span>
                 </span>
                 <Icon name="arrow" />
               </button>
@@ -2216,48 +2266,41 @@ export default function App() {
   }
   function refreshHealth() {
     if (!profile.id) return;
+    const requestId = ++healthRequestId.current;
+    const requestedProfile = profile.id;
+    const isCurrent = () =>
+      requestId === healthRequestId.current &&
+      stateRef.current.selectedProfileId === requestedProfile;
     setHealthLoading(true);
     setHealthError("");
-    fetchHealthSnapshot(stateRef.current, profile.id)
+    fetchHealthSnapshot(stateRef.current, requestedProfile)
       .then((snap) => {
-        if (snap) {
-          setHealth(snap);
-        } else {
-          setHealthError(
-            "Live stats unavailable. Reconnect a wearable or retry.",
-          );
-        }
-      })
-      .catch(() =>
-        setHealthError(
-          "Live stats unavailable. Reconnect a wearable or retry.",
-        ),
-      )
-      .finally(() => setHealthLoading(false));
-  }
-  useEffect(() => {
-    if (path !== "/health") return;
-    setHealth(null);
-    setHealthError("");
-    if (!profile.id) {
-      setHealthLoading(false);
-      return;
-    }
-    setHealthLoading(true);
-    fetchHealthSnapshot(stateRef.current, profile.id)
-      .then((snap) => {
+        if (!isCurrent()) return;
         if (snap) setHealth(snap);
         else
           setHealthError(
-            "Live stats unavailable. Reconnect a wearable or retry.",
+            "Readings are unavailable. Try refreshing again later.",
           );
       })
-      .catch(() =>
-        setHealthError(
-          "Live stats unavailable. Reconnect a wearable or retry.",
-        ),
-      )
-      .finally(() => setHealthLoading(false));
+      .catch(() => {
+        if (isCurrent())
+          setHealthError(
+            "Readings are unavailable. Try refreshing again later.",
+          );
+      })
+      .finally(() => {
+        if (isCurrent()) setHealthLoading(false);
+      });
+  }
+  useEffect(() => {
+    ++healthRequestId.current;
+    setHealth(null);
+    setHealthError("");
+    setHealthLoading(false);
+    if (path === "/health" && profile.id) refreshHealth();
+    return () => {
+      ++healthRequestId.current;
+    };
   }, [path, profile.id, state.now]);
   function renderHealth() {
     const reading = health?.reading;
@@ -2315,9 +2358,21 @@ export default function App() {
             ) : (
               <span className="coming-soon-tag">Coming soon</span>
             )}
-            {healthError && reading && (
+            {healthLoading && !reading && (
+              <p role="status">Checking available readings…</p>
+            )}
+            {healthError && (
               <div role="alert" className="error">
-                {healthError}
+                <p>{healthError}</p>
+                {!reading && (
+                  <button
+                    className="text-button"
+                    onClick={refreshHealth}
+                    disabled={healthLoading}
+                  >
+                    Retry readings
+                  </button>
+                )}
               </div>
             )}
           </section>
@@ -2617,8 +2672,8 @@ export default function App() {
             success: "Your care space is ready",
             done: () => {
               setForm(null);
+              go("/today");
               if (v.nextTemplate) startTemplate(v.nextTemplate);
-              else go("/today");
             },
           },
         );
