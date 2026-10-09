@@ -1,0 +1,662 @@
+{
+  "duration": 357.7572499999999,
+  "sentences": [
+    {
+      "chapter": 0,
+      "sentence": 0,
+      "text": "Care Buddy is our submission for the Tencent Cloud Healthcare Track, case study two: AI Healthier Every Day.",
+      "duration": 7.019291666666667,
+      "start": 0.0,
+      "end": 7.019291666666667,
+      "gap": 0.13
+    },
+    {
+      "chapter": 0,
+      "sentence": 1,
+      "text": "It is a mobile companion for everyday self-care and family care between healthcare visits.",
+      "duration": 5.348041666666667,
+      "start": 7.149291666666667,
+      "end": 12.497333333333334,
+      "gap": 0.13
+    },
+    {
+      "chapter": 0,
+      "sentence": 2,
+      "text": "Imagine a busy adult trying to remember their own routines while helping Mom and Dad.",
+      "duration": 4.870708333333333,
+      "start": 12.627333333333334,
+      "end": 17.498041666666666,
+      "gap": 0.13
+    },
+    {
+      "chapter": 0,
+      "sentence": 3,
+      "text": "Care Buddy brings the next task, useful care records, and an AI assistant into one place.",
+      "duration": 6.218208333333333,
+      "start": 17.628041666666665,
+      "end": 23.846249999999998,
+      "gap": 0.13
+    },
+    {
+      "chapter": 0,
+      "sentence": 4,
+      "text": "This walkthrough uses the live mobile website with fictional care records.",
+      "duration": 4.431208333333333,
+      "start": 23.976249999999997,
+      "end": 28.40745833333333,
+      "gap": 0.13
+    },
+    {
+      "chapter": 0,
+      "sentence": 5,
+      "text": "We will show an actual AI reminder change and its saved result.",
+      "duration": 3.9012083333333334,
+      "start": 28.53745833333333,
+      "end": 32.43866666666666,
+      "gap": 0.8
+    },
+    {
+      "chapter": 1,
+      "sentence": 0,
+      "text": "Explore the demo opens Today.",
+      "duration": 2.0960833333333335,
+      "start": 33.23866666666666,
+      "end": 35.33474999999999,
+      "gap": 0.13
+    },
+    {
+      "chapter": 1,
+      "sentence": 1,
+      "text": "Weather stays at the top, with Singapore temperature, humidity, and PSI from public NEA and MSS feeds.",
+      "duration": 7.65075,
+      "start": 35.464749999999995,
+      "end": 43.1155,
+      "gap": 0.13
+    },
+    {
+      "chapter": 1,
+      "sentence": 2,
+      "text": "Unhealthy PSI appears in red with a mask-up prompt.",
+      "duration": 3.5471666666666666,
+      "start": 43.2455,
+      "end": 46.79266666666667,
+      "gap": 0.13
+    },
+    {
+      "chapter": 1,
+      "sentence": 3,
+      "text": "Rain adds an umbrella reminder.",
+      "duration": 1.86275,
+      "start": 46.92266666666667,
+      "end": 48.78541666666667,
+      "gap": 0.13
+    },
+    {
+      "chapter": 1,
+      "sentence": 4,
+      "text": "Below that, the next care task and daily progress make it easier to act.",
+      "duration": 4.645208333333334,
+      "start": 48.91541666666667,
+      "end": 53.56062500000001,
+      "gap": 0.13
+    },
+    {
+      "chapter": 1,
+      "sentence": 5,
+      "text": "Medication reminders, water, movement, and an evening wind-down stay visible in the timeline.",
+      "duration": 6.271375,
+      "start": 53.69062500000001,
+      "end": 59.96200000000001,
+      "gap": 0.13
+    },
+    {
+      "chapter": 1,
+      "sentence": 6,
+      "text": "A recorded completion tells us what the user logged.",
+      "duration": 3.036625,
+      "start": 60.09200000000001,
+      "end": 63.128625000000014,
+      "gap": 0.13
+    },
+    {
+      "chapter": 1,
+      "sentence": 7,
+      "text": "An unfinished item does not prove that somebody missed a medication dose.",
+      "duration": 4.162708333333334,
+      "start": 63.258625000000016,
+      "end": 67.42133333333335,
+      "gap": 0.8
+    },
+    {
+      "chapter": 2,
+      "sentence": 0,
+      "text": "Review Sleep opens last night's duration and stage breakdown.",
+      "duration": 3.8263333333333334,
+      "start": 68.22133333333335,
+      "end": 72.04766666666669,
+      "gap": 0.13
+    },
+    {
+      "chapter": 2,
+      "sentence": 1,
+      "text": "Light, deep, and REM sleep each have a percentage and an explanation.",
+      "duration": 4.517,
+      "start": 72.17766666666668,
+      "end": 76.69466666666668,
+      "gap": 0.13
+    },
+    {
+      "chapter": 2,
+      "sentence": 2,
+      "text": "A simple evening recommendation gives the user a practical next step.",
+      "duration": 4.244083333333333,
+      "start": 76.82466666666667,
+      "end": 81.06875000000001,
+      "gap": 0.13
+    },
+    {
+      "chapter": 2,
+      "sentence": 3,
+      "text": "Sleep is currently fixed frontend content.",
+      "duration": 2.740458333333333,
+      "start": 81.19875,
+      "end": 83.93920833333334,
+      "gap": 0.13
+    },
+    {
+      "chapter": 2,
+      "sentence": 4,
+      "text": "Your Live Health shows blood pressure, pulse, temperature, and oxygen, with breathing rate on the review page.",
+      "duration": 7.176833333333334,
+      "start": 84.06920833333334,
+      "end": 91.24604166666667,
+      "gap": 0.13
+    },
+    {
+      "chapter": 2,
+      "sentence": 5,
+      "text": "Those readings come from the database through a backend API, but the values are illustrative.",
+      "duration": 5.394458333333334,
+      "start": 91.37604166666667,
+      "end": 96.7705,
+      "gap": 0.13
+    },
+    {
+      "chapter": 2,
+      "sentence": 6,
+      "text": "No wearable is connected.",
+      "duration": 1.5836666666666666,
+      "start": 96.9005,
+      "end": 98.48416666666667,
+      "gap": 0.13
+    },
+    {
+      "chapter": 2,
+      "sentence": 7,
+      "text": "The distinction matters: an API refresh is a working feature, while a connected measurement stream is a future integration.",
+      "duration": 7.682833333333333,
+      "start": 98.61416666666666,
+      "end": 106.297,
+      "gap": 0.8
+    },
+    {
+      "chapter": 3,
+      "sentence": 0,
+      "text": "Family gives Me, Mom, and Dad separate care views.",
+      "duration": 3.841875,
+      "start": 107.097,
+      "end": 110.938875,
+      "gap": 0.13
+    },
+    {
+      "chapter": 3,
+      "sentence": 1,
+      "text": "Selecting Mom changes the routines and appointments we work with.",
+      "duration": 3.738916666666667,
+      "start": 111.06887499999999,
+      "end": 114.80779166666666,
+      "gap": 0.13
+    },
+    {
+      "chapter": 3,
+      "sentence": 2,
+      "text": "Her appointment has a preparation checklist and a clear confirmation status.",
+      "duration": 4.660375,
+      "start": 114.93779166666666,
+      "end": 119.59816666666666,
+      "gap": 0.13
+    },
+    {
+      "chapter": 3,
+      "sentence": 3,
+      "text": "A saved appointment record is not a clinic booking.",
+      "duration": 2.932166666666667,
+      "start": 119.72816666666665,
+      "end": 122.66033333333331,
+      "gap": 0.13
+    },
+    {
+      "chapter": 3,
+      "sentence": 4,
+      "text": "Benefits shows recorded allowances and balances, with conditions and provenance available for review.",
+      "duration": 6.119666666666666,
+      "start": 122.79033333333331,
+      "end": 128.90999999999997,
+      "gap": 0.13
+    },
+    {
+      "chapter": 3,
+      "sentence": 5,
+      "text": "These benefit records are also fictional, so the insurer must confirm real coverage.",
+      "duration": 5.4874583333333335,
+      "start": 129.03999999999996,
+      "end": 134.5274583333333,
+      "gap": 0.13
+    },
+    {
+      "chapter": 3,
+      "sentence": 6,
+      "text": "The aim is to help a caregiver keep relevant information together and prepare useful questions before a healthcare visit.",
+      "duration": 7.21775,
+      "start": 134.6574583333333,
+      "end": 141.8752083333333,
+      "gap": 0.8
+    },
+    {
+      "chapter": 4,
+      "sentence": 0,
+      "text": "Here is the core agent workflow.",
+      "duration": 1.966625,
+      "start": 142.6752083333333,
+      "end": 144.6418333333333,
+      "gap": 0.13
+    },
+    {
+      "chapter": 4,
+      "sentence": 1,
+      "text": "In Buddy, we asked: Change my wind-down reminder to nine p.m. daily.",
+      "duration": 4.756,
+      "start": 144.7718333333333,
+      "end": 149.5278333333333,
+      "gap": 0.13
+    },
+    {
+      "chapter": 4,
+      "sentence": 2,
+      "text": "This was a real request to Tencent TokenHub.",
+      "duration": 2.8174166666666665,
+      "start": 149.6578333333333,
+      "end": 152.47524999999996,
+      "gap": 0.13
+    },
+    {
+      "chapter": 4,
+      "sentence": 3,
+      "text": "The model selected a supported reminder tool.",
+      "duration": 2.644083333333333,
+      "start": 152.60524999999996,
+      "end": 155.24933333333328,
+      "gap": 0.13
+    },
+    {
+      "chapter": 4,
+      "sentence": 4,
+      "text": "The backend checked the selected person, permissions, schedule, and current record before saving.",
+      "duration": 6.127083333333333,
+      "start": 155.37933333333328,
+      "end": 161.5064166666666,
+      "gap": 0.13
+    },
+    {
+      "chapter": 4,
+      "sentence": 5,
+      "text": "Buddy now shows the new daily time and a Saved receipt.",
+      "duration": 3.2055416666666665,
+      "start": 161.6364166666666,
+      "end": 164.84195833333328,
+      "gap": 0.13
+    },
+    {
+      "chapter": 4,
+      "sentence": 6,
+      "text": "Returning to Today shows the same nine p.m. reminder.",
+      "duration": 3.245833333333333,
+      "start": 164.97195833333328,
+      "end": 168.2177916666666,
+      "gap": 0.13
+    },
+    {
+      "chapter": 4,
+      "sentence": 7,
+      "text": "The application reports a successful change only after database persistence.",
+      "duration": 5.00025,
+      "start": 168.3477916666666,
+      "end": 173.3480416666666,
+      "gap": 0.13
+    },
+    {
+      "chapter": 4,
+      "sentence": 8,
+      "text": "Request IDs prevent a retry from creating a second write.",
+      "duration": 3.756666666666667,
+      "start": 173.4780416666666,
+      "end": 177.23470833333326,
+      "gap": 0.13
+    },
+    {
+      "chapter": 4,
+      "sentence": 9,
+      "text": "A missing field or an invalid action stops the save and asks the user for the information needed.",
+      "duration": 5.521791666666667,
+      "start": 177.36470833333325,
+      "end": 182.88649999999993,
+      "gap": 0.8
+    },
+    {
+      "chapter": 5,
+      "sentence": 0,
+      "text": "When the user asks for a routine GP consultation, Buddy offers the WhiteCoat button.",
+      "duration": 5.479708333333333,
+      "start": 183.68649999999994,
+      "end": 189.16620833333326,
+      "gap": 0.13
+    },
+    {
+      "chapter": 5,
+      "sentence": 1,
+      "text": "The user chooses whether to continue.",
+      "duration": 2.0984166666666666,
+      "start": 189.29620833333325,
+      "end": 191.39462499999993,
+      "gap": 0.13
+    },
+    {
+      "chapter": 5,
+      "sentence": 2,
+      "text": "This opens an external care service.",
+      "duration": 2.283375,
+      "start": 191.52462499999993,
+      "end": 193.80799999999994,
+      "gap": 0.13
+    },
+    {
+      "chapter": 5,
+      "sentence": 3,
+      "text": "It does not claim a booking, verify insurance, or send the conversation and readings to WhiteCoat.",
+      "duration": 6.404583333333333,
+      "start": 193.93799999999993,
+      "end": 200.34258333333327,
+      "gap": 0.13
+    },
+    {
+      "chapter": 5,
+      "sentence": 4,
+      "text": "Clinical and medication concerns stay with qualified professionals.",
+      "duration": 4.197875,
+      "start": 200.47258333333326,
+      "end": 204.67045833333327,
+      "gap": 0.13
+    },
+    {
+      "chapter": 5,
+      "sentence": 5,
+      "text": "Apparent emergencies follow a separate urgent-care route.",
+      "duration": 3.3269166666666665,
+      "start": 204.80045833333327,
+      "end": 208.12737499999994,
+      "gap": 0.13
+    },
+    {
+      "chapter": 5,
+      "sentence": 6,
+      "text": "Our focus is everyday care support, with clear limits on what this companion can do.",
+      "duration": 5.253833333333334,
+      "start": 208.25737499999994,
+      "end": 213.5112083333333,
+      "gap": 0.8
+    },
+    {
+      "chapter": 6,
+      "sentence": 0,
+      "text": "Settings also lets a user export a personal plugin for Codex or Claude.",
+      "duration": 4.656125,
+      "start": 214.3112083333333,
+      "end": 218.9673333333333,
+      "gap": 0.13
+    },
+    {
+      "chapter": 6,
+      "sentence": 1,
+      "text": "They choose the people to include and whether to include health-reading alerts.",
+      "duration": 4.001166666666666,
+      "start": 219.0973333333333,
+      "end": 223.09849999999997,
+      "gap": 0.13
+    },
+    {
+      "chapter": 6,
+      "sentence": 2,
+      "text": "The exported skill connects to a scoped MCP endpoint.",
+      "duration": 3.595458333333333,
+      "start": 223.22849999999997,
+      "end": 226.8239583333333,
+      "gap": 0.13
+    },
+    {
+      "chapter": 6,
+      "sentence": 3,
+      "text": "It can read new care notifications and acknowledge delivered alert IDs, but cannot edit care records.",
+      "duration": 6.381375,
+      "start": 226.9539583333333,
+      "end": 233.3353333333333,
+      "gap": 0.13
+    },
+    {
+      "chapter": 6,
+      "sentence": 4,
+      "text": "Connections expire and can be revoked.",
+      "duration": 2.3409583333333335,
+      "start": 233.4653333333333,
+      "end": 235.80629166666662,
+      "gap": 0.13
+    },
+    {
+      "chapter": 6,
+      "sentence": 5,
+      "text": "Background checks begin only after installation and host scheduling.",
+      "duration": 4.087916666666667,
+      "start": 235.93629166666662,
+      "end": 240.0242083333333,
+      "gap": 0.13
+    },
+    {
+      "chapter": 6,
+      "sentence": 6,
+      "text": "They read the latest stored data, including labelled demo readings.",
+      "duration": 3.8254166666666665,
+      "start": 240.1542083333333,
+      "end": 243.97962499999994,
+      "gap": 0.13
+    },
+    {
+      "chapter": 6,
+      "sentence": 7,
+      "text": "Delivery tracking suppresses unchanged repeat alerts, and quiet checks stay quiet.",
+      "duration": 5.506083333333334,
+      "start": 244.10962499999994,
+      "end": 249.61570833333326,
+      "gap": 0.13
+    },
+    {
+      "chapter": 6,
+      "sentence": 8,
+      "text": "This is scheduled support, not continuous emergency monitoring.",
+      "duration": 4.221791666666666,
+      "start": 249.74570833333325,
+      "end": 253.96749999999992,
+      "gap": 0.8
+    },
+    {
+      "chapter": 7,
+      "sentence": 0,
+      "text": "The mobile interface uses React and TypeScript.",
+      "duration": 3.0504583333333333,
+      "start": 254.76749999999993,
+      "end": 257.81795833333325,
+      "gap": 0.13
+    },
+    {
+      "chapter": 7,
+      "sentence": 1,
+      "text": "Express and SQLite run behind HTTPS on a Tencent Cloud Ubuntu server.",
+      "duration": 5.486375,
+      "start": 257.94795833333325,
+      "end": 263.43433333333326,
+      "gap": 0.13
+    },
+    {
+      "chapter": 7,
+      "sentence": 2,
+      "text": "A private MCP connection assembles the selected person's reminder, appointment, and benefit context for TokenHub.",
+      "duration": 7.738708333333333,
+      "start": 263.56433333333325,
+      "end": 271.30304166666656,
+      "gap": 0.13
+    },
+    {
+      "chapter": 7,
+      "sentence": 3,
+      "text": "Prompts require grounded answers, preserve medication instructions, and define allowed tools and care navigation.",
+      "duration": 7.356,
+      "start": 271.43304166666655,
+      "end": 278.78904166666655,
+      "gap": 0.13
+    },
+    {
+      "chapter": 7,
+      "sentence": 4,
+      "text": "Code validates the model's proposed command independently.",
+      "duration": 3.478083333333333,
+      "start": 278.91904166666654,
+      "end": 282.3971249999999,
+      "gap": 0.13
+    },
+    {
+      "chapter": 7,
+      "sentence": 5,
+      "text": "There is no arbitrary SQL tool.",
+      "duration": 2.318208333333333,
+      "start": 282.5271249999999,
+      "end": 284.84533333333326,
+      "gap": 0.13
+    },
+    {
+      "chapter": 7,
+      "sentence": 6,
+      "text": "Our architecture deck shows these trust boundaries and trade-offs.",
+      "duration": 3.8375,
+      "start": 284.97533333333325,
+      "end": 288.81283333333323,
+      "gap": 0.13
+    },
+    {
+      "chapter": 7,
+      "sentence": 7,
+      "text": "Browser identity is a no-login prototype namespace.",
+      "duration": 3.5654583333333334,
+      "start": 288.9428333333332,
+      "end": 292.50829166666654,
+      "gap": 0.13
+    },
+    {
+      "chapter": 7,
+      "sentence": 8,
+      "text": "Verified accounts, real device feeds, and clinical evaluation remain necessary before a patient deployment.",
+      "duration": 7.595083333333333,
+      "start": 292.63829166666653,
+      "end": 300.23337499999985,
+      "gap": 0.8
+    },
+    {
+      "chapter": 8,
+      "sentence": 0,
+      "text": "We used CodeBuddy to refine the interface and investigate backend onboarding.",
+      "duration": 4.621125,
+      "start": 301.03337499999986,
+      "end": 305.65449999999987,
+      "gap": 0.13
+    },
+    {
+      "chapter": 8,
+      "sentence": 1,
+      "text": "These genuine development screenshots show the requirements, source reading, task planning, and colour and font work.",
+      "duration": 7.670125,
+      "start": 305.78449999999987,
+      "end": 313.45462499999985,
+      "gap": 0.13
+    },
+    {
+      "chapter": 8,
+      "sentence": 2,
+      "text": "A useful tip is to give the coding agent concrete acceptance criteria and small file-specific tasks.",
+      "duration": 6.555083333333333,
+      "start": 313.58462499999985,
+      "end": 320.1397083333332,
+      "gap": 0.13
+    },
+    {
+      "chapter": 8,
+      "sentence": 3,
+      "text": "Check the mobile screen, the server response, and the persisted record.",
+      "duration": 4.662458333333333,
+      "start": 320.2697083333332,
+      "end": 324.93216666666655,
+      "gap": 0.13
+    },
+    {
+      "chapter": 8,
+      "sentence": 4,
+      "text": "Test retries, permissions, and failure paths as well as the happy path.",
+      "duration": 5.046833333333334,
+      "start": 325.06216666666654,
+      "end": 330.10899999999987,
+      "gap": 0.13
+    },
+    {
+      "chapter": 8,
+      "sentence": 5,
+      "text": "The verified reference release passed two hundred and forty-two automated tests.",
+      "duration": 4.7919583333333335,
+      "start": 330.23899999999986,
+      "end": 335.0309583333332,
+      "gap": 0.13
+    },
+    {
+      "chapter": 8,
+      "sentence": 6,
+      "text": "We have not measured patient outcomes.",
+      "duration": 2.4035416666666665,
+      "start": 335.1609583333332,
+      "end": 337.5644999999999,
+      "gap": 0.13
+    },
+    {
+      "chapter": 8,
+      "sentence": 7,
+      "text": "A proposed pilot would compare routine-change time against manual forms, aim for eighty percent unaided completion of key tasks, and measure unwanted repeat notifications.",
+      "duration": 11.105583333333334,
+      "start": 337.6944999999999,
+      "end": 348.80008333333325,
+      "gap": 0.13
+    },
+    {
+      "chapter": 8,
+      "sentence": 8,
+      "text": "Care Buddy's demonstrated value is a clearer next step and less work to organise everyday and family care.",
+      "duration": 6.4271666666666665,
+      "start": 348.93008333333324,
+      "end": 355.3572499999999,
+      "gap": 2.4
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+The editable architecture PPT uses Fraunces for headings and DM Sans for body text. If these fonts are missing on the computer opening PowerPoint, install these original Google Fonts files to preserve the intended typography. The included OFL licences permit distribution. No fonts were installed on your computer by this task.

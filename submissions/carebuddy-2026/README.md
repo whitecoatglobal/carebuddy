@@ -1,0 +1,40 @@
+# Care Buddy — Healthcare Track submission
+
+Prepared 9 October 2026 for Case Study 2, **AI Healthier Every Day**.
+
+Short blurb: **Your AI companion for everyday and family care.** (Eight words.)
+
+The [public playback page](https://carebuddy.life/submissions/carebuddy-2026/) and [final MP4](https://carebuddy.life/submissions/carebuddy-2026/Care-Buddy-Mobile-Demo-v3.mp4) use the approved Care Buddy logo. The 5:58 video shows portrait mobile app captures with captions beside them and original soft instrumental music. It contains no spoken narration.
+
+## Files
+
+- `public/`: the deployed playback HTML, version 3 video and poster, project cover, logo assets, fonts and font licences. The unversioned video and poster filenames are relative symlinks to version 3.
+- `materials/`: submission form copy, project description, five-slide editable PowerPoint, caption script, SRT captions and three unchanged CodeBuddy development captures. `presentation-fonts/` preserves the deck's Fraunces and DM Sans typography.
+- `inputs/`: the 19 mobile website captures used in the video, four rendered architecture slides, chapter copy and the 73 full-sentence caption timings.
+- `scripts/`: video frame composition and the original instrumental music generator.
+- `manifest.json`: hashes of the final public files and the recorded media format.
+
+The app reference for these captures is `63f19f6e291159b01338a56eaed2fb7edbf98ee6`, which passed 242 automated tests. Care records and health readings are fictional; sleep is fixed frontend content. Pilot targets in the project description are proposed metrics. The screenshots show historical CodeBuddy development work, including investigation of incomplete tasks.
+
+## Rebuild the video
+
+Requirements: Node.js, Python 3 with NumPy, and FFmpeg with H.264/AAC encoders on `PATH`. `FFMPEG_BIN` can select a different FFmpeg executable.
+
+Run these commands from this directory:
+
+```sh
+npm ci
+python3 -m pip install -r requirements.txt
+npm run frames
+npm run build:video
+```
+
+`frames` checks caption wrapping and footer clearance without encoding a video. `build:video` composes the quiet instrumental soundtrack and renders `public/Care-Buddy-Mobile-Demo-v3.mp4` plus its poster. Temporary frames, layout reports and audio stay under ignored `.build/`. The checked-in caption timeline supplies only text and timing; the encoder's audio input is the generated instrumental track.
+
+After an intentional rebuild, review the output and update `manifest.json` before publishing. The SRT and chapter script in `materials/` use the same final caption timings.
+
+## Hosting
+
+The contents of `public/` are hosted independently of the app bundle at `/var/www/carebuddy-submissions/carebuddy-2026/`. Copy them while preserving relative symlinks. The existing Nginx route serves that directory at `/submissions/carebuddy-2026/`, supports byte-range video seeking, and permits GET/HEAD only. Application releases and SQLite records use their existing locations.
+
+The final HTML, video, poster and two logo assets were checked against the live files. Playback, seeking and mobile page layout were verified on 9 October 2026. See `materials/README.txt` for the complete submission checklist and event links.

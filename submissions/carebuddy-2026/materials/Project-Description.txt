@@ -1,0 +1,67 @@
+PROJECT TITLE
+Care Buddy
+
+TRACK AND SELECTED CASE STUDY
+Tencent Cloud AI CAN DO IT Hackathon Singapore 2026
+Healthcare Track, NTU Lee Kong Chian School of Medicine
+Challenge Statement 2: AI Healthier Every Day
+
+SHORT BLURB (8 words)
+Your AI companion for everyday and family care.
+
+PROJECT DESCRIPTION
+
+Project Overview: Target Scenarios, Users and Value Proposition
+
+Care Buddy is a mobile-first AI companion for the everyday work of staying well between healthcare visits. It helps adults organise care routines and supports adult children coordinating care for their parents. The prototype brings medication reminders, sleep review, recorded health readings, appointments and benefits into one place. Buddy turns a clear request in everyday language into a supported care action, with a visible result after the backend saves it.
+
+Our target scenario is a busy adult looking after their own routines while helping Mom and Dad. They can see what is next, review a parent's appointment preparation, change a reminder through chat and find a route to a GP when they need professional advice. Optional exports extend care notifications into Codex or Claude after the user installs the plugin and enables the host's scheduler. The value proposition is less work to organise care and a clearer next step, while clinical decisions remain with healthcare professionals.
+
+Real World Scenario Insights: Pain Points, Audience and Core Problem
+
+The NTU LKC Medicine challenge describes the fragmented work of long-term self-care. Our product-review sessions exposed concrete interface needs: daily care tasks must remain visible, family records need separate contexts, sleep and readings need useful explanations, and notifications should reach people outside the app. These insights come from the challenge brief and iterative stakeholder feedback during development. We have not conducted patient interviews or a clinical pilot.
+
+The core problem is turning scattered care information into an achievable action for the right person. A reminder that is merely described in chat can create false confidence. Care Buddy therefore distinguishes a committed change from an informational reply, keeps family actions scoped to the selected person and shows appointment confirmation and benefit provenance. A routine that has no recorded completion is not treated as proof of a missed medication dose.
+
+Comprehensive Solution Design: Business and Technical Architecture
+
+The business journey starts with a daily overview, moves into a person's care records, and uses Buddy when a user wants an explanation or a change. Family caregivers can manage permitted profiles or view records without write access. Appointment checklists support preparation, and recorded benefit balances help users know what to check with their insurer. When a user asks for a routine GP consultation, Buddy provides a WhiteCoat handoff. Opening the link does not book a visit or transmit the conversation or readings.
+
+The application uses React, TypeScript and Vite with a PWA shell. An Express API runs behind HTTPS/Nginx on an Ubuntu server hosted on Tencent Cloud. SQLite stores care records, chat history, action receipts, seeded health readings and notification delivery records. A shared TypeScript domain layer defines and validates supported commands. Live Singapore weather comes from NEA/MSS feeds through data.gov.sg.
+
+Buddy calls Tencent TokenHub from the backend. A private MCP client/server connection supplies only the selected profile's accessible reminder, appointment and benefit context, recent conversation and allowed tool schemas. The system prompt asks Buddy to ground answers in those records, ask for missing fields, respect access permissions, preserve medication instructions and avoid unsupported diagnosis, prescribing or booking claims. It also defines routine GP and emergency navigation behaviour. Health-reading notification rules operate separately from Buddy's conversational context.
+
+For example, "Change my wind-down reminder to 9pm daily" produces a typed reminder-time command. The backend independently validates the schema, profile permission, schedule and state revision. It commits the change, conversation and receipt in one SQLite transaction. Stable request IDs prevent duplicate writes on retry. The UI shows Saved only with a server receipt and refreshes Today from the authoritative response. The model has no arbitrary SQL or permission-grant tool.
+
+The optional assistant export contains a care-monitor skill and a scoped MCP connection for explicitly selected profiles. It exposes care notifications and acknowledgement of delivered alert IDs. It cannot change care records. Connections expire and can be revoked. Host scheduling controls background checks, and delivery IDs suppress unchanged repeat alerts. Opted-in alerts cover recorded health values and stale readings as well as reminders and appointments.
+
+The demo deliberately uses fictional family, benefit and appointment records. Sleep is fixed frontend content. The health card refreshes from a backend API and database containing fixed illustrative readings, with no wearable integration. The no-login browser identity is a prototype namespace, not verified patient authentication. SQLite keeps the prototype simple; verified identities, durable hosted scheduling, real device feeds and clinical review are prerequisites for a patient deployment.
+
+Business Value: Defined Impact and Proposed Measurement
+
+Care Buddy makes everyday care easier to organise, gives caregivers a clear person-specific view and reduces the gap between asking for help and saving an action. It also provides a practical route to professional care and notifications through tools users already use. These are demonstrated workflow capabilities, not measured clinical outcomes.
+
+The verified reference release passed 242 automated tests, including persistence, permissions, scheduling, notification scoping and retry behaviour. The mobile walkthrough demonstrates a real TokenHub reminder change, its Saved receipt and the updated Today record. These validate technical behaviour, not medication adherence or improved health.
+
+Proposed four-week pilot with 20 adults/caregivers, subject to recruitment and appropriate review:
+
+1. Care-task effort: target a 30% reduction in median time to complete supported routine changes versus the app's manual form. Measure time from task start to the committed receipt in a within-participant comparison.
+2. Usability: target at least 80% unaided completion of five predefined tasks spanning personal reminders, family care, appointment preparation, reading review and GP navigation. Record completion and failure reasons.
+3. Notification quality: target fewer than 1% repeated unchanged alerts among delivered notifications over seven days. Measure delivery IDs and user feedback, with no inference about medical safety.
+4. Access correctness: require zero unauthorised cross-profile writes in the pilot test suite and review every observed permission failure before expanding access.
+
+These figures are evaluation targets, not achieved business results. A later clinician-supervised study would be needed before claiming effects on adherence, health outcomes or healthcare utilisation.
+
+Build Approach and Tencent Tool Usage
+
+CodeBuddy supported frontend redesign and investigation of backend onboarding and family-state behaviour. The supplied development-chat screenshots show detailed UI requirements, source-file reading, task planning and the completed colour/font implementation. We iterated through mobile browser checks and backend validation. Useful development practices were to give the coding agent concrete acceptance criteria, identify relevant files, distinguish mock content from live integrations and verify stored results rather than relying on assistant prose. The project also includes export/import WorkBuddy skills for scoped care proposals; the evidence pack documents CodeBuddy usage.
+
+PROJECT LINKS
+Live application: https://carebuddy.life/
+Demo screens: https://carebuddy.life/today
+Source repository: https://github.com/whitecoatglobal/carebuddy/tree/main
+
+REFERENCES
+Hackathon and challenge requirements: https://drive.google.com/file/d/1W894c8ISZvOD4tYsAtQyTFypV5N5HDbS/view (Healthcare Track and submission sections)
+Event: https://tch.tencentcloud.com/contest/44
+Implementation reference: carebuddy commit 63f19f6e291159b01338a56eaed2fb7edbf98ee6, verified 9 October 2026.

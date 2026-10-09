@@ -1,0 +1,30 @@
+{
+  "appReference": "63f19f6e291159b01338a56eaed2fb7edbf98ee6",
+  "preparedOn": "2026-10-09",
+  "video": {
+    "version": 3,
+    "durationSeconds": 357.733333,
+    "width": 1920,
+    "height": 1080,
+    "framesPerSecond": 15,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "audioChannels": 2,
+    "captionSentences": 73,
+    "audio": "Original soft instrumental music; no speech"
+  },
+  "sha256": {
+    "Care-Buddy-Cover.png": "04706987279825c38ca2fa993a371a79bba2b0193c3607f0982b786b56203015",
+    "Care-Buddy-Demo-Poster-v3.png": "40c685cf1bb745f545b62f0e949b03596b4177d2fd03490b96884499b94bc66e",
+    "Care-Buddy-Demo-Poster.png": "40c685cf1bb745f545b62f0e949b03596b4177d2fd03490b96884499b94bc66e",
+    "Care-Buddy-Mobile-Demo-v3.mp4": "df19d3c7121c78d538a756366dcac8bd3c516a669aeda88727ad371c17f673ab",
+    "Care-Buddy-Mobile-Demo.mp4": "df19d3c7121c78d538a756366dcac8bd3c516a669aeda88727ad371c17f673ab",
+    "branding/carebuddy-symbol-v1.png": "ba192a68b9ad4a32c7c5b6d1b7e558d93eef11d2ee34f0a561c1baf89488a5d5",
+    "branding/carebuddy-wordmark-v1.png": "18433399b52b9f66c3e2e8190cf8afc3b078b2cd2934e90b46fc8f0f523d8668",
+    "fonts/DM-Sans-OFL.txt": "9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1",
+    "fonts/DM-Sans.ttf": "8cd08d97e89c24d0aa92edd2f0f4c8ee6195eee9b7c9f154865a58b02f0c1c0d",
+    "fonts/Fraunces-OFL.txt": "bdf4c22802eaf804f998195871c6b8938aac2ac14b2d78a8bd66a6f1eced833b",
+    "fonts/Fraunces.ttf": "177ff6c0f14e5550a3c624247cd1189611d4eb65d000b14944c63d967958abbb",
+    "index.html": "c39316dfdd072884cc818f17384c924f7c9fc44732ce5ff65ffae9dfbe8ba29f"
+  }
+}

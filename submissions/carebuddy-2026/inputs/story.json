@@ -1,0 +1,97 @@
+[
+  {
+    "chapter": "Care Buddy",
+    "label": "Healthcare Track · Case study 2",
+    "images": [
+      "01-landing",
+      "02-today-weather",
+      "09-family"
+    ],
+    "script": "Care Buddy is our submission for the Tencent Cloud Healthcare Track, case study two: AI Healthier Every Day. It is a mobile companion for everyday self-care and family care between healthcare visits. Imagine a busy adult trying to remember their own routines while helping Mom and Dad. Care Buddy brings the next task, useful care records, and an AI assistant into one place. This walkthrough uses the live mobile website with fictional care records. We will show an actual AI reminder change and its saved result."
+  },
+  {
+    "chapter": "A calmer daily overview",
+    "label": "Live Singapore weather · Daily routines",
+    "images": [
+      "02-today-weather",
+      "03-today-routines",
+      "17-today-updated"
+    ],
+    "script": "Explore the demo opens Today. Weather stays at the top, with Singapore temperature, humidity, and PSI from public NEA and MSS feeds. Unhealthy PSI appears in red with a mask-up prompt. Rain adds an umbrella reminder. Below that, the next care task and daily progress make it easier to act. Medication reminders, water, movement, and an evening wind-down stay visible in the timeline. A recorded completion tells us what the user logged. An unfinished item does not prove that somebody missed a medication dose."
+  },
+  {
+    "chapter": "Sleep and recorded health",
+    "label": "Illustrative readings · Backend API",
+    "images": [
+      "03-today-routines",
+      "04-sleep-review",
+      "05-sleep-stages",
+      "06-sleep-explained",
+      "07-health-review",
+      "08-health-vitals"
+    ],
+    "script": "Review Sleep opens last night's duration and stage breakdown. Light, deep, and REM sleep each have a percentage and an explanation. A simple evening recommendation gives the user a practical next step. Sleep is currently fixed frontend content. Your Live Health shows blood pressure, pulse, temperature, and oxygen, with breathing rate on the review page. Those readings come from the database through a backend API, but the values are illustrative. No wearable is connected. The distinction matters: an API refresh is a working feature, while a connected measurement stream is a future integration."
+  },
+  {
+    "chapter": "Care for your family",
+    "label": "Mom and Dad · Separate care contexts",
+    "images": [
+      "09-family",
+      "10-mom-care",
+      "11-mom-routines-appointment",
+      "12-appointment",
+      "13-benefits"
+    ],
+    "script": "Family gives Me, Mom, and Dad separate care views. Selecting Mom changes the routines and appointments we work with. Her appointment has a preparation checklist and a clear confirmation status. A saved appointment record is not a clinic booking. Benefits shows recorded allowances and balances, with conditions and provenance available for review. These benefit records are also fictional, so the insurer must confirm real coverage. The aim is to help a caregiver keep relevant information together and prepare useful questions before a healthcare visit."
+  },
+  {
+    "chapter": "Buddy saves a real change",
+    "label": "Plain language · Validated action · Receipt",
+    "images": [
+      "16-buddy-saved",
+      "17-today-updated",
+      "16-buddy-saved"
+    ],
+    "script": "Here is the core agent workflow. In Buddy, we asked: Change my wind-down reminder to nine p.m. daily. This was a real request to Tencent TokenHub. The model selected a supported reminder tool. The backend checked the selected person, permissions, schedule, and current record before saving. Buddy now shows the new daily time and a Saved receipt. Returning to Today shows the same nine p.m. reminder. The application reports a successful change only after database persistence. Request IDs prevent a retry from creating a second write. A missing field or an invalid action stops the save and asks the user for the information needed."
+  },
+  {
+    "chapter": "A route to professional care",
+    "label": "WhiteCoat GP handoff",
+    "images": [
+      "18-gp-handoff",
+      "19-gp-handoff-bottom"
+    ],
+    "script": "When the user asks for a routine GP consultation, Buddy offers the WhiteCoat button. The user chooses whether to continue. This opens an external care service. It does not claim a booking, verify insurance, or send the conversation and readings to WhiteCoat. Clinical and medication concerns stay with qualified professionals. Apparent emergencies follow a separate urgent-care route. Our focus is everyday care support, with clear limits on what this companion can do."
+  },
+  {
+    "chapter": "Care notifications outside the app",
+    "label": "Codex or Claude · Explicit profile scope",
+    "images": [
+      "20-integrations",
+      "21-integrations-scope",
+      "22-integrations-explained"
+    ],
+    "script": "Settings also lets a user export a personal plugin for Codex or Claude. They choose the people to include and whether to include health-reading alerts. The exported skill connects to a scoped MCP endpoint. It can read new care notifications and acknowledge delivered alert IDs, but cannot edit care records. Connections expire and can be revoked. Background checks begin only after installation and host scheduling. They read the latest stored data, including labelled demo readings. Delivery tracking suppresses unchanged repeat alerts, and quiet checks stay quiet. This is scheduled support, not continuous emergency monitoring."
+  },
+  {
+    "chapter": "How the agent is built",
+    "label": "Tencent TokenHub · Server-controlled writes",
+    "images": [
+      "16-buddy-saved",
+      "08-health-vitals",
+      "22-integrations-explained"
+    ],
+    "script": "The mobile interface uses React and TypeScript. Express and SQLite run behind HTTPS on a Tencent Cloud Ubuntu server. A private MCP connection assembles the selected person's reminder, appointment, and benefit context for TokenHub. Prompts require grounded answers, preserve medication instructions, and define allowed tools and care navigation. Code validates the model's proposed command independently. There is no arbitrary SQL tool. Our architecture deck shows these trust boundaries and trade-offs. Browser identity is a no-login prototype namespace. Verified accounts, real device feeds, and clinical evaluation remain necessary before a patient deployment."
+  },
+  {
+    "chapter": "Build approach and next evaluation",
+    "label": "CodeBuddy evidence · Proposed pilot targets",
+    "images": [
+      "proof-01",
+      "proof-02",
+      "proof-03",
+      "01-landing"
+    ],
+    "script": "We used CodeBuddy to refine the interface and investigate backend onboarding. These genuine development screenshots show the requirements, source reading, task planning, and colour and font work. A useful tip is to give the coding agent concrete acceptance criteria and small file-specific tasks. Check the mobile screen, the server response, and the persisted record. Test retries, permissions, and failure paths as well as the happy path. The verified reference release passed two hundred and forty-two automated tests. We have not measured patient outcomes. A proposed pilot would compare routine-change time against manual forms, aim for eighty percent unaided completion of key tasks, and measure unwanted repeat notifications. Care Buddy's demonstrated value is a clearer next step and less work to organise everyday and family care."
+  }
+]

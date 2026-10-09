@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Care Buddy: an AI companion for everyday and family care. Healthcare Track, Case Study 2 mobile demo.">
+  <meta property="og:title" content="Care Buddy — more room to care">
+  <meta property="og:description" content="Watch the 5:58 mobile demo for the Tencent Cloud Healthcare Track.">
+  <meta property="og:image" content="https://carebuddy.life/submissions/carebuddy-2026/Care-Buddy-Cover.png">
+  <title>Care Buddy — Healthcare Track mobile demo</title>
+  <style>
+    @font-face {font-family:Fraunces;src:url('fonts/Fraunces.ttf') format('truetype');font-weight:100 900;font-display:swap}
+    @font-face {font-family:'DM Sans';src:url('fonts/DM-Sans.ttf') format('truetype');font-weight:100 900;font-display:swap}
+    :root {color-scheme:light;--cream:#FAF6F0;--sand:#EADFCF;--sage:#8FB39F;--deep:#4F7A66;--plum:#3A3745}
+    * {box-sizing:border-box}
+    body {margin:0;background:var(--cream);color:var(--plum);font:17px/1.6 'DM Sans',sans-serif}
+    main {max-width:1160px;margin:auto;padding:26px 28px 42px}
+    header {display:flex;align-items:center;justify-content:space-between;gap:20px;padding-bottom:22px;border-bottom:1px solid var(--sand)}
+    .brand {display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+    .brand img {display:block;mix-blend-mode:multiply;flex-shrink:0}
+    .badge {font-size:13px;color:var(--deep);text-align:right}
+    .layout {display:grid;grid-template-columns:1fr;gap:24px;align-items:start;margin-top:26px}
+    .copy {display:contents}
+    .overview {grid-row:1;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:26px}
+    .overview .eyebrow,.overview h1,.overview p {grid-column:1}
+    h1 {font:500 clamp(32px,3.3vw,40px)/1.12 Fraunces,serif;letter-spacing:-.02em;margin:8px 0 10px}
+    h2 {font:500 24px/1.25 Fraunces,serif;margin:30px 0 12px}
+    p {margin:0 0 18px}
+    .eyebrow {font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--deep)}
+    .intro {font-size:17px;max-width:700px;margin-bottom:0}
+    .note {font-size:14px;color:#605D64}
+    .actions {grid-column:2;grid-row:1 / span 3;align-self:center;display:flex;flex-wrap:wrap;gap:12px;margin:0}
+    .action {border:1px solid var(--deep);border-radius:999px;padding:11px 22px;text-decoration:none;font-weight:600;color:var(--deep)}
+    .action.primary {background:var(--deep);color:white}
+    a:focus-visible,video:focus-visible {outline:3px solid var(--sage);outline-offset:5px}
+    .details {grid-row:3}
+    .chapters {padding:0;margin:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:24px}
+    .chapters li {display:flex;gap:14px;padding:7px 0;border-bottom:1px solid var(--sand);font-size:15px}
+    .chapters time {color:var(--deep);font-variant-numeric:tabular-nums;min-width:42px}
+    .player {grid-row:2;padding:10px;background:var(--sand);border:1px solid #ded3c4;border-radius:22px}
+    video {display:block;width:100%;aspect-ratio:16/9;border-radius:14px;background:var(--cream)}
+    .player-caption {font-size:12px;line-height:1.5;margin:12px 6px 4px;color:#605D64}
+    footer {margin-top:32px;padding-top:18px;border-top:1px solid var(--sand);font-size:13px;color:#605D64}
+    @media(max-width:720px) {
+      main {padding:24px 20px 32px}
+      .layout {grid-template-columns:1fr;gap:28px;margin-top:24px}
+      .player {grid-row:2;width:100%;margin:auto}
+      .copy {display:contents}
+      .overview {grid-row:1;display:block}
+      .details {grid-row:3}
+      header {align-items:flex-start}
+      .badge {max-width:170px}
+      .brand {gap:6px}
+      .brand img:first-child {width:34px;height:auto}
+      .brand img:last-child {width:140px;height:auto}
+      h1 {font-size:34px}
+      .actions {margin-top:20px}
+      .chapters {grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <a class="brand" href="https://carebuddy.life/" aria-label="Care Buddy home">
+        <img src="branding/carebuddy-symbol-v1.png" width="41" height="40" alt="" aria-hidden="true">
+        <img src="branding/carebuddy-wordmark-v1.png" width="160" height="35" alt="Care Buddy">
+      </a>
+      <span class="badge">Tencent Cloud Healthcare Track<br>Case Study 2 · AI Healthier Every Day</span>
+    </header>
+    <div class="layout">
+      <div class="copy">
+        <section class="overview" aria-labelledby="title">
+          <div class="eyebrow">Mobile demo · 5 minutes 58 seconds</div>
+          <h1 id="title">Care Buddy mobile walkthrough</h1>
+          <p class="intro">Mobile app screens with captions beside them and soft instrumental music.</p>
+          <div class="actions">
+            <a class="action primary" href="https://carebuddy.life/today">Explore the app</a>
+            <a class="action" href="Care-Buddy-Mobile-Demo.mp4" download>Download video</a>
+          </div>
+        </section>
+        <section class="details" aria-labelledby="chapters">
+          <h2 id="chapters">In the walkthrough</h2>
+          <ol class="chapters">
+            <li><time>00:00</time> Project overview</li>
+            <li><time>00:33</time> Daily care and live weather</li>
+            <li><time>01:08</time> Sleep and recorded health</li>
+            <li><time>01:47</time> Family, appointments and benefits</li>
+            <li><time>02:22</time> Buddy saves a real reminder change</li>
+            <li><time>03:03</time> WhiteCoat GP handoff</li>
+            <li><time>03:34</time> Scoped assistant notifications</li>
+            <li><time>04:14</time> Architecture and trust boundaries</li>
+            <li><time>05:01</time> CodeBuddy build reflection and evaluation</li>
+          </ol>
+          <h2>About this demo</h2>
+          <p class="note">An edited walkthrough using actual mobile website captures, side captions and original soft instrumental music. There is no spoken narration. Care records are fictional. Sleep is fixed content; health readings are illustrative values stored in the database. Proposed pilot targets are not measured outcomes.</p>
+        </section>
+      </div>
+      <section class="player" aria-label="Care Buddy mobile demo video">
+        <video controls playsinline preload="metadata" poster="Care-Buddy-Demo-Poster-v3.png" aria-label="Care Buddy Healthcare Track mobile demonstration">
+          <source src="Care-Buddy-Mobile-Demo-v3.mp4" type="video/mp4">
+          Your browser cannot play this video. <a href="Care-Buddy-Mobile-Demo.mp4">Download the MP4.</a>
+        </video>
+        <p class="player-caption">Portrait mobile app · Side captions · Soft background music · 5:58</p>
+      </section>
+    </div>
+    <footer>Care Buddy supports everyday care organisation. Healthcare professionals retain clinical decisions.</footer>
+  </main>
+</body>
+</html>

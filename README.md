@@ -2,6 +2,8 @@
 
 Care Buddy is a public self-care prototype built with React, TypeScript, Vite, Express and SQLite. It opens without an account login. Today, Family, Benefits, Health and Buddy organise fictional routines and care records.
 
+The [2026 Healthcare Track submission](submissions/carebuddy-2026/README.md) includes the final mobile demo, branded playback page, editable architecture deck, project description, CodeBuddy evidence and video build sources.
+
 ## Today and saved records
 
 - Existing care spaces load through their browser client reference and sync with SQLite. Populated saved records take precedence over sample content.

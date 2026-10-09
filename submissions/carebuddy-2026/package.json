@@ -1,0 +1,14 @@
+{
+  "name": "care-buddy-submission-2026",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "frames": "node scripts/build-video.mjs --frames-only",
+    "build:music": "python3 scripts/compose-background.py",
+    "build:video": "npm run build:music && node scripts/build-video.mjs"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "0.1.100"
+  }
+}

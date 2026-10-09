@@ -1,0 +1,48 @@
+PROJECT TITLE
+Care Buddy
+
+TRACK / SELECTED CASE STUDY
+Healthcare Track — NTU Lee Kong Chian School of Medicine
+Challenge Statement 2: AI Healthier Every Day
+
+SHORT BLURB — 8 WORDS, UNDER THE 10-WORD LIMIT
+Your AI companion for everyday and family care.
+
+PROJECT DESCRIPTION
+Copy the PROJECT DESCRIPTION section from Project-Description.txt. It covers the requested overview, scenario insights, business and technical architecture, prompt design, business value and CodeBuddy development approach.
+
+DEMO VIDEO LINK
+https://carebuddy.life/submissions/carebuddy-2026/
+
+DIRECT MP4 LINK, IF NEEDED
+https://carebuddy.life/submissions/carebuddy-2026/Care-Buddy-Mobile-Demo.mp4
+
+VIDEO DETAILS
+5 minutes 58 seconds; mobile app in portrait view, with side captions in a 1920 × 1080 video.
+Edited actual website captures with side captions and soft original instrumental music. No spoken narration. Includes a real TokenHub reminder update and its saved result, plus project overview, core agent features, architecture and CodeBuddy build reflection.
+
+ARCHITECTURE DIAGRAM PPT UPLOAD
+Care-Buddy-Architecture-Healthcare.pptx
+One editable PowerPoint file, five slides, approximately 33 KB; within the 100 MB limit.
+Includes the care journey, system architecture, agent write flow, assistant notification flow, trust boundaries and design trade-offs.
+
+COVER IMAGE UPLOAD
+Care-Buddy-Cover.png
+1280 × 720, 16:9.
+
+CODEBUDDY CONVERSATION HISTORY UPLOADS
+codebuddy-evidence/01-codebuddy-ui-redesign.png
+codebuddy-evidence/02-codebuddy-backend-onboarding.jpg
+codebuddy-evidence/03-codebuddy-brand-fonts.png
+These are the three original screenshots supplied from the Desktop. See the evidence README for their context.
+
+PROJECT LINK
+https://carebuddy.life/
+
+SOURCE CODE LINK
+https://github.com/whitecoatglobal/carebuddy/tree/main
+This link returned 404 when checked without sign-in. Arrange repository access for judges before submitting.
+
+SUBMISSION FORM
+https://tinyurl.com/TCHackathonSGProjectSubmission
+Deadline: 16 October 2026, as provided in the event materials.
