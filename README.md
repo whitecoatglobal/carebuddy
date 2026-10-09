@@ -13,7 +13,7 @@ Care Buddy brings daily routines, family care, health records and an AI assistan
 | Website | [carebuddy.life](https://carebuddy.life/) |
 | Explore the app | [Today](https://carebuddy.life/today) |
 | Watch the mobile demo | [5:58 walkthrough](https://carebuddy.life/submissions/carebuddy-2026/) |
-| Launch presentation | [51-slide PowerPoint](presentations/CareBuddy-Launch.pptx) |
+| Launch presentation | [51-slide PowerPoint](presentations/CareBuddy-Launch.pptx) · [PDF](presentations/CareBuddy-Launch.pdf) |
 | Architecture diagram | [5-slide PowerPoint](submissions/carebuddy-2026/materials/Care-Buddy-Architecture-Healthcare.pptx) |
 | Complete submission | [Submission folder](submissions/carebuddy-2026/README.md) · [Download ZIP](submissions/carebuddy-2026/Care-Buddy-Submission-Pack.zip) |
 | Logo assets | [Branding folder](public/branding/) |
