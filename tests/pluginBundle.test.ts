@@ -53,7 +53,7 @@ it("packages a valid ZIP readable by standard tooling, including CRCs and hidden
   );
   expect(result.bad).toBeNull();
   expect(result.files).toBe(Object.keys(files).length);
-  expect(result.readme).toContain("Care Buddy for Codex");
+  expect(result.readme).toContain("CareBuddy for Codex");
   expect(result.readme).not.toContain("{{");
 });
 it("uses a nested marketplace for Codex and an upload-ready root plugin for Claude", () => {
@@ -72,7 +72,7 @@ it("uses a nested marketplace for Codex and an upload-ready root plugin for Clau
   expect(JSON.parse(files[".claude-plugin/plugin.json"]).name).toBe(
     "care-buddy",
   );
-  expect(files["README.md"]).toContain("Care Buddy for Claude");
+  expect(files["README.md"]).toContain("CareBuddy for Claude");
   expect(files["README.md"]).not.toContain("{{");
   expect(files["skills/care-monitor/SKILL.md"]).toContain(
     "get_care_notifications",

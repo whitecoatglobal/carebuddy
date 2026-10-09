@@ -1,6 +1,6 @@
 1
 00:00:00,000 --> 00:00:07,149
-Care Buddy is our submission for the Tencent Cloud Healthcare Track,
+CareBuddy is our submission for the Tencent Cloud Healthcare Track,
 case study two: AI Healthier Every Day.
 
 2
@@ -15,7 +15,7 @@ helping Mom and Dad.
 
 4
 00:00:17,628 --> 00:00:23,976
-Care Buddy brings the next task, useful care records, and an AI
+CareBuddy brings the next task, useful care records, and an AI
 assistant into one place.
 
 5
@@ -325,5 +325,5 @@ measure unwanted repeat notifications.
 
 73
 00:05:48,930 --> 00:05:57,733
-Care Buddy's demonstrated value is a clearer next step and less work
+CareBuddy's demonstrated value is a clearer next step and less work
 to organise everyday and family care.

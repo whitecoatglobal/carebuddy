@@ -57,7 +57,7 @@ function Brand({ stacked = false }: { stacked?: boolean }) {
       src="/branding/carebuddy-logo-v1.png"
       width="1066"
       height="741"
-      alt="Care Buddy"
+      alt="CareBuddy"
       loading="lazy"
     />
   ) : (
@@ -75,7 +75,7 @@ function Brand({ stacked = false }: { stacked?: boolean }) {
         src="/branding/carebuddy-wordmark-v1.png"
         width="640"
         height="140"
-        alt="Care Buddy"
+        alt="CareBuddy"
       />
     </>
   );
@@ -94,7 +94,7 @@ function PhonePreview() {
     <div
       className="phone"
       role="img"
-      aria-label="Illustrative Care Buddy phone showing a fictional day of reminders and an appointment"
+      aria-label="Illustrative CareBuddy phone showing a fictional day of reminders and an appointment"
     >
       <div className="status">
         <span>9:41</span>
@@ -184,13 +184,13 @@ export default function LandingPage() {
       </a>
       <div className="shell">
         <header className="nav">
-          <a className="brand" href="/" aria-label="Care Buddy home">
+          <a className="brand" href="/" aria-label="CareBuddy home">
             <Brand />
           </a>
           <nav className="links" aria-label="Main navigation">
             <a href="#family">Your people</a>
             <a href="#buddy">Meet Buddy</a>
-            <DemoLink>Try Care Buddy</DemoLink>
+            <DemoLink>Try CareBuddy</DemoLink>
           </nav>
         </header>
       </div>
@@ -205,7 +205,7 @@ export default function LandingPage() {
             </h1>
             <p className="lead">
               Your routines. Your people. Your next step.
-              <br />A little more together, with Care Buddy.
+              <br />A little more together, with CareBuddy.
             </p>
             <div className="actions">
               <DemoLink>Explore the demo</DemoLink>
@@ -394,7 +394,7 @@ export default function LandingPage() {
             </div>
             <div>
               <p>
-                Care Buddy brings everyday care into focus. The prototype also
+                CareBuddy brings everyday care into focus. The prototype also
                 includes a WorkBuddy handoff: export fictional context, run an
                 installed skill, then import a proposal to review.
               </p>
@@ -405,7 +405,7 @@ export default function LandingPage() {
                 <p>
                   WorkBuddy uses a manual export/import workflow. The
                   compositions on this page are illustrative; explore the demo
-                  to use the working app with fictional care data. Care Buddy
+                  to use the working app with fictional care data. CareBuddy
                   does not diagnose, prescribe, book care or verify cover.
                 </p>
               </details>
@@ -420,11 +420,11 @@ export default function LandingPage() {
               <br />A little more life.
             </h2>
             <p>Start with one calmer day.</p>
-            <DemoLink>Explore Care Buddy</DemoLink>
+            <DemoLink>Explore CareBuddy</DemoLink>
           </section>
           <footer className="footer">
             <p>
-              Care Buddy · Hackathon prototype. Fictional data only.
+              CareBuddy · Hackathon prototype. Fictional data only.
               <br />
               Product compositions are illustrative. Not a medical or insurance
               service.

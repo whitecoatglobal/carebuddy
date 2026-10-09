@@ -1,0 +1,17 @@
+{
+  "name": "CareBuddy",
+  "fonts": {
+    "headings": "Fraunces",
+    "body": "DM Sans"
+  },
+  "colors": {
+    "cream": "#FAF6F0",
+    "sand": "#EADFCF",
+    "sage": "#8FB39F",
+    "deepSage": "#4F7A66",
+    "lavender": "#B9AEDC",
+    "blush": "#F3C9B8",
+    "mistBlue": "#A8CBDB",
+    "plumCharcoal": "#3A3745"
+  }
+}

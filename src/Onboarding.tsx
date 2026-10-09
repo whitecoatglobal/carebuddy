@@ -94,7 +94,7 @@ export function Onboarding({
         <Icon name="moon" /> Explore the sleep review <Icon name="arrow" />
       </button>
       <p className="helper onboarding-note">
-        Try Care Buddy with fictional names and records. Your sleep review uses
+        Try CareBuddy with fictional names and records. Your sleep review uses
         illustrative data.
       </p>
     </div>

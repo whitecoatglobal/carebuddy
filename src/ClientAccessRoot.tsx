@@ -30,7 +30,7 @@ export default function ClientAccessRoot() {
   if (status === "allowed") return <App />;
   return (
     <main className="client-access-panel">
-      <h1>Care Buddy</h1>
+      <h1>CareBuddy</h1>
       {status === "checking" ? (
         <p role="status">Checking browser access…</p>
       ) : (

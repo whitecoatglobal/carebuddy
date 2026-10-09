@@ -1,6 +1,6 @@
 # Browser access
 
-Care Buddy opens without an account login. A browser keeps a `care-buddy.client-id` reference in local storage; the backend uses it to locate care state and an administrative visibility flag.
+CareBuddy opens without an account login. A browser keeps a `care-buddy.client-id` reference in local storage; the backend uses it to locate care state and an administrative visibility flag.
 
 | `state_snapshots.is_visible` | Effect |
 | --- | --- |

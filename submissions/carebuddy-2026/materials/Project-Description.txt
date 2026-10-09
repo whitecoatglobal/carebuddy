@@ -1,5 +1,5 @@
 PROJECT TITLE
-Care Buddy
+CareBuddy
 
 TRACK AND SELECTED CASE STUDY
 Tencent Cloud AI CAN DO IT Hackathon Singapore 2026
@@ -13,7 +13,7 @@ PROJECT DESCRIPTION
 
 Project Overview: Target Scenarios, Users and Value Proposition
 
-Care Buddy is a mobile-first AI companion for the everyday work of staying well between healthcare visits. It helps adults organise care routines and supports adult children coordinating care for their parents. The prototype brings medication reminders, sleep review, recorded health readings, appointments and benefits into one place. Buddy turns a clear request in everyday language into a supported care action, with a visible result after the backend saves it.
+CareBuddy is a mobile-first AI companion for the everyday work of staying well between healthcare visits. It helps adults organise care routines and supports adult children coordinating care for their parents. The prototype brings medication reminders, sleep review, recorded health readings, appointments and benefits into one place. Buddy turns a clear request in everyday language into a supported care action, with a visible result after the backend saves it.
 
 Our target scenario is a busy adult looking after their own routines while helping Mom and Dad. They can see what is next, review a parent's appointment preparation, change a reminder through chat and find a route to a GP when they need professional advice. Optional exports extend care notifications into Codex or Claude after the user installs the plugin and enables the host's scheduler. The value proposition is less work to organise care and a clearer next step, while clinical decisions remain with healthcare professionals.
 
@@ -21,7 +21,7 @@ Real World Scenario Insights: Pain Points, Audience and Core Problem
 
 The NTU LKC Medicine challenge describes the fragmented work of long-term self-care. Our product-review sessions exposed concrete interface needs: daily care tasks must remain visible, family records need separate contexts, sleep and readings need useful explanations, and notifications should reach people outside the app. These insights come from the challenge brief and iterative stakeholder feedback during development. We have not conducted patient interviews or a clinical pilot.
 
-The core problem is turning scattered care information into an achievable action for the right person. A reminder that is merely described in chat can create false confidence. Care Buddy therefore distinguishes a committed change from an informational reply, keeps family actions scoped to the selected person and shows appointment confirmation and benefit provenance. A routine that has no recorded completion is not treated as proof of a missed medication dose.
+The core problem is turning scattered care information into an achievable action for the right person. A reminder that is merely described in chat can create false confidence. CareBuddy therefore distinguishes a committed change from an informational reply, keeps family actions scoped to the selected person and shows appointment confirmation and benefit provenance. A routine that has no recorded completion is not treated as proof of a missed medication dose.
 
 Comprehensive Solution Design: Business and Technical Architecture
 
@@ -39,7 +39,7 @@ The demo deliberately uses fictional family, benefit and appointment records. Sl
 
 Business Value: Defined Impact and Proposed Measurement
 
-Care Buddy makes everyday care easier to organise, gives caregivers a clear person-specific view and reduces the gap between asking for help and saving an action. It also provides a practical route to professional care and notifications through tools users already use. These are demonstrated workflow capabilities, not measured clinical outcomes.
+CareBuddy makes everyday care easier to organise, gives caregivers a clear person-specific view and reduces the gap between asking for help and saving an action. It also provides a practical route to professional care and notifications through tools users already use. These are demonstrated workflow capabilities, not measured clinical outcomes.
 
 The verified reference release passed 242 automated tests, including persistence, permissions, scheduling, notification scoping and retry behaviour. The mobile walkthrough demonstrates a real TokenHub reminder change, its Saved receipt and the updated Today record. These validate technical behaviour, not medication adherence or improved health.
 

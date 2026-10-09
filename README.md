@@ -1,10 +1,10 @@
-# Care Buddy
+# CareBuddy
 
-<img src="public/branding/carebuddy-wordmark-v1.png" alt="Care Buddy" width="240">
+<img src="public/branding/carebuddy-wordmark-v1.png" alt="CareBuddy" width="240">
 
 **Your AI companion for everyday and family care.**
 
-Care Buddy brings daily routines, family care, health records and an AI assistant into one mobile-friendly app. Buddy can save supported care changes from a clear chat request, with server validation and a saved receipt.
+CareBuddy brings daily routines, family care, health records and an AI assistant into one mobile-friendly app. Buddy can save supported care changes from a clear chat request, with server validation and a saved receipt.
 
 ## Start here
 
@@ -14,8 +14,9 @@ Care Buddy brings daily routines, family care, health records and an AI assistan
 | Explore the app | [Today](https://carebuddy.life/today) |
 | Watch the mobile demo | [5:58 walkthrough](https://carebuddy.life/submissions/carebuddy-2026/) |
 | Launch presentation | [51-slide PowerPoint](presentations/CareBuddy-Launch.pptx) · [PDF](presentations/CareBuddy-Launch.pdf) |
-| Architecture diagram | [5-slide PowerPoint](submissions/carebuddy-2026/materials/Care-Buddy-Architecture-Healthcare.pptx) |
-| Complete submission | [Submission folder](submissions/carebuddy-2026/README.md) · [Download ZIP](submissions/carebuddy-2026/Care-Buddy-Submission-Pack.zip) |
+| Brand assets | [Colour palette, fonts and logo guidance](assets/branding/README.md) |
+| Architecture diagram | [5-slide PowerPoint](submissions/carebuddy-2026/materials/CareBuddy-Architecture-Healthcare.pptx) |
+| Complete submission | [Submission folder](submissions/carebuddy-2026/README.md) · [Download ZIP](submissions/carebuddy-2026/CareBuddy-Submission-Pack.zip) |
 | Logo assets | [Branding folder](public/branding/) |
 
 ## What the app does

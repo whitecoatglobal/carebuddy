@@ -1,12 +1,12 @@
-# Care Buddy for Claude
+# CareBuddy for Claude
 
-This personal plugin reads the latest notifications for the people you selected in Care Buddy. It cannot edit care records. Its only write tool remembers which alerts have been delivered, so unchanged checks stay quiet.
+This personal plugin reads the latest notifications for the people you selected in CareBuddy. It cannot edit care records. Its only write tool remembers which alerts have been delivered, so unchanged checks stay quiet.
 
 ## Add to Claude
 
-In Claude, open **Customize → Plugins** and use the custom plugin upload option to upload the ZIP you downloaded. In Cowork, open the Cowork tab first. Enable Care Buddy and its MCP connection, then ask Claude to **"Use Care Buddy to check my care notifications."**
+In Claude, open **Customize → Plugins** and use the custom plugin upload option to upload the ZIP you downloaded. In Cowork, open the Cowork tab first. Enable CareBuddy and its MCP connection, then ask Claude to **"Use CareBuddy to check my care notifications."**
 
-For background checks, ask Claude to schedule regular Care Buddy checks using the care-monitor skill and a cadence supported by your Scheduled controls. Review the actual cadence and click Schedule when Claude proposes the task. The plugin does not create a task automatically. New Claude scheduled tasks can run remotely with account-installed plugins; availability depends on your plan and rollout. If your connection cannot be used remotely, use the local Claude Code option below instead. Do not assume monitoring is active until a task is confirmed.
+For background checks, ask Claude to schedule regular CareBuddy checks using the care-monitor skill and a cadence supported by your Scheduled controls. Review the actual cadence and click Schedule when Claude proposes the task. The plugin does not create a task automatically. New Claude scheduled tasks can run remotely with account-installed plugins; availability depends on your plan and rollout. If your connection cannot be used remotely, use the local Claude Code option below instead. Do not assume monitoring is active until a task is confirmed.
 
 ## Claude Code
 

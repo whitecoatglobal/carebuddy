@@ -1,4 +1,5 @@
 import Markdown from "react-markdown";
+import { APP_NAME } from "./config";
 
 export function ChatMarkdown({ text }: { text: string }) {
   return (
@@ -35,7 +36,7 @@ export function ChatMarkdown({ text }: { text: string }) {
           ),
         }}
       >
-        {text}
+        {text.replace(/\bCare\s+Buddy\b/g, APP_NAME)}
       </Markdown>
     </div>
   );

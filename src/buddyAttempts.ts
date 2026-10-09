@@ -34,7 +34,7 @@ export class BuddyAttempts {
       )
     )
       throw new Error(
-        "Could not read pending changes. Refresh Care Buddy before trying again.",
+        "Could not read pending changes. Refresh CareBuddy before trying again.",
       );
     return (this.requests = new Map(parsed as Array<[string, string]>));
   }

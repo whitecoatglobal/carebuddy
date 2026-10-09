@@ -65,8 +65,8 @@ export function pluginFiles(
     name: "care-buddy",
     version: "1.0.0",
     description:
-      "Care reminders and health-reading notifications from your connected Care Buddy profiles.",
-    author: { name: "Care Buddy", url: PUBLIC_SITE },
+      "Care reminders and health-reading notifications from your connected CareBuddy profiles.",
+    author: { name: "CareBuddy", url: PUBLIC_SITE },
     homepage: PUBLIC_SITE,
   };
   const remote = {
@@ -89,7 +89,7 @@ export function pluginFiles(
       "plugins/care-buddy/.mcp.json\nplugins/care-buddy/mcp.json\n",
     "care-buddy-export/.agents/plugins/marketplace.json": json({
       name: "care-buddy-personal",
-      interface: { displayName: "Care Buddy personal export" },
+      interface: { displayName: "CareBuddy personal export" },
       plugins: [
         {
           name: "care-buddy",
@@ -101,7 +101,7 @@ export function pluginFiles(
     }),
     "care-buddy-export/.claude-plugin/marketplace.json": json({
       name: "care-buddy-personal",
-      owner: { name: "Care Buddy" },
+      owner: { name: "CareBuddy" },
       plugins: [
         {
           name: "care-buddy",
@@ -125,10 +125,10 @@ export function pluginFiles(
       skills: "./skills/",
       mcpServers: "./.mcp.json",
       interface: {
-        displayName: "Care Buddy",
+        displayName: "CareBuddy",
         shortDescription: "Care notifications in your assistant",
         longDescription: metadata.description,
-        developerName: "Care Buddy",
+        developerName: "CareBuddy",
         category: "Productivity",
         capabilities: ["Read", "Write"],
       },
@@ -169,7 +169,7 @@ export function pluginFiles(
     upload["connection.json"] = files["care-buddy-export/connection.json"];
     upload[".claude-plugin/marketplace.json"] = json({
       name: "care-buddy-personal",
-      owner: { name: "Care Buddy" },
+      owner: { name: "CareBuddy" },
       plugins: [
         {
           name: "care-buddy",

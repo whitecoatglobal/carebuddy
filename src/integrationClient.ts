@@ -19,7 +19,7 @@ async function request(
   signal?: AbortSignal,
 ) {
   if (!BACKEND_URL)
-    throw new Error("Open the connected Care Buddy app to export a plugin.");
+    throw new Error("Open the connected CareBuddy app to export a plugin.");
   const response = await fetch(`${BACKEND_URL.replace(/\/$/, "")}${path}`, {
     method: body === undefined ? "GET" : "POST",
     headers: {

@@ -455,7 +455,7 @@ test("AC17 welcome reopen preserves saved changes", async ({ page }) => {
   await goto(page, "/settings");
   await btn(page, "Reopen welcome").click();
   await expect(
-    page.getByRole("heading", { name: "Care Buddy", exact: true }),
+    page.getByRole("heading", { name: "CareBuddy", exact: true }),
   ).toBeVisible();
   await btn(page, "Get started").click();
   expect(
@@ -526,7 +526,7 @@ test("AC19 caregiver attribution, skipped undo and receipt fields", async ({
 test("AC20 appointment origin and benefit distinctions", async ({ page }) => {
   await select(page, "p-maya");
   await goto(page, "/appointments/a-screen-maya");
-  await btn(page, "Update in Care Buddy").click();
+  await btn(page, "Update in CareBuddy").click();
   await page
     .getByLabel("Title", { exact: true })
     .fill("Local screening change");

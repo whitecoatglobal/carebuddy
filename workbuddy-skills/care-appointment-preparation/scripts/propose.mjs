@@ -4,7 +4,7 @@ const result = (status, message, extra = {}) => ({
   status,
   message,
   executed: false,
-  provenance: "Care Buddy fictional local records",
+  provenance: "CareBuddy fictional local records",
   ...extra,
 });
 function run(input) {
@@ -137,7 +137,7 @@ function run(input) {
     };
     return result(
       "proposal",
-      "Review and confirm in Care Buddy before saving. This does not book or confirm an appointment.",
+      "Review and confirm in CareBuddy before saving. This does not book or confirm an appointment.",
       {
         expectedClock,
         action: {
@@ -190,7 +190,7 @@ function run(input) {
   };
   return result(
     "proposal",
-    "Review the recipient, time and recurrence scope in Care Buddy, then confirm. No action has been saved.",
+    "Review the recipient, time and recurrence scope in CareBuddy, then confirm. No action has been saved.",
     {
       expectedClock,
       action: {

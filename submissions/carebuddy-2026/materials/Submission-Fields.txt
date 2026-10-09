@@ -1,5 +1,5 @@
 PROJECT TITLE
-Care Buddy
+CareBuddy
 
 TRACK / SELECTED CASE STUDY
 Healthcare Track — NTU Lee Kong Chian School of Medicine
@@ -15,19 +15,19 @@ DEMO VIDEO LINK
 https://carebuddy.life/submissions/carebuddy-2026/
 
 DIRECT MP4 LINK, IF NEEDED
-https://carebuddy.life/submissions/carebuddy-2026/Care-Buddy-Mobile-Demo.mp4
+https://carebuddy.life/submissions/carebuddy-2026/CareBuddy-Mobile-Demo.mp4
 
 VIDEO DETAILS
 5 minutes 58 seconds; mobile app in portrait view, with side captions in a 1920 × 1080 video.
 Edited actual website captures with side captions and soft original instrumental music. No spoken narration. Includes a real TokenHub reminder update and its saved result, plus project overview, core agent features, architecture and CodeBuddy build reflection.
 
 ARCHITECTURE DIAGRAM PPT UPLOAD
-Care-Buddy-Architecture-Healthcare.pptx
+CareBuddy-Architecture-Healthcare.pptx
 One editable PowerPoint file, five slides, approximately 33 KB; within the 100 MB limit.
 Includes the care journey, system architecture, agent write flow, assistant notification flow, trust boundaries and design trade-offs.
 
 COVER IMAGE UPLOAD
-Care-Buddy-Cover.png
+CareBuddy-Cover.png
 1280 × 720, 16:9.
 
 CODEBUDDY CONVERSATION HISTORY UPLOADS

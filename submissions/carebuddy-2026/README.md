@@ -1,24 +1,24 @@
-# Care Buddy — Healthcare Track submission
+# CareBuddy — Healthcare Track submission
 
 Prepared 9 October 2026 for Case Study 2, **AI Healthier Every Day**.
 
 Short blurb: **Your AI companion for everyday and family care.** (Eight words.)
 
-The [public playback page](https://carebuddy.life/submissions/carebuddy-2026/) and [final MP4](https://carebuddy.life/submissions/carebuddy-2026/Care-Buddy-Mobile-Demo-v3.mp4) use the approved Care Buddy logo. The 5:58 video shows portrait mobile app captures with captions beside them and original soft instrumental music. It contains no spoken narration.
+The [public playback page](https://carebuddy.life/submissions/carebuddy-2026/) and [final MP4](https://carebuddy.life/submissions/carebuddy-2026/CareBuddy-Mobile-Demo-v3.mp4) use the approved CareBuddy logo. The 5:58 video shows portrait mobile app captures with captions beside them and original soft instrumental music. It contains no spoken narration.
 
 ## Files
 
-- `public/`: the deployed playback HTML, version 3 video and poster, project cover, logo assets, fonts and font licences. The unversioned video and poster filenames are relative symlinks to version 3.
+- `public/`: the deployed playback HTML, version 3 video and poster, project cover, logo assets, colour palette, fonts and font licences. The unversioned video and poster filenames are relative symlinks to version 3.
 - `materials/`: submission form copy, project description, five-slide editable PowerPoint, caption script, SRT captions and three unchanged CodeBuddy development captures. `presentation-fonts/` preserves the deck's Fraunces and DM Sans typography.
-- `Care-Buddy-Submission-Pack.zip`: the complete prepared submission pack, including the final video, architecture deck, cover, captions, project copy, CodeBuddy captures and fonts.
+- `CareBuddy-Submission-Pack.zip`: the complete prepared submission pack, including the final video, architecture deck, cover, captions, project copy, CodeBuddy captures, brand guidance, colour palette and fonts.
 - `materials/Demo-Playback-Verified.png`: the public playback page after successful playback and seeking.
 - `inputs/`: the 19 mobile website captures used in the video, four rendered architecture slides, chapter copy and the 73 full-sentence caption timings.
 - `scripts/`: video frame composition and the original instrumental music generator.
 - `manifest.json`: hashes of the final public files and the recorded media format.
 
-The [current launch presentation](../../presentations/CareBuddy-Launch.pptx) has 51 slides. The five-slide architecture deck is in `materials/`.
+The [current launch presentation](../../presentations/CareBuddy-Launch.pptx) has 51 slides, with a matching [PDF](../../presentations/CareBuddy-Launch.pdf). The product name is CareBuddy; both retain their original typography. The five-slide architecture deck is in `materials/`.
 
-The app reference for these captures is `63f19f6e291159b01338a56eaed2fb7edbf98ee6`, which passed 242 automated tests. Care records and health readings are fictional; sleep is fixed frontend content. Pilot targets in the project description are proposed metrics. The screenshots show historical CodeBuddy development work, including investigation of incomplete tasks.
+The capture workflow began at app reference `63f19f6e291159b01338a56eaed2fb7edbf98ee6`. Five screens were refreshed for the CareBuddy branding update on 9 October 2026; the updated app passed all 242 automated tests. Care records and health readings are fictional; sleep is fixed frontend content. Pilot targets in the project description are proposed metrics. The screenshots show historical CodeBuddy development work, including investigation of incomplete tasks.
 
 ## Rebuild the video
 
@@ -33,7 +33,7 @@ npm run frames
 npm run build:video
 ```
 
-`frames` checks caption wrapping and footer clearance without encoding a video. `build:video` composes the quiet instrumental soundtrack and renders `public/Care-Buddy-Mobile-Demo-v3.mp4` plus its poster. Temporary frames, layout reports and audio stay under ignored `.build/`. The checked-in caption timeline supplies only text and timing; the encoder's audio input is the generated instrumental track.
+`frames` checks caption wrapping and footer clearance without encoding a video. `build:video` composes the quiet instrumental soundtrack and renders `public/CareBuddy-Mobile-Demo-v3.mp4` plus its poster. Temporary frames, layout reports and audio stay under ignored `.build/`. The checked-in caption timeline supplies only text and timing; the encoder's audio input is the generated instrumental track.
 
 After an intentional rebuild, review the output and update `manifest.json` before publishing. The SRT and chapter script in `materials/` use the same final caption timings.
 

@@ -14,22 +14,63 @@
     "audio": "Original soft instrumental music; no speech"
   },
   "sha256": {
-    "Care-Buddy-Cover.png": "04706987279825c38ca2fa993a371a79bba2b0193c3607f0982b786b56203015",
-    "Care-Buddy-Demo-Poster-v3.png": "40c685cf1bb745f545b62f0e949b03596b4177d2fd03490b96884499b94bc66e",
-    "Care-Buddy-Demo-Poster.png": "40c685cf1bb745f545b62f0e949b03596b4177d2fd03490b96884499b94bc66e",
-    "Care-Buddy-Mobile-Demo-v3.mp4": "df19d3c7121c78d538a756366dcac8bd3c516a669aeda88727ad371c17f673ab",
-    "Care-Buddy-Mobile-Demo.mp4": "df19d3c7121c78d538a756366dcac8bd3c516a669aeda88727ad371c17f673ab",
+    "CareBuddy-Cover.png": "04706987279825c38ca2fa993a371a79bba2b0193c3607f0982b786b56203015",
+    "CareBuddy-Demo-Poster-v3.png": "3f203602ac4db6522e97c28ac0cf183fbb01f635f07de6711678a17f8e077b1a",
+    "CareBuddy-Demo-Poster.png": "3f203602ac4db6522e97c28ac0cf183fbb01f635f07de6711678a17f8e077b1a",
+    "CareBuddy-Mobile-Demo-v3.mp4": "cd5b3bafd55a678d025a357b3277798267736b9c48c7729e3d35df132b1a0e83",
+    "CareBuddy-Mobile-Demo.mp4": "cd5b3bafd55a678d025a357b3277798267736b9c48c7729e3d35df132b1a0e83",
+    "branding/carebuddy-color-palette.png": "51ef75d23924eb346b0f32a709784b29185b45fb4b3ba4045f686516534451b8",
+    "branding/carebuddy-logo-v1.png": "809b13d23c11376e711651fd3b5e943f14785cedd7d1329d4d0cfd8b372751bf",
     "branding/carebuddy-symbol-v1.png": "ba192a68b9ad4a32c7c5b6d1b7e558d93eef11d2ee34f0a561c1baf89488a5d5",
     "branding/carebuddy-wordmark-v1.png": "18433399b52b9f66c3e2e8190cf8afc3b078b2cd2934e90b46fc8f0f523d8668",
     "fonts/DM-Sans-OFL.txt": "9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1",
     "fonts/DM-Sans.ttf": "8cd08d97e89c24d0aa92edd2f0f4c8ee6195eee9b7c9f154865a58b02f0c1c0d",
     "fonts/Fraunces-OFL.txt": "bdf4c22802eaf804f998195871c6b8938aac2ac14b2d78a8bd66a6f1eced833b",
     "fonts/Fraunces.ttf": "177ff6c0f14e5550a3c624247cd1189611d4eb65d000b14944c63d967958abbb",
-    "index.html": "c39316dfdd072884cc818f17384c924f7c9fc44732ce5ff65ffae9dfbe8ba29f",
-    "branding/carebuddy-logo-v1.png": "809b13d23c11376e711651fd3b5e943f14785cedd7d1329d4d0cfd8b372751bf"
+    "index.html": "8cbb5dca0163e4c20faafb90f5709fc2eac932daa995110f736f88d96c1e7410"
   },
   "submissionArchive": {
-    "file": "Care-Buddy-Submission-Pack.zip",
-    "sha256": "4d040f87db7b6aee52692463ce28b3d7e83b363bd4884e675e84eabb88a8b8b0"
+    "file": "CareBuddy-Submission-Pack.zip",
+    "sha256": "80b02e36919b500c4654346f5b1191058969d0447bdf61fb9ffa04bd4d9fb8fc"
+  },
+  "compatibilityAliases": {
+    "Care-Buddy-Cover.png": "CareBuddy-Cover.png",
+    "Care-Buddy-Demo-Poster-v3.png": "CareBuddy-Demo-Poster-v3.png",
+    "Care-Buddy-Demo-Poster.png": "CareBuddy-Demo-Poster.png",
+    "Care-Buddy-Mobile-Demo-v3.mp4": "CareBuddy-Mobile-Demo-v3.mp4",
+    "Care-Buddy-Mobile-Demo.mp4": "CareBuddy-Mobile-Demo.mp4"
+  },
+  "presentations": {
+    "launch": {
+      "powerPoint": "../../presentations/CareBuddy-Launch.pptx",
+      "pdf": "../../presentations/CareBuddy-Launch.pdf",
+      "slides": 51,
+      "powerPointSha256": "f131f4a2ec0e4c05735769502fdaf430c5cc895d23f18740c5536a64adeb76f6",
+      "pdfSha256": "d7c94f1bca619205d99d261f63728161a058055e6a485417ae76187738bace7d",
+      "originalFontsPreserved": true
+    },
+    "architecture": {
+      "file": "materials/CareBuddy-Architecture-Healthcare.pptx",
+      "slides": 5,
+      "sha256": "560e39ff950043403f8c370d1a2ea1cab0665f156e13d14a65ecb6b78a5d833b",
+      "originalFontsPreserved": true
+    }
+  },
+  "brandingRefresh": {
+    "name": "CareBuddy",
+    "preparedOn": "2026-10-09",
+    "sourceBaseCommit": "3852b8ca8db1711b053c7da7a3474bae66d0ed13",
+    "websiteFonts": {
+      "headings": "Fraunces",
+      "body": "DM Sans"
+    },
+    "refreshedCaptures": [
+      "01-landing.png",
+      "18-gp-handoff.png",
+      "20-integrations.png",
+      "21-integrations-scope.png",
+      "22-integrations-explained.png"
+    ],
+    "historicalCodeBuddyEvidenceUnchanged": true
   }
 }

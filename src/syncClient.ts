@@ -95,7 +95,7 @@ async function request<T>(
   path: string,
   body?: unknown,
 ): Promise<T> {
-  if (!BACKEND_URL) throw new Error("Care Buddy backend is not configured.");
+  if (!BACKEND_URL) throw new Error("CareBuddy backend is not configured.");
   const response = await fetch(`${BACKEND_URL.replace(/\/$/, "")}${path}`, {
     method: body === undefined ? "GET" : "POST",
     headers: {
@@ -259,7 +259,7 @@ export function clientAccessHeaders(
 }
 
 export async function checkClientAccess(): Promise<boolean> {
-  if (!BACKEND_URL) throw new Error("Care Buddy backend is not configured.");
+  if (!BACKEND_URL) throw new Error("CareBuddy backend is not configured.");
   const clientId = getClientId();
   const response = await fetch(`${BACKEND_URL.replace(/\/$/, "")}/api/access`, {
     headers: clientAccessHeaders(clientId),

@@ -1,6 +1,6 @@
 # Architecture
 
-Care Buddy uses a React/TypeScript PWA, an Express backend and SQLite. The backend serves the frontend, owns care-state writes and keeps provider credentials out of the browser. Nginx terminates HTTPS in the deployed environment.
+CareBuddy uses a React/TypeScript PWA, an Express backend and SQLite. The backend serves the frontend, owns care-state writes and keeps provider credentials out of the browser. Nginx terminates HTTPS in the deployed environment.
 
 ```mermaid
 flowchart LR

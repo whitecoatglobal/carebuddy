@@ -135,7 +135,7 @@ export function AssistantExport({
       )}
       {!connected && (
         <p className="notice">
-          Plugin export is available in the connected Care Buddy app.
+          Plugin export is available in the connected CareBuddy app.
         </p>
       )}
       <div className="assistant-layout">
@@ -146,7 +146,7 @@ export function AssistantExport({
             </div>
             <div>
               <span className="eyebrow">YOUR PERSONAL PLUGIN</span>
-              <h2 id="export-heading">Take Care Buddy with you</h2>
+              <h2 id="export-heading">Take CareBuddy with you</h2>
             </div>
           </div>
           <fieldset disabled={!!busy || !connected}>
@@ -272,21 +272,21 @@ export function AssistantExport({
               <strong>Add the plugin</strong>
               <p>
                 {target === "codex"
-                  ? "Open the extracted folder in Codex, restart the app, then enable Care Buddy from its local plugin marketplace."
-                  : "In Claude, open Customize → Plugins and upload your custom plugin ZIP. Enable Care Buddy and its connection."}
+                  ? "Open the extracted folder in Codex, restart the app, then enable CareBuddy from its local plugin marketplace."
+                  : "In Claude, open Customize → Plugins and upload your custom plugin ZIP. Enable CareBuddy and its connection."}
               </p>
             </li>
             <li>
               <strong>Start your care check-ins</strong>
               <p>
                 {target === "codex"
-                  ? "Ask Codex to check Care Buddy and monitor in the background every 15 minutes."
+                  ? "Ask Codex to check CareBuddy and monitor in the background every 15 minutes."
                   : "Ask Claude for a care check, then schedule recurring checks using an available cadence in Scheduled."}
               </p>
               <code>
                 {target === "codex"
-                  ? "Use Care Buddy to check my care notifications, then monitor every 15 minutes."
-                  : "Use Care Buddy to check my care notifications, then schedule hourly check-ins."}
+                  ? "Use CareBuddy to check my care notifications, then monitor every 15 minutes."
+                  : "Use CareBuddy to check my care notifications, then schedule hourly check-ins."}
               </code>
             </li>
           </ol>

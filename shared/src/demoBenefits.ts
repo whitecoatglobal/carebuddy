@@ -24,10 +24,10 @@ export function seedDemoBenefits(state: State, now = state.now): State {
     const prefix = `demo-benefit-${encodeURIComponent(profile.id)}`;
     const common = {
       profileId: profile.id,
-      source: "Care Buddy demo plan",
+      source: "CareBuddy demo plan",
       policyDate,
       notes:
-        "Illustrative plan for exploring Care Buddy. Pending claims are not deducted from the used balance.",
+        "Illustrative plan for exploring CareBuddy. Pending claims are not deducted from the used balance.",
     };
     added.push(
       {

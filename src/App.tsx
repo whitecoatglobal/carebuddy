@@ -202,7 +202,7 @@ function ReceiptView({
       <summary>Action details · {receipt.outcome}</summary>
       <dl>
         <dt>Source</dt>
-        <dd>Care Buddy action</dd>
+        <dd>CareBuddy action</dd>
         <dt>Information used</dt>
         <dd>{receipt.sourceIds.join(", ") || "User-entered input"}</dd>
         <dt>Person</dt>
@@ -858,7 +858,7 @@ export default function App() {
   };
   const about = () =>
     setModal({
-      title: "About Care Buddy",
+      title: "About CareBuddy",
       content: (
         <>
           <p>Fictional data only. Not a medical or insurance service.</p>
@@ -871,7 +871,7 @@ export default function App() {
             configured.
           </p>
           <p>
-            Care Buddy helps organise routine care. It does not assess symptoms,
+            CareBuddy helps organise routine care. It does not assess symptoms,
             diagnose, prescribe, verify cover, make bookings or handle
             emergencies.
           </p>
@@ -1705,7 +1705,7 @@ export default function App() {
             </p>
             <p className="helper">
               {a.recordOrigin === "user-saved"
-                ? "Saved by you in Care Buddy."
+                ? "Saved by you in CareBuddy."
                 : "Initial care record."}
             </p>
           </details>
@@ -1783,7 +1783,7 @@ export default function App() {
               )
             }
           >
-            Update in Care Buddy
+            Update in CareBuddy
           </button>
         </div>
         <details>
@@ -2172,7 +2172,7 @@ export default function App() {
                       <details className="receipt">
                         <summary>Action details · Information only</summary>
                         <p>
-                          Care Buddy explanation · For: {profile.displayName} ·
+                          CareBuddy explanation · For: {profile.displayName} ·
                           Actor: Me
                         </p>
                         <p>Information used: {m.contextId}</p>
@@ -2310,7 +2310,7 @@ export default function App() {
             <button onClick={about}>
               <span>
                 <Icon name="leaf" />
-                About Care Buddy & installation
+                About CareBuddy & installation
               </span>
               <Icon name="arrow" />
             </button>
@@ -2740,7 +2740,7 @@ export default function App() {
         <span className="eyebrow">ROUTINE CARE ACCESS</span>
         <h1>Plan GP care</h1>
         <p className="lead">
-          Explore a routine care-access option. Care Buddy does not assess
+          Explore a routine care-access option. CareBuddy does not assess
           symptoms or book care.
         </p>
         <section className="gp-care-card">
@@ -2803,7 +2803,7 @@ export default function App() {
   const notFound = (text = "This item is no longer available") => (
     <div className="empty">
       <h1>{text}</h1>
-      <p>Choose another item in Care Buddy.</p>
+      <p>Choose another item in CareBuddy.</p>
       <button onClick={() => go("/today")}>Go to Today</button>
     </div>
   );
@@ -2921,7 +2921,7 @@ export default function App() {
         locationLabel: v.location.trim(),
       };
       label =
-        "Update in Care Buddy for " +
+        "Update in CareBuddy for " +
         profile.displayName +
         "? This updates your record on this device only. No provider has been contacted.";
     }
@@ -3049,7 +3049,7 @@ export default function App() {
             : form.kind === "dependent"
               ? "Add family member"
               : form.kind === "appointment"
-                ? "Update in Care Buddy"
+                ? "Update in CareBuddy"
                 : form.kind === "gp"
                   ? "Preview appointment request"
                   : form.kind === "benefitNote"
@@ -3333,7 +3333,7 @@ export default function App() {
                 content: (
                   <p>
                     Contact the appropriate local emergency service directly.
-                    Care Buddy cannot call, dispatch or assess an emergency. No
+                    CareBuddy cannot call, dispatch or assess an emergency. No
                     service has been contacted.
                   </p>
                 ),
@@ -3386,7 +3386,7 @@ export default function App() {
           )
         }
       >
-        <a className="wordmark" href="/" aria-label="Care Buddy home">
+        <a className="wordmark" href="/" aria-label="CareBuddy home">
           <img
             className="brand-symbol"
             src="/branding/carebuddy-symbol-v1.png"

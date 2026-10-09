@@ -1,13 +1,13 @@
 [
   {
-    "chapter": "Care Buddy",
+    "chapter": "CareBuddy",
     "label": "Healthcare Track · Case study 2",
     "images": [
       "01-landing",
       "02-today-weather",
       "09-family"
     ],
-    "script": "Care Buddy is our submission for the Tencent Cloud Healthcare Track, case study two: AI Healthier Every Day. It is a mobile companion for everyday self-care and family care between healthcare visits. Imagine a busy adult trying to remember their own routines while helping Mom and Dad. Care Buddy brings the next task, useful care records, and an AI assistant into one place. This walkthrough uses the live mobile website with fictional care records. We will show an actual AI reminder change and its saved result."
+    "script": "CareBuddy is our submission for the Tencent Cloud Healthcare Track, case study two: AI Healthier Every Day. It is a mobile companion for everyday self-care and family care between healthcare visits. Imagine a busy adult trying to remember their own routines while helping Mom and Dad. CareBuddy brings the next task, useful care records, and an AI assistant into one place. This walkthrough uses the live mobile website with fictional care records. We will show an actual AI reminder change and its saved result."
   },
   {
     "chapter": "A calmer daily overview",
@@ -92,6 +92,6 @@
       "proof-03",
       "01-landing"
     ],
-    "script": "We used CodeBuddy to refine the interface and investigate backend onboarding. These genuine development screenshots show the requirements, source reading, task planning, and colour and font work. A useful tip is to give the coding agent concrete acceptance criteria and small file-specific tasks. Check the mobile screen, the server response, and the persisted record. Test retries, permissions, and failure paths as well as the happy path. The verified reference release passed two hundred and forty-two automated tests. We have not measured patient outcomes. A proposed pilot would compare routine-change time against manual forms, aim for eighty percent unaided completion of key tasks, and measure unwanted repeat notifications. Care Buddy's demonstrated value is a clearer next step and less work to organise everyday and family care."
+    "script": "We used CodeBuddy to refine the interface and investigate backend onboarding. These genuine development screenshots show the requirements, source reading, task planning, and colour and font work. A useful tip is to give the coding agent concrete acceptance criteria and small file-specific tasks. Check the mobile screen, the server response, and the persisted record. Test retries, permissions, and failure paths as well as the happy path. The verified reference release passed two hundred and forty-two automated tests. We have not measured patient outcomes. A proposed pilot would compare routine-change time against manual forms, aim for eighty percent unaided completion of key tasks, and measure unwanted repeat notifications. CareBuddy's demonstrated value is a clearer next step and less work to organise everyday and family care."
   }
 ]

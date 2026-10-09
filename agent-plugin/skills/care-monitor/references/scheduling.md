@@ -16,7 +16,7 @@ Official instructions: https://support.claude.com/en/articles/13854387-schedule-
 
 ## Claude Code
 
-Use the session's native scheduling tools (`CronCreate`, `CronList`, `CronDelete`) if available. First list existing tasks and reuse any Care Buddy monitor. For the default cadence create a recurring `*/15 * * * *` task with the care-monitor prompt. If the user specifies another cadence, translate it to a supported schedule. Confirm the returned task ID. To stop, delete only that monitor's task. Do not run an endless shell loop, enable an unrelated hook, or modify global shell startup files.
+Use the session's native scheduling tools (`CronCreate`, `CronList`, `CronDelete`) if available. First list existing tasks and reuse any CareBuddy monitor. For the default cadence create a recurring `*/15 * * * *` task with the care-monitor prompt. If the user specifies another cadence, translate it to a supported schedule. Confirm the returned task ID. To stop, delete only that monitor's task. Do not run an endless shell loop, enable an unrelated hook, or modify global shell startup files.
 
 The user can also start the monitor with:
 

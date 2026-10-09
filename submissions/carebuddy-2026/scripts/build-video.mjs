@@ -104,11 +104,11 @@ await fs.writeFile(path.join(build,'side-caption-frames.ffconcat'),ffconcat.join
 await fs.writeFile(path.join(build,'side-caption-layout-checks.json'),JSON.stringify({dimensions:[W,H],sentences:checks},null,2));
 console.log('Prepared '+checks.length+' caption frames; mobile screens remain unchanged.');
 if(process.argv.includes('--frames-only'))process.exit(0);
-const video=path.join(publicDir,'Care-Buddy-Mobile-Demo-v3.mp4');
-const args=['-hide_banner','-loglevel','warning','-y','-f','concat','-safe','0','-i',path.join(build,'side-caption-frames.ffconcat'),'-i',path.join(build,'soft-background.wav'),'-map','0:v:0','-map','1:a:0','-vf','fps='+FPS,'-t',String(timeline.duration),'-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p','-c:a','aac','-b:a','128k','-ar','48000','-movflags','+faststart','-shortest','-metadata','title=Care Buddy - Mobile Demo with Side Captions','-metadata','comment=Actual mobile website captures with side captions and original soft instrumental music. No speech. Fictional care data.','-progress',path.join(build,'video-side-progress.txt'),video];
+const video=path.join(publicDir,'CareBuddy-Mobile-Demo-v3.mp4');
+const args=['-hide_banner','-loglevel','warning','-y','-f','concat','-safe','0','-i',path.join(build,'side-caption-frames.ffconcat'),'-i',path.join(build,'soft-background.wav'),'-map','0:v:0','-map','1:a:0','-vf','fps='+FPS,'-t',String(timeline.duration),'-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p','-c:a','aac','-b:a','128k','-ar','48000','-movflags','+faststart','-shortest','-metadata','title=CareBuddy - Mobile Demo with Side Captions','-metadata','comment=Actual mobile website captures with side captions and original soft instrumental music. No speech. Fictional care data.','-progress',path.join(build,'video-side-progress.txt'),video];
 const encoder=spawn(process.env.FFMPEG_BIN || 'ffmpeg',args,{stdio:['ignore','ignore','pipe']});
 let stderr='';encoder.stderr.on('data',chunk=>{stderr+=chunk.toString();if(stderr.length>10000)stderr=stderr.slice(-10000);});
 const [code]=await once(encoder,'exit');
 if(code!==0)throw new Error('Encoding failed: '+stderr);
-await fs.copyFile(path.join(frameDir,'001.png'),path.join(publicDir,'Care-Buddy-Demo-Poster-v3.png'));
+await fs.copyFile(path.join(frameDir,'001.png'),path.join(publicDir,'CareBuddy-Demo-Poster-v3.png'));
 console.log('Video ready:',video);

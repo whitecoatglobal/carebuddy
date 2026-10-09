@@ -39,7 +39,7 @@ export async function notificationMcp(req: Request, res: Response) {
   if (!connection) {
     res.status(401).json({
       error:
-        "This Care Buddy connection is invalid, expired or revoked. Export a new connection from Settings.",
+        "This CareBuddy connection is invalid, expired or revoked. Export a new connection from Settings.",
     });
     return;
   }

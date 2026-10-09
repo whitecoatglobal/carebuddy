@@ -76,7 +76,7 @@ export function buildNotificationFeed(
         kind: "reminder",
         priority: stage === "unrecorded" ? "attention" : "info",
         title: `${r.title} · ${stage === "soon" ? "coming up" : stage === "due" ? "due now" : "not yet recorded"}`,
-        message: `${r.category} reminder. ${stage === "unrecorded" ? "No outcome has been recorded; this does not mean it was missed." : "Open Care Buddy to review or record an outcome."}`,
+        message: `${r.category} reminder. ${stage === "unrecorded" ? "No outcome has been recorded; this does not mean it was missed." : "Open CareBuddy to review or record an outcome."}`,
         at,
         url: `${PUBLIC_SITE}/today`,
       },

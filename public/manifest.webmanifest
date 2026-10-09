@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Care Buddy \u2014 fictional care demo",
-  "short_name": "Care Buddy",
+  "name": "CareBuddy \u2014 fictional care demo",
+  "short_name": "CareBuddy",
   "description": "A fictional local care organisation demo",
   "start_url": "./today",
   "scope": "./",
