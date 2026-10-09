@@ -13,6 +13,7 @@ Care-Buddy-Architecture-Healthcare.pptx — five editable architecture slides us
 Care-Buddy-Demo-Script.txt — on-screen caption script and chapter timings.
 Care-Buddy-Demo-Captions.srt — caption file; the MP4 already includes visible captions.
 ../public/Care-Buddy-Demo-Poster.png — video poster image.
+Demo-Playback-Verified.png — public playback page after successful playback and seeking.
 codebuddy-evidence/ — three unchanged original Desktop screenshots and their context.
 presentation-fonts/ — original Google Fonts files and OFL licences, for preserving the intended PowerPoint typography on another computer.
 

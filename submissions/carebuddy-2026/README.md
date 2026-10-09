@@ -10,9 +10,13 @@ The [public playback page](https://carebuddy.life/submissions/carebuddy-2026/) a
 
 - `public/`: the deployed playback HTML, version 3 video and poster, project cover, logo assets, fonts and font licences. The unversioned video and poster filenames are relative symlinks to version 3.
 - `materials/`: submission form copy, project description, five-slide editable PowerPoint, caption script, SRT captions and three unchanged CodeBuddy development captures. `presentation-fonts/` preserves the deck's Fraunces and DM Sans typography.
+- `Care-Buddy-Submission-Pack.zip`: the complete prepared submission pack, including the final video, architecture deck, cover, captions, project copy, CodeBuddy captures and fonts.
+- `materials/Demo-Playback-Verified.png`: the public playback page after successful playback and seeking.
 - `inputs/`: the 19 mobile website captures used in the video, four rendered architecture slides, chapter copy and the 73 full-sentence caption timings.
 - `scripts/`: video frame composition and the original instrumental music generator.
 - `manifest.json`: hashes of the final public files and the recorded media format.
+
+The [launch slide decks](../../output/presentations/README.md) are also included in the repository. The newest saved launch deck has 51 slides.
 
 The app reference for these captures is `63f19f6e291159b01338a56eaed2fb7edbf98ee6`, which passed 242 automated tests. Care records and health readings are fictional; sleep is fixed frontend content. Pilot targets in the project description are proposed metrics. The screenshots show historical CodeBuddy development work, including investigation of incomplete tasks.
 

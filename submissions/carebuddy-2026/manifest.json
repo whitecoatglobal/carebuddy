@@ -25,6 +25,11 @@
     "fonts/DM-Sans.ttf": "8cd08d97e89c24d0aa92edd2f0f4c8ee6195eee9b7c9f154865a58b02f0c1c0d",
     "fonts/Fraunces-OFL.txt": "bdf4c22802eaf804f998195871c6b8938aac2ac14b2d78a8bd66a6f1eced833b",
     "fonts/Fraunces.ttf": "177ff6c0f14e5550a3c624247cd1189611d4eb65d000b14944c63d967958abbb",
-    "index.html": "c39316dfdd072884cc818f17384c924f7c9fc44732ce5ff65ffae9dfbe8ba29f"
+    "index.html": "c39316dfdd072884cc818f17384c924f7c9fc44732ce5ff65ffae9dfbe8ba29f",
+    "branding/carebuddy-logo-v1.png": "809b13d23c11376e711651fd3b5e943f14785cedd7d1329d4d0cfd8b372751bf"
+  },
+  "submissionArchive": {
+    "file": "Care-Buddy-Submission-Pack.zip",
+    "sha256": "1a0f3990b7a4d89bb9da1d69bea05d604cee3550152317b3ef8e450dff10204e"
   }
 }

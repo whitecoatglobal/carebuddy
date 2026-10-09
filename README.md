@@ -4,6 +4,8 @@ Care Buddy is a public self-care prototype built with React, TypeScript, Vite, E
 
 The [2026 Healthcare Track submission](submissions/carebuddy-2026/README.md) includes the final mobile demo, branded playback page, editable architecture deck, project description, CodeBuddy evidence and video build sources.
 
+The [latest launch slide deck](output/presentations/CareBuddy-Launch-Restructured-v2.pptx) and [saved deck versions](output/presentations/README.md) are available under `output/presentations/`.
+
 ## Today and saved records
 
 - Existing care spaces load through their browser client reference and sync with SQLite. Populated saved records take precedence over sample content.
