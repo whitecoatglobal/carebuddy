@@ -1,56 +1,89 @@
-# Care Buddy Deployment Summary
+# Deployment
 
-## Live URL
+The public application is at **https://carebuddy.life/**. Nginx serves HTTPS and proxies application requests to the Express process, which serves the React build and care APIs. The backend listens on port 3000 by default.
 
-- **Frontend + Backend:** http://124.156.206.120/
-- **Health endpoint:** http://124.156.206.120/api/health
+## Build a release
 
-## What was built
+Use Node.js 24 and install dependencies from the lockfile:
 
-1. **Shared package** (`shared/`)
-   - Extracted the original `src/types.ts` and `src/domain.ts` into a workspace package.
-   - Provides the deterministic care-domain interpreter used by both frontend and backend.
+```sh
+npm ci
+npm run build -w shared
+npm test
+npm run build:public-demo
+npm run build:backend
+```
 
-2. **Backend server** (`backend/`)
-   - Express server (`backend/src/index.ts`) that serves the production frontend and exposes:
-     - `GET /api/health` — service health
-     - `POST /api/buddy/interpret` — runs `buildChatAction` on a full `State` snapshot and returns Buddy’s response text/proposed action
-   - `backend/src/interpret.ts` wraps the shared `buildChatAction` function.
-   - `POST /api/health/snapshot` — returns deterministic wearable vitals, current weather, and generated advice for a profile
-   - `backend/src/health.ts` wraps the shared `buildHealthReading`, `buildWeather` and `buildHealthAdvice` functions.
-   - **SQLite persistence** (`backend/src/db.ts`, `better-sqlite3`):
-     - `state_snapshots` table stores the full app `State` per device (`client_id`).
-     - `chat_messages` table stores Buddy conversation history per client.
-     - `GET /api/state/:clientId`, `PUT /api/state/:clientId`, `GET /api/state`, `GET /api/chats/:clientId`.
-     - DB file at `data/care-buddy.db` (WAL mode), path set via `DB_DIR` env var.
+The public-demo build sets `VITE_BUDDY_BACKEND_URL=/` and `VITE_PUBLIC_DEMO=true` for same-origin API calls and fictional demo initialization.
 
-3. **Frontend wiring** (`src/App.tsx`, `src/buddyClient.ts`, `src/healthClient.ts`, `src/syncClient.ts`)
-   - `send()` now posts the current `State` and user message to the backend when `VITE_BUDDY_BACKEND_URL` is set.
-   - Falls back to the local deterministic engine when no backend URL is configured.
-   - Added a `buddyThinking` state and disabled the composer while waiting.
-   - Added a fallback `uid()` generator so the app works on plain HTTP deployments where `crypto.randomUUID()` is unavailable.
-   - New **Health** tab in bottom navigation (`src/App.tsx`).
-   - `renderHealth()` shows simulated wearable stats (heart rate, BP, breathing rate, sleep, steps), current weather, and AI-style recommendations pulled from `/api/health/snapshot`.
-   - `src/syncClient.ts` generates a stable per-device `clientId`, pulls saved state from the backend on first load, and pushes the updated state after every change (local-first with SQLite backup).
+## Runtime files and configuration
 
-## Build / deploy notes
+Deploy the frontend `dist/`, backend and shared packages (including their compiled `dist/` directories), workspace manifests/lockfile and runtime dependencies. Keep `agent-plugin/` beside `backend/`; the export service reads those templates at runtime.
 
-- Production build is done with `VITE_BUDDY_BACKEND_URL=/` so the frontend calls the backend on the same origin.
-- Backend runs as a systemd service `care-buddy.service` on port 80.
-- Helmet security headers were disabled because their default CSP/COOP/COEP policies blocked the React app from rendering in a plain-HTTP environment.
+Configure the backend process:
 
-## Verification
+| Variable | Purpose |
+| --- | --- |
+| `PORT` | Backend listen port; default `3000` |
+| `STATIC_DIR` | Absolute path to the frontend build |
+| `DB_DIR` | Persistent directory containing `care-buddy.db` |
+| `TOKENHUB_BASE_URL` | Account's HTTPS TokenHub endpoint ending in `/v1` |
+| `TOKENHUB_MODEL` | Account's selected model ID |
+| `TOKENHUB_API_KEY` | Private backend credential |
 
-- `npm test` passes (28 tests) locally.
-- A Playwright end-to-end test against the live server:
-  - Loaded the welcome screen
-  - Clicked **Get started**
-  - Navigated to **Buddy**
-  - Sent “What is next today?”
-  - Received a backend-generated response containing the routine summary.
-  - Navigated to **Health**
-  - Viewed live wearable stats (heart rate, BP, breathing, sleep, steps), current weather, and personalised recommendations.
-- SQLite sync verified end-to-end:
-  - Seeded a state on the server via `PUT /api/state/:clientId`.
-  - The frontend pulled it on load and showed the seeded chat.
-  - After a new Buddy message, the server held the updated state (3 chats, including the new user message).
+When starting through `npm run start:backend`, the default static and database directories resolve to the project-root `dist/` and `data/`. Use explicit absolute paths for a service deployment. Provider configuration is documented in [TokenHub setup](docs/tokenhub.md).
+
+An example systemd service uses an existing private environment file and project-relative runtime layout:
+
+```ini
+[Service]
+WorkingDirectory=/srv/carebuddy/backend
+ExecStart=/usr/bin/node /srv/carebuddy/backend/dist/index.js
+Environment=PORT=3000
+Environment=STATIC_DIR=/srv/carebuddy/dist
+Environment=DB_DIR=/var/lib/carebuddy
+EnvironmentFile=/etc/care-buddy-tokenhub.env
+Restart=on-failure
+```
+
+Adapt these example paths to the host. Keep the persistent database and credentials outside release replacement. Create a SQLite-consistent backup before deployment, stage the build, then switch/restart the existing service and verify the application.
+
+## HTTPS and verification
+
+The existing Nginx application route proxies to the backend:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+```
+
+Retain the host's TLS configuration. Check:
+
+```sh
+curl --fail https://carebuddy.life/api/health
+```
+
+Then open Today, review weather/sleep/health, and test a supported Buddy change with an isolated fictional care space. Verify the saved receipt and reload persistence. A health-status response alone does not prove provider access or care writes.
+
+## Submission video hosting
+
+The submission playback page is hosted separately from application releases at `/submissions/carebuddy-2026/`. Copy `submissions/carebuddy-2026/public/` to the static submission directory while preserving relative symlinks.
+
+The existing server uses this route before its application proxy:
+
+```nginx
+location ^~ /submissions/carebuddy-2026/ {
+    alias /var/www/carebuddy-submissions/carebuddy-2026/;
+    index index.html;
+    autoindex off;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Cache-Control "public, max-age=300" always;
+    limit_except GET HEAD { deny all; }
+}
+```
+
+The MP4 uses H.264/AAC and byte-range seeking. The [submission guide](submissions/carebuddy-2026/README.md) contains the media manifest and rebuild commands.

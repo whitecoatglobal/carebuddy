@@ -1,5 +1,0 @@
-Complete local project export, 2 October 2026 (Singapore).
-Source revision: 219f8afb38986a604e62977f3fe331048b7fc8a3
-Includes latest local verification results.
-Dependencies and Git/cache folders excluded; reinstall with npm ci.
-See README.md for run instructions.

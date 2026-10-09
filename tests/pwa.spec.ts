@@ -33,7 +33,7 @@ test("PWA metadata, local icons and offline deep-route reopening", async ({
     page.getByRole("heading", { name: "Benefits", exact: true }),
   ).toBeVisible();
   await page.screenshot({
-    path: "evidence/offline-benefits.png",
+    path: "test-results/screenshots/offline-benefits.png",
     fullPage: true,
   });
   await context.setOffline(false);

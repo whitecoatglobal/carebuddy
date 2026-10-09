@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 .sites-runtime/
 .codegraph/
 playwright-report/
@@ -12,3 +12,10 @@ data/
 dist-new/
 
 work/
+.build/
+.*-build/
+.openai/
+evidence/
+.DS_Store
+~$*
+.~lock.*

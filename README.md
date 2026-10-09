@@ -1,88 +1,84 @@
 # Care Buddy
 
-Care Buddy is a public self-care prototype built with React, TypeScript, Vite, Express and SQLite. It opens without an account login. Today, Family, Benefits, Health and Buddy organise fictional routines and care records.
+<img src="public/branding/carebuddy-wordmark-v1.png" alt="Care Buddy" width="240">
 
-The [2026 Healthcare Track submission](submissions/carebuddy-2026/README.md) includes the final mobile demo, branded playback page, editable architecture deck, project description, CodeBuddy evidence and video build sources.
+**Your AI companion for everyday and family care.**
 
-The [latest launch slide deck](output/presentations/CareBuddy-Launch-Restructured-v2.pptx) and [saved deck versions](output/presentations/README.md) are available under `output/presentations/`.
+Care Buddy brings daily routines, family care, health records and an AI assistant into one mobile-friendly app. Buddy can save supported care changes from a clear chat request, with server validation and a saved receipt.
 
-## Today and saved records
+## Start here
 
-- Existing care spaces load through their browser client reference and sync with SQLite. Populated saved records take precedence over sample content.
-- If the former account screen archived a browser's records, the public app restores that browser's valid backup and client reference once. It keeps any populated current care space.
-- A fresh public demo shows a fictional self profile and medication, water, walking and bedtime routines. The content is defined in the frontend and labelled as sample data.
-- Sleep remains frontend sample data: 63% score, 6h 40m asleep, and 55% light / 20% deep / 25% REM. Review Sleep stays available on Today and opens the stage breakdown and recommendations.
-- Your Live Health beside Sleep loads fixed BP, pulse, body temperature and oxygen readings from SQLite through the backend API. Its review adds breathing rate, expandable explanations, measurement tips and source links.
-- Weather uses NEA/MSS data through data.gov.sg. Buddy calls Tencent TokenHub from the backend, and care changes use the app's review and confirmation flow.
+| What you need | Link |
+| --- | --- |
+| Website | [carebuddy.life](https://carebuddy.life/) |
+| Explore the app | [Today](https://carebuddy.life/today) |
+| Watch the mobile demo | [5:58 walkthrough](https://carebuddy.life/submissions/carebuddy-2026/) |
+| Launch presentation | [51-slide PowerPoint](presentations/CareBuddy-Launch.pptx) |
+| Architecture diagram | [5-slide PowerPoint](submissions/carebuddy-2026/materials/Care-Buddy-Architecture-Healthcare.pptx) |
+| Complete submission | [Submission folder](submissions/carebuddy-2026/README.md) · [Download ZIP](submissions/carebuddy-2026/Care-Buddy-Submission-Pack.zip) |
+| Logo assets | [Branding folder](public/branding/) |
 
-This version is a fictional public prototype. Browser client references separate demo care spaces; they are not account authentication. Appointment requests and benefits are illustrative, and wearable pairing requires a future device integration.
+## What the app does
 
-## Refreshed interface
+- **Today:** weather at the top, the next care task, daily progress and medication, hydration, movement and bedtime reminders. Unhealthy PSI adds a red “mask up” prompt; rain adds “bring umbrella”.
+- **Sleep and health:** review sleep duration and stage percentages, or blood pressure, pulse, temperature, oxygen and breathing readings, with explanations and recommendations.
+- **Family:** switch between Me, Mom and Dad to view their routines, appointments and care records.
+- **Appointments and benefits:** keep preparation checklists, confirmation status, allowances, balances, claims and recorded terms together.
+- **Buddy:** ask about selected care records, save supported changes and open WhiteCoat for a routine GP consultation when appropriate.
+- **Assistant notifications:** export a personal plugin with selected profiles, optional health alerts, expiry and revocation. [Setup instructions](agent-plugin/INSTALL.md) are included in each export.
 
-Today starts with the original full weather card above the personal greeting, selected person, routine progress and Next up beside the desktop timeline. Temperature, condition, forecast period, humidity, air quality and provider details stay visible, with loading and retry states. PSI above 100 is red and adds “mask up”; rainy forecasts add “bring umbrella” beside the weather condition. Completed routines can be expanded. Onboarding offers self/family choices and optional bedtime, walking or drinking-water starters for self care; new family profiles retain view access. Starter routines open editable review forms before saving.
+The interface uses the supplied blue-green logo, a cream and sage palette, Fraunces headings and DM Sans body text.
 
-Family cards emphasize identity and next actions, with removal in an overflow disclosure. Benefits summarize recorded allowances and limits while retaining conditions, source and full policy date in expandable details. Sleep preserves every sample value and offers compact stage disclosures plus one wind-down recommendation; its reminder action reuses an existing routine where appropriate. Forms keep what, when and repeat visible, optional instructions expandable, and review actions outside the scroll area. Buddy shortens its introduction after conversation begins. Reference-clock, car simulation and WorkBuddy controls remain under Advanced / Demo tools. See [UI validation](docs/ui-refinements-validation.md) for coverage and test limitations.
+## Current data and integrations
 
-## Landing page
+This is a public prototype with fictional care records and no account login.
 
-The homepage at `/` follows the supplied Care Buddy mockup, using cream, sand, sage and plum with Fraunces headings and DM Sans body text. Explore the demo opens `/today`; the app logo returns to the homepage. Family examples and the Buddy walkthrough are illustrative frontend previews. Installed PWAs continue to open Today.
+| Area | Current implementation |
+| --- | --- |
+| Weather | Singapore NEA/MSS feeds through data.gov.sg |
+| Sleep | Fixed frontend values: 6h 40m asleep, 55% light, 20% deep and 25% REM |
+| Health readings | Illustrative values stored in SQLite and fetched through the backend API; no wearable feed is connected |
+| Family and benefits | Persisted fictional fixtures for Me, Mom and Dad |
+| Appointments | Saved care records; a clinic must confirm an actual booking |
+| Buddy | Tencent TokenHub with private MCP context and validated care tools |
+| GP access | User-selected WhiteCoat link; no conversation or health readings are sent through the link |
+| Notifications | Scoped MCP exports for Codex and Claude; the user enables scheduling in the host assistant |
 
-## Health readings
-
-Your Live Health and its review page load readings from `GET /api/health/vitals?profileId=…`. The backend checks browser access and the selected profile's view permission, then reads SQLite's `health_vitals` row for that browser and profile. Each profile is seeded once with the fixed demo readings (118/76 mmHg, 72 bpm, 36.7°C, 98% oxygen and 16 breaths/min). Subsequent requests preserve stored values and their update timestamp. This is database-backed demo data; a device feed is not connected yet.
-
-The frontend refreshes visible health screens every minute and when returning to the app. The card and review share the fetched readings, with loading and retry states. Sleep remains frontend data. No morning timestamp is shown on the health card.
-
-## Demo benefits
-
-Public demo care profiles without existing benefits receive a GP allowance of S$500 (S$80 used), health screening of S$250 (unused) and dental of S$300 (S$85 used). Cards show the remaining allowance and visits; details include paid or pending claims, conditions, source and policy date. Pending claims do not reduce the used balance.
-
-These fictional records are seeded once in SQLite's existing care state and returned by the care API. Existing benefit records take precedence, unavailable profiles are skipped, and ordinary care spaces are not populated. Seeding increments the care revision while preserving other saved fields, visibility and clock settings. New public demos include the same fixtures at bootstrap.
-
-## Demo family
-
-Public demos include Me, Mom and Dad. The two parent profiles have daily medication, blood-pressure recording, hydration, walking and bedtime routines, plus a GP follow-up for Mom and health screening for Dad. They each receive the existing GP, screening and dental benefit fixtures and load their own database-backed health readings when viewed. Appointments are care records awaiting clinic confirmation.
-
-Existing public demo spaces receive missing parents once through the backend, preserving the selected person, existing profiles, saved care, browser visibility and clock settings. Existing Mom/Mum/Mother or Dad/Father parent profiles are kept without adding duplicate or invented routines to them. A persisted `demoFamilySeeded` flag prevents removed or renamed demo family members from being recreated. Ordinary care spaces and empty onboarding states are unchanged.
-
-## Buddy GP handoff
-
-When Buddy recommends a routine GP consultation or the user asks to see a GP, its reply includes a WhiteCoat action opening `https://link.whitecoat.com.sg/dXEf/nnq8g6r9` in a new tab. The fixed frontend link sends no chat contents or health readings. It is a user-selected handoff; no consultation is booked by Care Buddy.
-
-The provider appends a final-line navigation marker, which the backend removes from the visible reply and stores as optional `careNavigation` metadata on the assistant message. SQLite persistence and request replay retain the action across reloads for the selected profile, including view-only profiles. Ordinary care replies have no handoff. Emergency navigation takes priority over GP navigation and opens the existing urgent-help instructions instead of WhiteCoat.
-
-## Assistant plugin export
-
-Settings → Connect your AI assistant (`/integrations`) exports a personal Codex marketplace ZIP or a Claude upload ZIP with a care-monitor skill and a remote MCP connection. Users explicitly choose up to ten visible people and whether to include health-reading alerts. Claude's ZIP has its plugin manifest at the archive root for custom upload; it also works in Claude Code. Codex's ZIP includes a local marketplace and portable plus compatibility manifests. Setup instructions are included in each download.
-
-The backend creates a random bearer credential, stores its SHA-256 hash in SQLite and binds it to that browser's selected profile IDs and preferences. Credentials expire after 90 days, are never returned by the connection list, and can be revoked from Settings. Each browser can have five active connections. Existing browser API permissions remain required; the plugin credential works only at `/api/integrations/mcp`, using MCP Streamable HTTP with JSON responses. Every check revalidates browser visibility and current profile view permission.
-
-`get_care_notifications` returns new routine, appointment, care and opted-in health alerts. `acknowledge_notifications` records delivery IDs only after the assistant displays them; it cannot change care records or in-app read status. IDs stay stable until the event's content or timing stage changes. Routine snoozes and recorded outcomes are respected. Checks use actual Singapore time while preserving the saved reference clock. Health prompts use saved backend readings, retain demo-source labels, and replace stale measurements with an update prompt. General adult reference ranges and source links are included; this is not personalised clinical triage or emergency monitoring.
-
-Installing the plugin does not create a schedule. The bundled skill verifies the connection and helps users set up native Codex scheduled checks, Claude account scheduled tasks, or Claude Code's session `/loop`. Local checks need the host running; cloud task support depends on host capability, plan and plugin access. The export contains a private credential and includes `.gitignore` protection for MCP config files. Users must keep their personal download private.
+Browser IDs separate prototype care spaces and can be administratively blocked. They do not establish verified human identity. [Access details](docs/client-access.md).
 
 ## Run locally
 
-The current build was verified with Node.js 24. Install dependencies and build the shared package:
+Use Node.js 24, npm and a supported SQLite native-build environment. From the repository root:
 
 ```sh
 npm ci
 npm run build -w shared
-```
-
-Build the public demo and start the backend:
-
-```sh
 npm run build:public-demo
 npm run build:backend
 npm run start:backend
 ```
 
-Open `http://127.0.0.1:3000`. `build:public-demo` enables the frontend sample fallback and same-origin backend requests. The ordinary frontend build remains available as `npm run build`.
+Open **http://127.0.0.1:3000**. This serves the frontend and backend together, with a fictional public demo and same-origin API requests. The default database is `data/care-buddy.db`; set `DB_DIR` to use another location.
 
-Configure TokenHub in the backend process environment as described in [TokenHub setup](docs/tokenhub.md). API keys stay on the server and are excluded from frontend builds and this repository.
+For live Buddy responses, set `TOKENHUB_BASE_URL`, `TOKENHUB_MODEL` and `TOKENHUB_API_KEY` in the backend process environment. See [TokenHub setup](docs/tokenhub.md) and the [configuration example](backend/tokenhub.env.example). Provider credentials belong only in the backend environment.
 
-## Verification
+## Repository guide
+
+| Folder | Purpose |
+| --- | --- |
+| `src/` | React screens, navigation, styles and API clients |
+| `backend/` | Express APIs, SQLite persistence, Buddy tools, weather and notifications |
+| `shared/` | Shared types, care rules and demo fixtures |
+| `tests/` | Unit, integration and browser coverage |
+| `public/` | App logo, favicon, PWA icons and manifest |
+| `docs/` | Architecture, access, provider setup and testing guides |
+| `presentations/` | Current launch deck |
+| `submissions/carebuddy-2026/` | Submission copy, architecture deck, video, captions, evidence and rebuild sources |
+| `agent-plugin/` | Personal assistant plugin templates and scheduling instructions |
+| `workbuddy-skills/` | Optional preparation skills and their source packages |
+| `scripts/` | Service-worker generation, skill packaging and isolated verification |
+
+## Development and checks
 
 ```sh
 npm run build -w shared
@@ -91,12 +87,12 @@ npm run build:public-demo
 npm run build:backend
 ```
 
-Unit tests cover the domain, weather, Buddy provider handling, sleep data, browser-record recovery and empty public-demo bootstrap. Browser checks verified public access, loaded weather, medication and sleep cards, and the sleep details page.
+Unit and integration coverage includes permissions, saved receipts, retries, clock handling, family fixtures, health readings, weather and notification exports. [Testing guide](docs/testing.md) explains the browser suites and their limits. Generated reports stay outside the tracked project files.
 
-## Deployment and history
+See [Architecture](docs/architecture.md) for the data flow and [Deployment](DEPLOYMENT.md) for the HTTPS server setup.
 
-Live application: [carebuddy.life](https://carebuddy.life).
+## Healthcare Track submission
 
-The public application and Today cards were restored on 8 October 2026. The prior account implementation and SQLite database are backed up at `/home/ubuntu/care-buddy-backups/20261008-remove-account-login`. The frontend before the Today restoration is backed up at `/home/ubuntu/care-buddy-backups/20261008-restore-today-cards`.
+The submission follows **Case Study 2: AI Healthier Every Day**. It includes the eight-word blurb, project description, editable architecture slides, original CodeBuddy development captures, cover and a mobile demo with side captions and soft instrumental music.
 
-The previous account implementation remains in Git history. Its [design](docs/superpowers/specs/2026-10-07-account-owned-buddy-actions.md) and [implementation notes](docs/superpowers/plans/2026-10-07-account-owned-buddy-actions.md) are retained as historical documents.
+[Open the submission guide](submissions/carebuddy-2026/README.md) for filenames, video rebuild instructions and the complete pack. Pilot metrics in the description and deck are evaluation targets, rather than measured patient outcomes.

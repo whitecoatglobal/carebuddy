@@ -1,10 +1,10 @@
-# Buddy / Tencent TokenHub
+# Buddy and Tencent TokenHub
 
-Buddy calls TokenHub from the Express backend using native Node fetch. The frontend continues calling `POST /api/buddy/interpret`. No API key is included in the frontend build or response.
+Buddy calls Tencent TokenHub from the Express backend. The browser sends care intent to `POST /api/buddy/interpret`; the backend loads the selected care context, dispatches supported tools and persists validated results.
 
-## Server configuration
+## Configuration
 
-Set all three variables in the backend process environment:
+Set these variables in the backend process environment:
 
 ```dotenv
 TOKENHUB_BASE_URL=https://tokenhub-intl.tencentcloudmaas.com/v1
@@ -12,121 +12,45 @@ TOKENHUB_MODEL=deepseek/deepseek-flash
 TOKENHUB_API_KEY=
 ```
 
-This endpoint matches the user's TokenHub console example and successfully authenticated on 7 October 2026. The model-list API confirmed `deepseek/deepseek-flash` is available. The earlier `tokenhub-intl.tencentmaas.com` endpoint rejected this account's key. The model ID is explicit configuration; the application does not silently substitute another model or region. The required base URL must use HTTPS and end in `/v1`.
+The example endpoint and model match the configured deployment. Select the endpoint/model available in your TokenHub account; the base URL must use HTTPS and end in `/v1`. The app does not silently substitute another model or region.
 
-Official references, checked 7 October 2026:
+[Configuration example](../backend/tokenhub.env.example). Provider keys are backend-only and must not use a `VITE_` prefix. Node does not automatically load the example file.
 
-- [TokenHub API endpoints, authentication and model IDs](https://cloud.tencent.com/document/product/1823/130078)
-- [DeepSeek request format and thinking configuration](https://cloud.tencent.com/document/product/1823/132248)
+For an Ubuntu systemd deployment, edit the service's private environment file and load it through an `EnvironmentFile` directive. Keep existing credentials when updating the application. See [Deployment](../DEPLOYMENT.md).
 
-The current code uses non-streaming Chat Completions with `thinking.type=disabled`, a 30-second timeout and a 1,024-token output limit. It reads `choices[0].message.content`, and does not expose reasoning content.
+`GET /api/health` reports whether the required settings are present. A successful Buddy provider request is needed to verify account/model access.
 
-## Existing Ubuntu systemd deployment
+## Request and action flow
 
-Create a server-only environment file using an editor on the server:
+1. The frontend sends `requestId`, `message`, `profileId` and optional owned record context/recurrence scope.
+2. The backend checks browser visibility and profile access, then loads its authoritative snapshot.
+3. An in-memory MCP client/server exposes selected reminder, appointment and benefit context and a limited set of care tools.
+4. TokenHub selects supported tools. Code checks permissions, source records, schedules and the current revision independently.
+5. A clear supported change saves automatically in a SQLite transaction with both chat messages and a saved receipt. The browser updates from that response.
 
-```bash
-sudo install -m 600 /dev/null /etc/care-buddy-tokenhub.env
-sudoedit /etc/care-buddy-tokenhub.env
-```
+Request IDs bind retries to the original payload and result. Replaying the same request cannot create a second save. A changed payload with the same request ID is rejected.
 
-Fill the three configuration variables there, including the API key. Do not paste the key into chat, commit it, or prefix it with `VITE_`. The example file in `backend/tokenhub.env.example` deliberately contains no token.
+## Supported behavior
 
-Add the file to the existing service using `sudo systemctl edit care-buddy`:
+Buddy can prepare or perform supported reminder changes, selected family details, appointment/checklist changes, benefit notes and reminder preferences. Missing fields and invalid requests stop a save. View-only profiles cannot write. Forms retain their own review step, and earlier pending proposals remain expiry/revision checked.
 
-```ini
-[Service]
-EnvironmentFile=/etc/care-buddy-tokenhub.env
-```
+There is no arbitrary SQL, deletion, reset, permission-grant or account-administration model tool. The model does not receive audit browser IDs or other profiles. Health-vitals readings, frontend sleep content and weather are outside the selected-care model context.
 
-Then activate it:
+Assistant save feedback comes from committed server receipts. Provider prose alone cannot establish that a change was saved. Driving privacy restrictions run before provider processing.
 
-```bash
-sudo systemctl daemon-reload
-sudo systemctl restart care-buddy
-curl --fail https://carebuddy.life/api/health
-```
+## GP handoff
 
-The health response reports `ai: "tokenhub"` and `aiConfigured: true` when all required settings are present and the URL is valid. This is a configuration check, not proof that the API key/model is accepted by Tencent. Send a Buddy message after activation to verify the provider call.
+A routine GP response can include a WhiteCoat action. The backend stores the navigation metadata separately from visible prose; the frontend opens a fixed link after the user chooses it. No chat or health readings travel through the link. Emergency navigation uses the separate urgent-help route.
 
-For local development, supply these variables to the backend process, build the shared package, and run `npm run dev -w backend`. Build the frontend with `VITE_BUDDY_BACKEND_URL=/` for same-origin production deployment. Node does not automatically load the example environment file.
+## Checks
 
-## Behavior and data flow
-
-- Browser access is governed by `care-buddy.client-id` and the database `is_visible` column. The existing no-login, default-allowed browser policy is retained. These client-controlled IDs are namespaces, not verified human identities.
-- Buddy accepts only message, selected profile ID, optional owned record context and recurrence scope. The backend loads that browser's own stored snapshot; uploaded state and owner overrides are rejected.
-- A private MCP client/server pair uses the official TypeScript SDK and in-memory transport. `read_selected_care` exposes only the selected viewable profile's records. TokenHub receives schemas from MCP tools/list and its function calls are dispatched through tools/call.
-- Safe tools prepare reminder changes, selected family details, appointment edits/checklist toggles, benefit notes and reminder preferences. No arbitrary SQL, deletion, reset, permission grant or account-administration AI tool exists. View-only profiles cannot prepare writes.
-- Tools validate on a cloned snapshot. A clear user request now authorizes the supported change directly: the backend applies it and stores both chats and a saved receipt in one SQLite transaction. New Buddy writes do not return a pending proposal or require a Confirm button. Earlier pending proposals remain manual and expiry/revision checked.
-- Normal forms use typed `/api/commands` requests. `browser_command_receipts` deduplicates stable action IDs. State snapshots retain existing JSON records and add a business revision; there is no unrestricted whole-state overwrite API.
-- The frontend queues bootstrap, commands, Buddy and Confirm. State, Today cards and save feedback update from authoritative server responses. Revision conflicts refresh records and invalidate stale work; profile intent tokens prevent delayed replies from reopening old proposals.
-- Every assistant bubble has server-owned status. New automatic writes produce Saved only after a committed receipt marked `authorization=chat_request`, `confirmation=false`; no-action replies show No records changed. Older pending proposals can retain Awaiting confirmation. Provider prose is not write evidence; phrase filtering is secondary, not a guarantee about arbitrary natural-language wording.
-- Existing global browser cache is not silently copied into another browser ID. Display caches are scoped to the browser ID, and saved server data wins. One-time initialization is allowed only for an empty revision-zero snapshot.
-- Provider context excludes audit browser IDs and other profiles; credentials remain server-only. Driving privacy runs before provider/MCP processing. Health snapshots also use owned server records.
-
-## Verification
-
-```bash
+```sh
 npm run build -w shared
 npm test
-VITE_BUDDY_BACKEND_URL=/ npm run build
+npm run build:public-demo
 npm run build:backend
-git diff --check
 ```
 
-Tests stub the external provider boundary to verify payloads, selected-profile isolation, confirmation behavior, missing settings, provider errors, malformed output and timeouts.
+Provider tests use controlled responses to check payloads, selected-profile isolation, saved receipts, malformed output, errors, timeouts and retries. Live provider availability is a separate deployment check.
 
-## Live activation — 7 October 2026
-
-- Activated on `https://carebuddy.life` with the account's supplied endpoint and `deepseek/deepseek-flash`.
-- Credentials are in root-owned `/etc/care-buddy-tokenhub.env` with mode `600`, loaded by `/etc/systemd/system/care-buddy.service.d/30-tokenhub.conf`.
-- A real provider completion returned HTTP 200. Live browser tests verified a grounded reminder summary and a reminder proposal requiring confirmation without auto-saving.
-- All 31 unit tests, frontend/backend builds, and diff checks passed.
-- The running application and SQLite database were backed up to `/home/ubuntu/care-buddy-backups/tokenhub-20261007-084010` before activation.
-- Live testing used an isolated fictional profile; its persisted state was removed after verification.
-
-## Browser-owned MCP release — 8 October 2026
-
-113 unit/integration tests and shared/backend/frontend production builds passed after integrating SQ’s interface refinements (`2eebde5`). All 14 UI scenarios passed; the two async-save fixture checks were adapted and rerun after the server-first contract change. Independent review checked server transactions, legacy schema coexistence, cross-browser isolation, proposal expiry/revision, server-owned save feedback and frontend profile races. Production dependency audit found zero advisories.
-
-An isolated browser test demonstrated 7:30 pm → 9:00 pm after Confirm, immediate Today refresh, persistence after reload, no false success on a failed save and harmless repeated confirmation. A staged real TokenHub call independently confirmed MCP tool dispatch and save-after-confirm. Live Chrome repeated the real-provider reminder update and rejected cross-browser confirmation, without a login screen.
-
-The running app and database were backed up to `/home/ubuntu/care-buddy-backups/server-mcp-20261008-042101`. All 129 original snapshots and visibility flags were unchanged by the deployment. Live QA rows were removed and SQLite integrity was `ok`. SQ's sample health/sleep content remains outside model-owned writes.
-
-The final merged release was backed up to `/home/ubuntu/care-buddy-backups/server-mcp-20261008-042755`. Its published JS asset is `index-CkJIBYdu.js`. The merged release passed the isolated failed-save/Confirm/Today/reload regression again, preserved all 129 existing database snapshots and visibility settings, and initialized successfully on the Linux host.
-
-## Automatic Buddy saves — 8 October 2026
-
-The owner explicitly requested automatic supported changes without confirmation. Clear instructions such as “change my bedtime to 9pm daily” now use MCP and save immediately after server validation. Daily recurrence already specifies regular future scope; no redundant scope/confirmation question is needed. Missing fields, view-only access, invalid dates and unsupported tools still stop a save. Forms keep their own review step.
-
-Buddy API requires `requestId`. `browser_buddy_requests` binds it to the browser and canonical payload, returns current state plus the original result on replay, and rejects a different payload with the same ID. Concurrent duplicate requests can both infer, but the post-inference transactional replay check allows only one write. Unresolved frontend request IDs are stored per browser/payload and retained across profile navigation and reloads; user selection generation independently fences UI replies.
-
-122 tests and all builds passed. Browser verification covered failure then retry, no Confirm dialog, immediate Today update and reload persistence, and replay without a second provider call/save. A real TokenHub preflight used the exact short bedtime request and saved 9pm daily without confirmation. The live browser repeated that automatic update, rejected cross-browser record access, and safely replayed the request. Temporary QA records were removed; all 129 original snapshots/visibility values remained intact; SQLite integrity was ok.
-
-Backup: `/home/ubuntu/care-buddy-backups/buddy-auto-20261008-050243`. Browser identity remains client-controlled and has not become verified human identity. Profile manage permissions remain enforced.
-
-## Passed-time daily reminder fix — 8 October 2026
-
-Reproduced the reported 400 with real TokenHub and isolated medication records: a follow-up “yes” at 13:19 produced `editReminder` for today's 05:00, which was already past. Added `setDailyReminderTime` with exact owned reminder ID, local clock and optional explicit start date. The server chooses the next eligible future occurrence when no date was stated; explicit elapsed dates remain invalid.
-
-Clock-only changes preserve past/reported occurrences, medication directions and one-day instruction overrides. Missing anchors inherit the effective regular predecessor, not selected historical directions. Optional owned `dailyReminderSchedules` retain the effective regular clock for later materialization; normal reviewed future edits supersede it, person removal prunes it, and stopped series remain stopped. Recurrence processing and legacy future edits are fenced by both profile and series ID.
-
-139 tests and all builds passed, including morning/afternoon boundaries, explicit dates, duplicate avoidance, ownership collisions, reported records, current directions, one-day overrides, stopping and idempotent auto-save. Independent review reproduced three preservation regressions before they were fixed and rechecked the corrected cases. The existing automatic-save/Today/reload browser test also passed.
-
-Real-provider preflight repeated the screenshot's “yes” conversation. TokenHub called `setDailyReminderTime` with 05:00; the server saved 5am daily starting 9 Oct 2026 while today stayed at 8am and instructions were unchanged. Deployed with backup `/home/ubuntu/care-buddy-backups/daily-time-20261008-055208`; all 130 original snapshots and visibility values remained unchanged; database integrity was ok. No real user's records were modified for testing.
-
-The final release also retains the concurrent supplied-logo/manifest changes (`5186006`). Merged builds, all 139 tests and the automatic-save browser regression passed again. Final backup: `/home/ubuntu/care-buddy-backups/server-mcp-20261008-060237`; all 131 snapshots present at that cutover and their visibility values were unchanged; integrity was ok.
-
-## Live Today clock — 8 October 2026
-
-The exact screenshot request matched one browser-owned request. Its saved clock was 7 Oct (`2026-10-07T08:15Z`), while the medication occurrence for 8 Oct was already saved at 10:00. The previous Today filter kept rendering the 7 Oct 08:00 occurrence. This was a frozen-clock projection issue, not a failed save.
-
-Added server-owned `clock_mode` live/reference, default live. Normal reads project actual Singapore time and materialize the current day without rewriting source JSON/revision/visibility/timestamps. Explicit manual clock/scenario controls enter labelled reference mode; restore/reset returns live without creating historical BASE_NOW occurrences. Browser/model input cannot select the clock mode.
-
-Today refreshes owned queued reads when entering the page, becoming visible/refocused, and every idle minute. Form, draft, navigation/profile intent and save activity fence late publication. Next Up uses future care; earlier incomplete care remains in Earlier. Comparisons and date grouping use actual timestamp/Singapore day.
-
-149 unit/integration tests, all builds, five new browser clock/refresh regressions and three existing UI regression tests passed. The automatic-save/Today/reload browser flow passed again. Independent review found no blocking issue. Deployment backup: `/home/ubuntu/care-buddy-backups/live-today-20261008-063321`; all 131 snapshots/visibility values remained unchanged, integrity ok.
-
-The deployed API was checked against the uniquely identified screenshot request: live home date 8 Oct, clockMode live, medication at 10:00 on 8 and 9 Oct. This diagnostic read preserved the exact saved JSON, updated_at, revision and visibility.
-
-The final live-clock release also includes the concurrent landing-page update (`de51431`). Merged builds, all 149 tests and the automatic-save browser regression passed again. Final backup: `/home/ubuntu/care-buddy-backups/live-today-20261008-064123`; all 131 saved snapshots/visibility values remained unchanged; integrity ok.
+Official provider references: [API endpoints and authentication](https://cloud.tencent.com/document/product/1823/130078), [DeepSeek request configuration](https://cloud.tencent.com/document/product/1823/132248).

@@ -16,7 +16,7 @@ The [public playback page](https://carebuddy.life/submissions/carebuddy-2026/) a
 - `scripts/`: video frame composition and the original instrumental music generator.
 - `manifest.json`: hashes of the final public files and the recorded media format.
 
-The [launch slide decks](../../output/presentations/README.md) are also included in the repository. The newest saved launch deck has 51 slides.
+The [current launch presentation](../../presentations/CareBuddy-Launch.pptx) has 51 slides. The five-slide architecture deck is in `materials/`.
 
 The app reference for these captures is `63f19f6e291159b01338a56eaed2fb7edbf98ee6`, which passed 242 automated tests. Care records and health readings are fictional; sleep is fixed frontend content. Pilot targets in the project description are proposed metrics. The screenshots show historical CodeBuddy development work, including investigation of incomplete tasks.
 

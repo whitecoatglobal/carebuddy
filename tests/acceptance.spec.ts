@@ -256,7 +256,7 @@ test("AC11 urgent simulation viewed only", async ({ page }) => {
   await expect(
     page.getByText("No emergency service has been contacted.", { exact: true }),
   ).toBeVisible();
-  await page.screenshot({ path: "evidence/urgent.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screenshots/urgent.png", fullPage: true });
   await btn(page, "View emergency-help instructions").click();
   await expect(page.getByRole("dialog")).toContainText(
     "Contact the appropriate local emergency service directly",
@@ -276,7 +276,7 @@ test("AC12 car restriction, navigation guard and conservative reload", async ({
   ).toBeVisible();
   await expect(page.getByRole("navigation")).toHaveCount(0);
   await expect(page.getByText("Morning medication")).toHaveCount(0);
-  await page.screenshot({ path: "evidence/driving.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screenshots/driving.png", fullPage: true });
   await page.evaluate(() => {
     history.pushState({}, "", "/buddy");
     dispatchEvent(new PopStateEvent("popstate"));
@@ -349,7 +349,7 @@ test("AC14 widths, zoom, keyboard focus, contrast and reduced motion", async ({
       )
       .toBe(true);
     await page.screenshot({
-      path: `evidence/today-${width}.png`,
+      path: `test-results/screenshots/today-${width}.png`,
       fullPage: true,
     });
   }
@@ -361,7 +361,7 @@ test("AC14 widths, zoom, keyboard focus, contrast and reduced motion", async ({
     ),
   ).toBe(true);
   await page.screenshot({
-    path: "evidence/text-200-percent.png",
+    path: "test-results/screenshots/text-200-percent.png",
     fullPage: true,
   });
   await page.evaluate(() => (document.documentElement.style.fontSize = ""));
@@ -379,7 +379,7 @@ test("AC14 widths, zoom, keyboard focus, contrast and reduced motion", async ({
     ),
   ).toBe(true);
   await page.screenshot({
-    path: "evidence/zoom-200-percent.png",
+    path: "test-results/screenshots/zoom-200-percent.png",
     fullPage: true,
   });
   await cdp.send("Emulation.clearDeviceMetricsOverride");
@@ -484,7 +484,7 @@ test("AC18 tonight-only bedtime override before/after and reload", async ({
   expect(
     s.reminders.find((r: any) => r.id === "r-bed-me:2026-10-01").scheduledAt,
   ).toContain("22:00");
-  await page.screenshot({ path: "evidence/buddy-receipt.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screenshots/buddy-receipt.png", fullPage: true });
 });
 test("AC19 caregiver attribution, skipped undo and receipt fields", async ({
   page,
@@ -841,7 +841,7 @@ test("clean product chrome and Buddy outcomes follow changed care records", asyn
       .outcome,
   ).toBe("complete");
   await page.screenshot({
-    path: "evidence/buddy-state-driven.png",
+    path: "test-results/screenshots/buddy-state-driven.png",
     fullPage: true,
   });
 });

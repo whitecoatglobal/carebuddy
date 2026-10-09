@@ -7,8 +7,8 @@ export default defineConfig({
   workers: 1,
   reporter: [
     ["list"],
-    ["json", { outputFile: "evidence/playwright-results.json" }],
-    ["html", { outputFolder: "evidence/playwright-report", open: "never" }],
+    ["json", { outputFile: "test-results/playwright-results.json" }],
+    ["html", { outputFolder: "playwright-report", open: "never" }],
   ],
   use: {
     launchOptions: {
