@@ -1,0 +1,25 @@
+Use case: ads-marketing / compositing.
+Create a finished CareBuddy project cover by compositing the three supplied existing image assets. Landscape 16:9, high-resolution 1920x1080 or 2048x1152. This will also be exported at a tiny 380x216px thumbnail, so prioritize large readable typography, a simple layout, and concise exact copy.
+
+Input roles: Image 1 is the approved blue-green CareBuddy heart-and-cross symbol; image 2 is the approved lowercase blue-green carebuddy wordmark. Reuse these faithfully as the header logo; do not redraw or redesign them. Image 3 is a REAL mobile capture of the CareBuddy Today screen, showing the lavender sleep card and live-health card. Place this actual capture in one simple upright frontal dark-plum phone frame, with rounded corners, on the RIGHT. Preserve its appearance and contents; do not invent a new UI, readings or labels. Tiny screenshot text need not be readable at thumbnail size, but the sleep and health cards must remain recognizable. The outer brand title is CareBuddy, one word. The logo's original lowercase artwork is correct.
+
+Art direction: warm, modern healthcare app cover; cream #FAF6F0 background, deep sage #4F7A66 headings and accents, plum charcoal #3A3745 text, sand #EADFCF dividers, very restrained sage #8FB39F, lavender #B9AEDC and mist blue #A8CBDB accents. Flat editorial design, crisp geometry, generous separation, no photo scenery or extra illustration. Headline resembles Fraunces; compact body resembles DM Sans. High contrast. All copy LEFT, phone RIGHT. Allocate about two-thirds width to the text and one-third to the phone, with a small gutter. The phone can be around 180px high at final thumbnail size. Give the copy breathing room and keep every word safely inside the frame.
+
+Exact required cover copy, case and spelling preserved:
+Header uses approved CareBuddy symbol and wordmark.
+Main headline, exactly two lines:
+"Less to remember."
+"More room to care."
+Small problem label: "PROBLEM"
+Problem line: "Scattered routines & family care"
+Small features label: "FEATURES"
+Three compact feature bullets:
+"Reminders · sleep · health"
+"Family · visits · benefits"
+"WhiteCoat GP handoff"
+Small standout label: "WOW"
+Two very short distinct standout lines, in a clean lightly tinted sage panel:
+"Chat → saved care actions"
+"Care alerts beyond the app"
+
+Constraints: clean spelling and legible text at 380x216; no extra explanatory paragraphs; no diagnostic or clinical outcome claims; no AI builder credits; no fabricated product screens; no additional logos; no watermark. This is a new standalone cover, not a redesign of the supplied screenshot. The whole phone and all required copy must fit, without overlapping or clipping.

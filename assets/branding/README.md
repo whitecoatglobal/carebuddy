@@ -44,3 +44,7 @@ Use the approved artwork without stretching its proportions:
 - [Symbol](../../public/branding/carebuddy-symbol-v1.png)
 
 The app and landing page use the palette and font pairing above. Technical identifiers such as package names, storage keys and MCP server IDs remain stable so existing care data and integrations continue to work.
+
+## Project cover
+
+Use the [380 × 216 project cover or 16:9 master](covers/README.md) for the CareBuddy submission or project thumbnail.
