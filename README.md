@@ -47,6 +47,16 @@ When Buddy recommends a routine GP consultation or the user asks to see a GP, it
 
 The provider appends a final-line navigation marker, which the backend removes from the visible reply and stores as optional `careNavigation` metadata on the assistant message. SQLite persistence and request replay retain the action across reloads for the selected profile, including view-only profiles. Ordinary care replies have no handoff. Emergency navigation takes priority over GP navigation and opens the existing urgent-help instructions instead of WhiteCoat.
 
+## Assistant plugin export
+
+Settings → Connect your AI assistant (`/integrations`) exports a personal Codex marketplace ZIP or a Claude upload ZIP with a care-monitor skill and a remote MCP connection. Users explicitly choose up to ten visible people and whether to include health-reading alerts. Claude's ZIP has its plugin manifest at the archive root for custom upload; it also works in Claude Code. Codex's ZIP includes a local marketplace and portable plus compatibility manifests. Setup instructions are included in each download.
+
+The backend creates a random bearer credential, stores its SHA-256 hash in SQLite and binds it to that browser's selected profile IDs and preferences. Credentials expire after 90 days, are never returned by the connection list, and can be revoked from Settings. Each browser can have five active connections. Existing browser API permissions remain required; the plugin credential works only at `/api/integrations/mcp`, using MCP Streamable HTTP with JSON responses. Every check revalidates browser visibility and current profile view permission.
+
+`get_care_notifications` returns new routine, appointment, care and opted-in health alerts. `acknowledge_notifications` records delivery IDs only after the assistant displays them; it cannot change care records or in-app read status. IDs stay stable until the event's content or timing stage changes. Routine snoozes and recorded outcomes are respected. Checks use actual Singapore time while preserving the saved reference clock. Health prompts use saved backend readings, retain demo-source labels, and replace stale measurements with an update prompt. General adult reference ranges and source links are included; this is not personalised clinical triage or emergency monitoring.
+
+Installing the plugin does not create a schedule. The bundled skill verifies the connection and helps users set up native Codex scheduled checks, Claude account scheduled tasks, or Claude Code's session `/loop`. Local checks need the host running; cloud task support depends on host capability, plan and plugin access. The export contains a private credential and includes `.gitignore` protection for MCP config files. Users must keep their personal download private.
+
 ## Run locally
 
 The current build was verified with Node.js 24. Install dependencies and build the shared package:

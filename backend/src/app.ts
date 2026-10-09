@@ -7,6 +7,13 @@ import { interpretBuddyMessage } from "./interpret.js";
 import { buildHealthSnapshot } from "./health.js";
 import { readHealthVitals } from "./healthVitals.js";
 import { getWeather } from "./weather.js";
+import { notificationMcp } from "./notificationMcp.js";
+import {
+  createConnection,
+  listConnections,
+  revokeConnection,
+} from "./notificationConnections.js";
+import { pluginFiles, zipFiles } from "./pluginBundle.js";
 import { TokenHubError, isTokenHubConfigured } from "./tokenHub.js";
 import { loadStateRow, listChats, ensureClientState } from "./db.js";
 
@@ -47,6 +54,9 @@ export function createApp() {
   );
   app.use(cors({ origin: true, credentials: true }));
   app.use(express.json({ limit: "512kb" }));
+  // This narrow MCP capability uses its own scoped bearer credential. All
+  // existing browser APIs below still require the browser access header.
+  app.all("/api/integrations/mcp", notificationMcp);
   app.get("/api/access", checkBrowserAccess);
   app.use("/api", (req, res, next) => {
     if (req.method === "GET" && ["/health", "/weather"].includes(req.path)) {
@@ -63,6 +73,48 @@ export function createApp() {
       return;
     }
     next();
+  });
+
+  app.get("/api/integrations", (_req, res) => {
+    res.json({ connections: listConnections(res.locals.clientId) });
+  });
+  app.post("/api/integrations/export", (req, res) => {
+    let connectionId: string | undefined;
+    try {
+      const { connection, token } = createConnection(
+        res.locals.clientId,
+        req.body,
+      );
+      connectionId = connection.id;
+      const archive = zipFiles(pluginFiles(connection, token));
+      res.set(
+        "Content-Disposition",
+        `attachment; filename="care-buddy-${connection.target}-plugin.zip"`,
+      );
+      res.type("application/zip").send(archive);
+    } catch (error) {
+      if (connectionId) revokeConnection(res.locals.clientId, connectionId);
+      res.status(connectionId ? 500 : 400).json({
+        error: connectionId
+          ? "The plugin could not be exported. Please try again."
+          : error instanceof Error
+            ? error.message
+            : "The plugin could not be exported.",
+      });
+    }
+  });
+  app.post("/api/integrations/:connectionId/revoke", (req, res) => {
+    if (req.body && Object.keys(req.body).length) {
+      res.status(400).json({ error: "This action accepts no care data." });
+      return;
+    }
+    if (!revokeConnection(res.locals.clientId, req.params.connectionId)) {
+      res
+        .status(404)
+        .json({ error: "This connection is no longer available." });
+      return;
+    }
+    res.json({ revoked: true });
   });
 
   app.get("/api/health", (_req, res) => {
@@ -187,11 +239,9 @@ export function createApp() {
     } catch (error) {
       if (error instanceof PersistenceError) apiError(res, error);
       else
-        res
-          .status(500)
-          .json({
-            error: "Health readings could not be loaded. Please try again.",
-          });
+        res.status(500).json({
+          error: "Health readings could not be loaded. Please try again.",
+        });
     }
   });
 

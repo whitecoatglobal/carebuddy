@@ -26,6 +26,7 @@ import { WeatherBanner } from "./WeatherBanner";
 import { SleepDetails } from "./SleepDetails";
 import { HealthCard } from "./HealthCard";
 import { HealthDetails } from "./HealthDetails";
+import { AssistantExport } from "./AssistantExport";
 import {
   BenefitBalance,
   BenefitClaims,
@@ -2294,6 +2295,13 @@ export default function App() {
               </span>
               <Icon name="arrow" />
             </button>
+            <button onClick={() => go("/integrations")}>
+              <span>
+                <Icon name="buddy" />
+                Connect your AI assistant
+              </span>
+              <Icon name="arrow" />
+            </button>
           </div>
         </div>
         <div className="settings-section">
@@ -3590,6 +3598,13 @@ export default function App() {
           renderBuddy()
         ) : path === "/settings" ? (
           renderSettings()
+        ) : path === "/integrations" ? (
+          <AssistantExport
+            clientId={clientId.current}
+            profiles={state.profiles}
+            selectedProfileId={state.selectedProfileId}
+            onBack={() => go("/settings")}
+          />
         ) : path === "/car" ? (
           renderCar()
         ) : path === "/care/gp" ? (
