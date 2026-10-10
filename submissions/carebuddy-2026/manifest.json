@@ -27,7 +27,7 @@
     "fonts/DM-Sans.ttf": "8cd08d97e89c24d0aa92edd2f0f4c8ee6195eee9b7c9f154865a58b02f0c1c0d",
     "fonts/Fraunces-OFL.txt": "bdf4c22802eaf804f998195871c6b8938aac2ac14b2d78a8bd66a6f1eced833b",
     "fonts/Fraunces.ttf": "177ff6c0f14e5550a3c624247cd1189611d4eb65d000b14944c63d967958abbb",
-    "index.html": "8cbb5dca0163e4c20faafb90f5709fc2eac932daa995110f736f88d96c1e7410"
+    "index.html": "58c1b545e62f906bbee94814e810a1e952fc87505baae30062cf50da4a32fcf7"
   },
   "submissionArchive": {
     "file": "CareBuddy-Submission-Pack.zip",
@@ -45,8 +45,8 @@
       "powerPoint": "../../presentations/CareBuddy-Launch.pptx",
       "pdf": "../../presentations/CareBuddy-Launch.pdf",
       "slides": 51,
-      "powerPointSha256": "f131f4a2ec0e4c05735769502fdaf430c5cc895d23f18740c5536a64adeb76f6",
-      "pdfSha256": "d7c94f1bca619205d99d261f63728161a058055e6a485417ae76187738bace7d",
+      "powerPointSha256": "4bd02a9f52426ff7f9677817300d6bcde2656cc04610d864381239c47ebb4b27",
+      "pdfSha256": "f9c48f62038dcfe420ce3768b7337342f62cf20c6fd0cfdd19c37136f4bda660",
       "originalFontsPreserved": true
     },
     "architecture": {
@@ -72,5 +72,19 @@
       "22-integrations-explained.png"
     ],
     "historicalCodeBuddyEvidenceUnchanged": true
+  },
+  "navigation": {
+    "landingCallToActions": [
+      "Try CareBuddy",
+      "Explore the demo",
+      "Explore CareBuddy"
+    ],
+    "videoPage": "https://carebuddy.life/submissions/carebuddy-2026/",
+    "interactiveDemo": "https://carebuddy.life/today",
+    "launchVideoSlide": 24,
+    "pdfVideoLinks": [
+      "Watch demo video",
+      "video poster"
+    ]
   }
 }

@@ -19,6 +19,8 @@ CareBuddy brings daily routines, family care, health records and an AI assistant
 | Complete submission | [Submission folder](submissions/carebuddy-2026/README.md) · [Download ZIP](submissions/carebuddy-2026/CareBuddy-Submission-Pack.zip) |
 | Logo assets | [Branding folder](public/branding/) |
 
+The landing page’s **Try CareBuddy** and **Explore the demo** buttons open the video walkthrough. Select **Open the interactive demo** on the video page to enter the app. The launch deck and PDF link to the same video page on slide 24.
+
 ## What the app does
 
 - **Today:** weather at the top, the next care task, daily progress and medication, hydration, movement and bedtime reminders. Unhealthy PSI adds a red “mask up” prompt; rain adds “bring umbrella”.

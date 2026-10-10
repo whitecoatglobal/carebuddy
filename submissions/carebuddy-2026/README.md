@@ -6,6 +6,8 @@ Short blurb: **Your AI companion for everyday and family care.** (Eight words.)
 
 The [public playback page](https://carebuddy.life/submissions/carebuddy-2026/) and [final MP4](https://carebuddy.life/submissions/carebuddy-2026/CareBuddy-Mobile-Demo-v3.mp4) use the approved CareBuddy logo. The 5:58 video shows portrait mobile app captures with captions beside them and original soft instrumental music. It contains no spoken narration.
 
+The landing page opens this walkthrough through **Try CareBuddy** and **Explore the demo**. The playback page’s **Open the interactive demo** link opens Today. Slide 24 of the launch PowerPoint and PDF links to the same playback page.
+
 ## Files
 
 - `public/`: the deployed playback HTML, version 3 video and poster, project cover, logo assets, colour palette, fonts and font licences. The unversioned video and poster filenames are relative symlinks to version 3.

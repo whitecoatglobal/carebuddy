@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const DEMO_URL = "/today";
+const DEMO_VIDEO_URL = "https://carebuddy.life/submissions/carebuddy-2026/";
 
 const people = {
   you: {
@@ -83,7 +83,7 @@ function Brand({ stacked = false }: { stacked?: boolean }) {
 
 function DemoLink({ children }: { children: string }) {
   return (
-    <a className="pill" href={DEMO_URL}>
+    <a className="pill" href={DEMO_VIDEO_URL}>
       {children} <span aria-hidden="true">→</span>
     </a>
   );
